@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft, Building2, UserRound, Check,
+  ArrowLeft, Building2, UserRound,
 } from 'lucide-react'
 import {
   Button, Divider, IconButton, Input, Select, SummaryListItem,
@@ -641,9 +641,6 @@ export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
                   error={err('telefon')} width="100%"
                 />
               </Cols>
-              <span style={{ ...typography.body12Regular, color: 'var(--t-textSecondary)' }}>
-                Po výběru osoby se e-mail a telefon předplní z jejího profilu - můžete je přepsat.
-              </span>
             </Card>
 
             <Card
@@ -759,7 +756,7 @@ export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <Button label="Zavřít" variant="outlined" size="md" onClick={zavrit} />
-            <Button label={isEdit ? 'Uložit změny' : 'Vytvořit HSP'} variant="primary" size="md" leadIcon={Check} onClick={ulozit} />
+            <Button label={isEdit ? 'Uložit změny' : 'Vytvořit HSP'} variant="primary" size="md" onClick={ulozit} />
           </div>
         </div>
       </div>
