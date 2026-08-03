@@ -3,7 +3,7 @@ import {
   Home, MessageCircle, Users, TrendingUp, FileText, CreditCard, Calendar,
   CheckSquare, ArrowUpRight, TrendingDown, ArrowRight,
 } from 'lucide-react'
-import { Avatar, Badge, TextButton } from '@matusgallo/mysabds'
+import { Avatar, Tag, TextButton } from '@matusgallo/mysabds'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
@@ -181,7 +181,7 @@ function SchuzkaRow({ s }: { s: typeof SCHUZKY[0] }) {
           <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--t-textPrimary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {s.nazev}
           </span>
-          <Badge label={s.cas} variant="outline" size="sm" />
+          <Tag label={s.cas} variant="outline" size="sm" />
         </div>
         <span style={{ fontSize: 12, color: 'var(--t-textSecondary)' }}>{s.klient}</span>
       </div>
@@ -206,8 +206,8 @@ function UkolRow({ u }: { u: typeof UKOLY[0] }) {
           {u.nazev}
         </span>
         <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-          <Badge label={u.termin} variant={terminVariant} size="sm" />
-          <Badge label={u.priorita} variant={priorityVariant} size="sm" />
+          <Tag label={u.termin} variant={terminVariant} size="sm" />
+          <Tag label={u.priorita} variant={priorityVariant} size="sm" />
         </div>
       </div>
     </div>
@@ -235,7 +235,7 @@ function PrilezitostRow({ p, onClick }: { p: typeof prilezitostiData[0]; onClick
           {klientName} · {p.makler}
         </span>
       </div>
-      <Badge
+      <Tag
         label={p.stavPrilezitosti}
         variant={p.stavPrilezitosti === 'Aktivní' ? 'success' : p.stavPrilezitosti === 'Prohlídka' ? 'info' : 'neutral'}
         size="sm"

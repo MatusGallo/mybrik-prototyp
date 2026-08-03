@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Badge } from '@matusgallo/mysabds'
+import { Tag } from '@matusgallo/mysabds'
 import ListPageShell from '../../components/shared/ListPageShell'
 import DataTable from '../../components/shared/DataTable'
 import PageFilterBar from '../../components/shared/PageFilterBar'
@@ -23,12 +23,12 @@ const cols = [
   { key: 'typObjektu', label: 'Typ objektu', width: 110, render: (r: Record<string, unknown>) => {
     const v = String(r.typObjektu ?? '')
     if (!v) return null
-    return <Badge label={v} variant="outline" size="sm" />
+    return <Tag label={v} variant="outline" size="sm" />
   }},
   { key: 'typNemovitosti', label: 'Typ nemovitosti', width: 130, render: (r: Record<string, unknown>) => {
     const v = String(r.typNemovitosti ?? '')
     if (!v) return null
-    return <Badge label={v} variant="outline" size="sm" />
+    return <Tag label={v} variant="outline" size="sm" />
   }},
   { key: 'makler', label: 'Makléř', width: 240, flex: true, render: renderAvatarName('makler') },
   { key: 'pobocka', label: 'Pobočka', width: 240, flex: true },

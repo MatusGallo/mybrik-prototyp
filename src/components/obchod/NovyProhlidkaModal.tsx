@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
-import { IconButton, Button, TextField, Select, TextArea } from '@matusgallo/mysabds'
+import { IconButton, Button, Input, Select, TextArea } from '@matusgallo/mysabds'
 
 const DAYS_OF_WEEK = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne']
 const MONTHS_CS = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec']
@@ -150,7 +150,7 @@ export default function NovyProhlidkaModal({ onClose }: Props) {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <Select label="Délka prohlídky" options={DELKA_OPT} value={delka} onChange={setDelka} width="100%" />
-                <TextField label="Čas prohlídky" value={cas} onChange={setCas} width="100%" />
+                <Input label="Čas prohlídky" value={cas} onChange={setCas} width="100%" />
                 <Select label="Pozvánka pro klienta" options={POZVANKA_OPT} value={pozvanka} onChange={setPozvanka} width="100%" />
               </div>
             </div>

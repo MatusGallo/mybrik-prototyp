@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Phone, Mail } from 'lucide-react'
-import { Avatar, Badge } from '@matusgallo/mysabds'
+import { Avatar, Tag } from '@matusgallo/mysabds'
 import ListPageShell from '../../components/shared/ListPageShell'
 import DataTable from '../../components/shared/DataTable'
 import PageFilterBar from '../../components/shared/PageFilterBar'
@@ -50,13 +50,13 @@ const cols = [
     const typ = String(r.typKontaktu ?? '')
     const Icon = typ === 'Telefon' ? Phone : typ === 'E-mail' ? Mail : null
     if (!typ) return null
-    return <Badge label={typ} variant="neutral" size="sm" lead={Icon ? 'icon' : 'none'} icon={Icon ?? undefined} />
+    return <Tag label={typ} variant="neutral" size="sm" lead={Icon ? 'icon' : 'none'} icon={Icon ?? undefined} />
   }},
   { key: 'ucelKontaktu', label: 'Účel kontaktu', width: 150 },
   { key: 'stavPrilezitosti', label: 'Stav příležitosti', width: 148, render: (r: Record<string, unknown>) => {
     const stav = String(r.stavPrilezitosti ?? '')
     if (!stav) return null
-    return <Badge label={stav} variant={stavPrilezitostiVariant(stav)} size="sm" />
+    return <Tag label={stav} variant={stavPrilezitostiVariant(stav)} size="sm" />
   }},
   { key: 'stavProhlidky', label: 'Stav prohlídky', width: 150 },
   { key: 'zdroj', label: 'Zdroj', width: 160 },

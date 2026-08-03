@@ -7,7 +7,7 @@ const BrandCheck = forwardRef<SVGSVGElement, LucideProps>((props, ref) => (
 )) as LucideIcon
 import {
   FilterButton, FilterSelect, FilterIconButton,
-  Tag, TextButton, Search,
+  Chip, TextButton, Search,
   Menu, MenuItem, MenuDivider,
 } from '@matusgallo/mysabds'
 import { DateField, TextInputField } from '../shared/FilterDropdown'
@@ -253,6 +253,7 @@ export default function NabidkyFilterBar({ onChange, hasData = true, hiddenCols,
           <div style={{ position: 'relative' }}>
             <FilterIconButton
               icon={Columns3Cog}
+              tooltip="Nastavit sloupce"
               active={open === 'columns'}
               onClick={() => toggleDropdown('columns')}
             />
@@ -305,7 +306,7 @@ export default function NabidkyFilterBar({ onChange, hasData = true, hiddenCols,
                   : 'tagEnter 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both',
               }}
             >
-              <Tag label={tag.label} size="sm" onDismiss={() => handleDismiss(tag.key)} />
+              <Chip label={tag.label} size="sm" onDismiss={() => handleDismiss(tag.key)} />
             </div>
           ))}
           <div style={{ marginLeft: 4 }}>

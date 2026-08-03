@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Search as SearchIcon, Eye, Plus } from 'lucide-react'
-import { IconButton, Breadcrumbs, LineTabGroup, TextButton, Badge, TableHeaderCell, TableCell, Avatar } from '@matusgallo/mysabds'
+import { IconButton, Breadcrumbs, LineTabGroup, TextButton, Tag, TableHeaderCell, TableCell, Avatar } from '@matusgallo/mysabds'
 import { leadData, prilezitostiData } from '../../data/mockObchod'
 import { initials, avatarColor } from '../../utils/renderAvatarName'
 import DetailParuModal, { type ParRow } from '../../components/obchod/DetailParuModal'
@@ -67,7 +67,7 @@ function StavBadge({ stav }: { stav: string }) {
   const variant: 'success' | 'danger' | 'neutral' =
     stav === 'Aktivní'    ? 'success' :
     stav === 'Expirovaný' ? 'danger'  : 'neutral'
-  return <Badge label={stav} variant={variant} size="sm" lead="indicator" />
+  return <Tag label={stav} variant={variant} size="sm" lead="indicator" />
 }
 
 function AvatarText({ name }: { name: string }) {
@@ -193,7 +193,7 @@ export default function LeadDetailPage() {
                       { key: 'plocha',     label: 'Plocha',     width: 80,  align: 'right', render: () => <span style={{ fontSize: 14, color: 'var(--t-textPrimary)' }}>55</span> },
                       { key: 'cena',       label: 'Cena',       width: 140, align: 'right', render: () => <span style={{ fontSize: 14, color: 'var(--t-textPrimary)' }}>{fmtCena(5490000)}</span> },
                       { key: 'datumPosledniZmeny', label: 'Poslední aktivita', width: 160 },
-                      { key: 'stavPrilezitosti', label: 'Stav', width: 110, render: r => <Badge label={String(r.stavPrilezitosti)} variant="success" size="sm" lead="indicator" /> },
+                      { key: 'stavPrilezitosti', label: 'Stav', width: 110, render: r => <Tag label={String(r.stavPrilezitosti)} variant="success" size="sm" lead="indicator" /> },
                     ]}
                     rows={prilezitostiZleadu as unknown as Record<string, unknown>[]}
                     onRowClick={(row) => window.open(`/obchod/prilezitosti/${row.id}`, '_blank')}
@@ -236,7 +236,7 @@ export default function LeadDetailPage() {
             <SideSection title="Status leadu">
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 24 }}>
                 <span style={{ fontSize: 13, color: 'var(--t-textSecondary)', width: 140, flexShrink: 0 }}>Stav</span>
-                <Badge label="Aktivní" variant="brand" size="sm" />
+                <Tag label="Aktivní" variant="brand" size="sm" />
               </div>
               <SidebarRow label="Poslední aktivita" value={lead.datumVytvoreni} />
               <SidebarRow label="Vytvořeno" value={lead.datumVytvoreni} />
@@ -335,7 +335,7 @@ function SimpleTable({ cols, rows, rowActions, onRowClick }: { cols: SimpleColDe
                 ) : (
                   <TableCell
                     key={c.key}
-                    size="lg"
+                    size="spacious"
                     width={c.width}
                     hovered={hovered}
                     borderBottom

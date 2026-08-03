@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Search, X } from 'lucide-react'
-import { CheckboxItem, Tag } from '@matusgallo/mysabds'
+import { CheckboxItem, Chip } from '@matusgallo/mysabds'
 import { stavyNabidky } from '../../data/mockData'
 
 export interface NabidkyFilterValues {
@@ -171,7 +171,7 @@ function FilterInput({ label, value, onChange, type = 'text', tagValue, onClearT
       <p className="text-[11px] font-semibold text-[var(--t-textTertiary)] uppercase tracking-wide mb-1">{label}</p>
       {tagValue && onClearTag ? (
         <div className="min-h-[36px] flex flex-wrap gap-1 p-1.5 rounded-md border border-[var(--t-borderPrimary)] bg-[var(--t-bgPrimary)]">
-          <Tag label={tagValue} onDismiss={onClearTag} size="sm" />
+          <Chip label={tagValue} onDismiss={onClearTag} size="sm" />
         </div>
       ) : (
         <input

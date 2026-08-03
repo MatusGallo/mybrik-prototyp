@@ -1,6 +1,6 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { Lock } from 'lucide-react'
-import { TextField, Button } from '@matusgallo/mysabds'
+import { Input, Button } from '@matusgallo/mysabds'
 
 const PASSWORD = 'myBRIK2026'
 const STORAGE_KEY = 'mybrik-auth'
@@ -73,7 +73,7 @@ export default function PasswordGate({ children }: { children: ReactNode }) {
         </div>
 
         <div style={{ width: '100%' }}>
-          <TextField
+          <Input
             label="Heslo"
             type="password"
             value={password}

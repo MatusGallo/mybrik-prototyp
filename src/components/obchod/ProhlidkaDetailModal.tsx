@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import { IconButton, Button, Badge } from '@matusgallo/mysabds'
+import { IconButton, Button, Tag } from '@matusgallo/mysabds'
 
 const MOCK_HISTORY = [
   { autor: 'Michaela Flachsová', datum: '31.07.2025 09:14', poznamka: 'Dobrý den, posílám pozvánku na prohlídku. Díky' },
@@ -68,7 +68,7 @@ export default function ProhlidkaDetailModal({ p, onClose }: Props) {
             {/* Meta */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
-                { label: 'Stav', content: <Badge label={p.stav} variant={stavVariant(p.stav)} size="sm" /> },
+                { label: 'Stav', content: <Tag label={p.stav} variant={stavVariant(p.stav)} size="sm" /> },
                 { label: 'Řešitel', content: p.resitel || '—' },
                 { label: 'Termín prohlídky', content: p.termin },
                 { label: 'Délka prohlídky', content: p.delka },

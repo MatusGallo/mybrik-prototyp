@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Folder, FolderOpen, File, Search, Plus, CloudUpload, CloudDownload, Upload, SlidersHorizontal, MoreHorizontal, Pencil, Trash, ChevronRight, X } from 'lucide-react'
-import { Button, IconButton, Menu, MenuItem, Breadcrumbs, Form, TextField, Select } from '@matusgallo/mysabds'
+import { Button, IconButton, Menu, MenuItem, Breadcrumbs, Form, Input, Select } from '@matusgallo/mysabds'
 import { dokumentySoubory } from '../data/mockOstatni'
 
 interface FolderNode {
@@ -403,7 +403,7 @@ export default function DokumentyPage() {
               <IconButton icon={X} variant="ghost" size="md" onClick={() => setNewFolderOpen(false)} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 24 }}>
-              <TextField
+              <Input
                 label="Název"
                 value={newFolderName}
                 onChange={setNewFolderName}

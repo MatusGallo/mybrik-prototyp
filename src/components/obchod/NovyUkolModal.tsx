@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import { IconButton, Button, TextField, TextArea, Select, ToggleItem } from '@matusgallo/mysabds'
+import { IconButton, Button, Input, TextArea, Select, ToggleItem } from '@matusgallo/mysabds'
 import { uzivateleData } from '../../data/mockOstatni'
 
 const RESITEL_OPT = uzivateleData
@@ -53,14 +53,14 @@ export default function NovyUkolModal({ defaultResitel, onClose }: Props) {
           </div>
 
           <div style={{ padding: '0 24px 20px', display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto' }}>
-            <TextField label="Název" required value={nazev} onChange={setNazev} placeholder="Zadejte název úkolu" width="100%" />
+            <Input label="Název" required value={nazev} onChange={setNazev} placeholder="Zadejte název úkolu" width="100%" />
             <TextArea label="Popis úkolu" required value={popis} onChange={setPopis} placeholder="Zadejte popis úkolu" width="100%" minHeight={120} />
-            <TextField label="Termín" required value={termin} onChange={setTermin} placeholder="Např. 01.05.2026 09:00" width="100%" />
+            <Input label="Termín" required value={termin} onChange={setTermin} placeholder="Např. 01.05.2026 09:00" width="100%" />
             <Select label="Řešitel" required options={RESITEL_OPT} value={resitel} onChange={setResitel} width="100%" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <ToggleItem label="Připomínka" position="right" checked={pripomenuti} onChange={setPripomenuti} />
               {pripomenuti && (
-                <TextField
+                <Input
                   label="Datum a čas připomínky"
                   value={datumPripomenuti}
                   onChange={setDatumPripomenuti}

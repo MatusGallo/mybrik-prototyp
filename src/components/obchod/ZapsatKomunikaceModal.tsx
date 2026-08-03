@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Phone, Mail, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { IconButton, Button, TextField, TextArea, RadioItem } from '@matusgallo/mysabds'
+import { IconButton, Button, Input, TextArea, RadioItem } from '@matusgallo/mysabds'
 
 type KomunikaceTyp = 'telefon' | 'email' | 'osobne'
 
@@ -78,7 +78,7 @@ export default function ZapsatKomunikaceModal({ onClose }: Props) {
           <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <TextField label="Název" required value={nazev} onChange={setNazev} width="100%" />
+              <Input label="Název" required value={nazev} onChange={setNazev} width="100%" />
 
               <div>
                 <span style={{ fontSize: 13, color: 'var(--t-textSecondary)', display: 'block', marginBottom: 8 }}>
@@ -110,7 +110,7 @@ export default function ZapsatKomunikaceModal({ onClose }: Props) {
               </div>
 
               <div style={{ width: '50%' }}>
-                <TextField label="Datum a čas komunikace" required value={datum} onChange={setDatum} width="100%" />
+                <Input label="Datum a čas komunikace" required value={datum} onChange={setDatum} width="100%" />
               </div>
 
               <TextArea label="Poznámka" value={poznamka} onChange={setPoznamka} placeholder="Poznámka" width="100%" minHeight={120} />

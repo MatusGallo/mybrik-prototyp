@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Form, TextField, TextArea, Select, CheckboxItem, Radio, Badge, Toggle, IconButton,
+  Form, Input, TextArea, Select, CheckboxItem, Radio, Tag, Toggle, IconButton,
 } from '@matusgallo/mysabds'
 import { X } from 'lucide-react'
 import ConfirmDialog from '../shared/ConfirmDialog'
@@ -10,8 +10,10 @@ export type UzivatelPanelMode = 'detail' | 'edit'
 
 export interface UzivatelData {
   id: number
+  titulPred: string
   jmeno: string
   prijmeni: string
+  telefon: string
   osobniEmail: string
   firemnEmail: string
   hsp: string
@@ -57,7 +59,9 @@ const G4: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(
 
 const STAV_OPT: { value: string; label: string }[] = [
   { value: 'Aktivní', label: 'Aktivní' },
+  { value: 'Pozvánka odeslána', label: 'Pozvánka odeslána' },
   { value: 'Neaktivní', label: 'Neaktivní' },
+  { value: 'Blokován', label: 'Blokován' },
 ]
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -75,7 +79,7 @@ function BadgeRow({ label, value }: { label: string; value?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', minHeight: 28 }}>
       <span style={{ width: 200, flexShrink: 0, fontSize: 14, color: 'var(--t-textSecondary)' }}>{label}</span>
-      <Badge
+      <Tag
         label={value || '–'}
         variant={value === 'Aktivní' || value === 'Ano' ? 'success' : 'neutral'}
         size="sm"
@@ -138,8 +142,10 @@ export default function UzivatelPanel({ mode, uzivatel, onClose, onEdit }: Props
     <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column' }}>
       <div style={WIDGET}>
         <span style={HEADING}>Základní údaje</span>
+        <InfoRow label="Titul před jménem" value={uzivatel?.titulPred} />
         <InfoRow label="Jméno" value={uzivatel?.jmeno} />
         <InfoRow label="Příjmení" value={uzivatel?.prijmeni} />
+        <InfoRow label="Telefon" value={uzivatel?.telefon} />
         <InfoRow label="Osobní e-mail" value={uzivatel?.osobniEmail} />
         <InfoRow label="Firemní e-mail" value={uzivatel?.firemnEmail} />
       </div>
@@ -204,11 +210,11 @@ export default function UzivatelPanel({ mode, uzivatel, onClose, onEdit }: Props
       <div style={WIDGET}>
         <span style={HEADING}>Přihlašovací údaje *</span>
         <div style={{ width: '50%' }}>
-          <TextField label="Firemní e-mail" required value={firemnEmail} onChange={setFiremnEmail} width="100%" />
+          <Input label="Firemní e-mail" required value={firemnEmail} onChange={setFiremnEmail} width="100%" />
         </div>
         <div style={G2}>
-          <TextField label="Heslo" placeholder="Heslo" width="100%" />
-          <TextField label="Heslo znova" placeholder="Heslo znova" width="100%" />
+          <Input label="Heslo" placeholder="Heslo" width="100%" />
+          <Input label="Heslo znova" placeholder="Heslo znova" width="100%" />
         </div>
       </div>
 
@@ -216,19 +222,19 @@ export default function UzivatelPanel({ mode, uzivatel, onClose, onEdit }: Props
       <div style={WIDGET}>
         <span style={HEADING}>Základní údaje *</span>
         <div style={G4}>
-          <TextField label="Jméno" required value={jmeno} onChange={setJmeno} width="100%" />
-          <TextField label="Příjmení" required value={prijmeni} onChange={setPrijmeni} width="100%" />
-          <TextField label="Titul před jménem" placeholder="Titul před jménem" width="100%" />
-          <TextField label="Titul za jménem" placeholder="Titul za jménem" width="100%" />
+          <Input label="Jméno" required value={jmeno} onChange={setJmeno} width="100%" />
+          <Input label="Příjmení" required value={prijmeni} onChange={setPrijmeni} width="100%" />
+          <Input label="Titul před jménem" placeholder="Titul před jménem" width="100%" />
+          <Input label="Titul za jménem" placeholder="Titul za jménem" width="100%" />
         </div>
         <div style={G2}>
-          <TextField label="Osobní e-mail" required value={osobniEmail} onChange={setOsobniEmail} width="100%" />
-          <TextField label="Telefon" required placeholder="+420" width="100%" />
+          <Input label="Osobní e-mail" required value={osobniEmail} onChange={setOsobniEmail} width="100%" />
+          <Input label="Telefon" required placeholder="+420" width="100%" />
         </div>
         <div style={G3}>
-          <TextField label="Datum narození" required placeholder="DD/MM/RRRR" width="100%" />
-          <TextField label="Rodné číslo" required placeholder="XXXXXX/XXXX" width="100%" />
-          <TextField label="Číslo občanského průkazu" required width="100%" />
+          <Input label="Datum narození" required placeholder="DD/MM/RRRR" width="100%" />
+          <Input label="Rodné číslo" required placeholder="XXXXXX/XXXX" width="100%" />
+          <Input label="Číslo občanského průkazu" required width="100%" />
         </div>
       </div>
 
@@ -236,13 +242,13 @@ export default function UzivatelPanel({ mode, uzivatel, onClose, onEdit }: Props
       <div style={WIDGET}>
         <span style={HEADING}>Trvalé bydliště *</span>
         <div style={G3}>
-          <TextField label="Ulice" required width="100%" />
-          <TextField label="Č.p." required width="100%" />
-          <TextField label="Č.o." width="100%" />
+          <Input label="Ulice" required width="100%" />
+          <Input label="Č.p." required width="100%" />
+          <Input label="Č.o." width="100%" />
         </div>
         <div style={G2}>
-          <TextField label="Město" required width="100%" />
-          <TextField label="PSČ" required width="100%" />
+          <Input label="Město" required width="100%" />
+          <Input label="PSČ" required width="100%" />
         </div>
       </div>
 
@@ -251,23 +257,23 @@ export default function UzivatelPanel({ mode, uzivatel, onClose, onEdit }: Props
         <div style={WIDGET}>
           <span style={HEADING}>Fakturační údaje neplátce DPH *</span>
           <div style={G3}>
-            <TextField label="Obchodní název" required width="100%" />
-            <TextField label="IČ" required width="100%" />
-            <TextField label="DIČ" width="100%" />
+            <Input label="Obchodní název" required width="100%" />
+            <Input label="IČ" required width="100%" />
+            <Input label="DIČ" width="100%" />
           </div>
           <div style={G3}>
-            <TextField label="Ulice" required width="100%" />
-            <TextField label="Č.p." required width="100%" />
-            <TextField label="Č.o." width="100%" />
+            <Input label="Ulice" required width="100%" />
+            <Input label="Č.p." required width="100%" />
+            <Input label="Č.o." width="100%" />
           </div>
           <div style={G2}>
-            <TextField label="Město" required width="100%" />
-            <TextField label="PSČ" required width="100%" />
+            <Input label="Město" required width="100%" />
+            <Input label="PSČ" required width="100%" />
           </div>
           <div style={G3}>
-            <TextField label="Předčíslí účtu" width="100%" />
-            <TextField label="Číslo účtu" width="100%" />
-            <TextField label="Kód banky" width="100%" />
+            <Input label="Předčíslí účtu" width="100%" />
+            <Input label="Číslo účtu" width="100%" />
+            <Input label="Kód banky" width="100%" />
           </div>
         </div>
       )}
@@ -277,7 +283,7 @@ export default function UzivatelPanel({ mode, uzivatel, onClose, onEdit }: Props
         <span style={HEADING}>Pozice *</span>
         <div style={G2}>
           <Select label="Nadřízený" required options={[]} width="100%" />
-          <TextField label="Provize" placeholder="0" width="100%" />
+          <Input label="Provize" placeholder="0" width="100%" />
         </div>
         <CheckboxItem label="Zobrazovat na webu" checked={zobrazovat} onChange={setZobrazovat} />
       </div>
@@ -318,13 +324,13 @@ export default function UzivatelPanel({ mode, uzivatel, onClose, onEdit }: Props
           <div style={{ minWidth: 220 }}>
             <CheckboxItem label="Zkouška Realitní zprost." checked={zkouskaRZ} onChange={setZkouskaRZ} />
           </div>
-          {zkouskaRZ && <TextField label="Datum splnění zkoušky" required placeholder="DD/MM/RRRR" width="100%" />}
+          {zkouskaRZ && <Input label="Datum splnění zkoušky" required placeholder="DD/MM/RRRR" width="100%" />}
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24 }}>
           <div style={{ minWidth: 220 }}>
             <CheckboxItem label="Pojištění" checked={pojisteni} onChange={setPojisteni} />
           </div>
-          {pojisteni && <TextField label="Pojištění expirace" required placeholder="DD/MM/RRRR" width="100%" />}
+          {pojisteni && <Input label="Pojištění expirace" required placeholder="DD/MM/RRRR" width="100%" />}
         </div>
       </div>
 
@@ -335,7 +341,7 @@ export default function UzivatelPanel({ mode, uzivatel, onClose, onEdit }: Props
           Pokud je top nastaven na 0 nebo je prázdný, tak nelze topovat.
         </p>
         <div style={{ width: '25%' }}>
-          <TextField label="Počet topování" placeholder="1" width="100%" />
+          <Input label="Počet topování" placeholder="1" width="100%" />
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
-import { IconButton, Button, TextField, TextArea, Select } from '@matusgallo/mysabds'
+import { IconButton, Button, Input, TextArea, Select } from '@matusgallo/mysabds'
 
 export interface UhradaFormData {
   datum: string
@@ -126,7 +126,7 @@ function DatePickerField({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-      <div style={{ fontSize: 14, fontWeight: 500, lineHeight: '20px', color: 'var(--t-textSecondary)', marginBottom: 6 }}>
+      <div style={{ fontSize: 14, fontWeight: 500, lineHeight: '20px', color: 'var(--t-textSecondary)', marginBottom: 4 }}>
         {label}{required && <span style={{ color: 'var(--t-textDangerPrimary, #DC2626)' }}> *</span>}
       </div>
       <button
@@ -135,7 +135,7 @@ function DatePickerField({
         onClick={() => setOpen(o => !o)}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-          height: 40, padding: '0 12px',
+          height: 32, padding: '0 12px',
           background: 'var(--t-bgPrimary)',
           border: `1px solid ${borderColor}`,
           borderRadius: 8,
@@ -327,7 +327,7 @@ export default function PridatUhraduModal({ onClose, onSave, predpisDatum, defau
                 onChange={setForma}
                 width="100%"
               />
-              <TextField
+              <Input
                 label="Částka"
                 required
                 value={castka}

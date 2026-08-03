@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { CloudUpload, X } from 'lucide-react'
-import { Form, TextField, TextArea, Select, ToggleItem, IconButton } from '@matusgallo/mysabds'
-import { hspData } from '../../data/mockOstatni'
+import { Form, Input, TextArea, Select, ToggleItem, IconButton } from '@matusgallo/mysabds'
+import { hspData, pobockyData } from '../../data/mockOstatni'
 
 export type PobockaPanelMode = 'detail' | 'edit' | 'create'
 
@@ -9,10 +9,13 @@ export interface PobockaData {
   id: number
   nazev: string
   oficialniNazev: string
+  adresa: string
   oteviraci: string
   telefon: string
   email: string
   hsp: string
+  odpovednaOsoba: string
+  stav: string
   zobrazitNaWebu: boolean
   popis: string
   sreality_id: string; sreality_hash: string; sreality_klic: string; sreality_idMaklere: string
@@ -35,8 +38,8 @@ interface PobockaPanelProps {
 }
 
 const EMPTY: Partial<PobockaData> = {
-  nazev: '', oficialniNazev: '', oteviraci: '', telefon: '+420', email: '', hsp: '',
-  zobrazitNaWebu: false, popis: '',
+  nazev: '', oficialniNazev: '', adresa: '', oteviraci: '', telefon: '+420', email: '', hsp: '',
+  odpovednaOsoba: '', stav: 'Připravuje se', zobrazitNaWebu: false, popis: '',
   sreality_id: '', sreality_hash: '', sreality_klic: '', sreality_idMaklere: '',
   realityMix_id: '', realityMix_heslo: '', realityMix_klic: '',
   bazos_jmeno: '', bazos_heslo: '',
@@ -49,6 +52,12 @@ const EMPTY: Partial<PobockaData> = {
 }
 
 const HSP_OPTIONS = hspData.map(h => ({ value: h.nazev, label: h.nazev }))
+
+const STAV_OPTIONS = ['Aktivní', 'Připravuje se', 'Neaktivní', 'Zrušena'].map(s => ({ value: s, label: s }))
+
+const OSOBA_OPTIONS = [...new Set(pobockyData.map(p => p.odpovednaOsoba))]
+  .sort((a, b) => a.localeCompare(b, 'cs'))
+  .map(o => ({ value: o, label: o }))
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -169,10 +178,13 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
         <CardTitle title="Základní informace" />
         <Row label="Název pobočky"   value={pobocka?.nazev} />
         <Row label="Officiální název" value={pobocka?.oficialniNazev} />
+        <Row label="Adresa"          value={pobocka?.adresa} />
         <Row label="Otevírací doba"  value={pobocka?.oteviraci} />
         <Row label="Telefonní číslo" value={pobocka?.telefon} />
         <Row label="E-mail"          value={pobocka?.email} />
         <Row label="HSP"             value={pobocka?.hsp} />
+        <Row label="Odpovědná osoba" value={pobocka?.odpovednaOsoba} />
+        <Row label="Stav"            value={pobocka?.stav} />
         <Row label="Zobrazit na webu" value={pobocka?.zobrazitNaWebu ? 'Ano' : 'Ne'} />
       </Card>
 
@@ -253,17 +265,22 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
       <Card>
         <CardTitle title="Základní informace" />
         <TwoCol>
-          <TextField label="Název pobočky" required value={String(form.nazev ?? '')} onChange={v => set('nazev', v)} width="100%" />
-          <TextField label="Officiální název" value={String(form.oficialniNazev ?? '')} onChange={v => set('oficialniNazev', v)} width="100%" />
+          <Input label="Název pobočky" required value={String(form.nazev ?? '')} onChange={v => set('nazev', v)} width="100%" />
+          <Input label="Officiální název" value={String(form.oficialniNazev ?? '')} onChange={v => set('oficialniNazev', v)} width="100%" />
         </TwoCol>
         <TwoCol>
-          <TextField label="Otevírací doba" value={String(form.oteviraci ?? '')} onChange={v => set('oteviraci', v)} width="100%" />
-          <TextField label="Telefonní číslo" required value={String(form.telefon ?? '')} onChange={v => set('telefon', v)} width="100%" />
+          <Input label="Adresa" required value={String(form.adresa ?? '')} onChange={v => set('adresa', v)} width="100%" />
+          <Input label="Otevírací doba" value={String(form.oteviraci ?? '')} onChange={v => set('oteviraci', v)} width="100%" />
         </TwoCol>
         <TwoCol>
-          <TextField label="E-mail" required value={String(form.email ?? '')} onChange={v => set('email', v)} width="100%" />
+          <Input label="Telefonní číslo" required value={String(form.telefon ?? '')} onChange={v => set('telefon', v)} width="100%" />
+          <Input label="E-mail" required value={String(form.email ?? '')} onChange={v => set('email', v)} width="100%" />
+        </TwoCol>
+        <TwoCol>
           <Select label="HSP" required placeholder="Vybrat HSP" value={String(form.hsp ?? '')} onChange={v => set('hsp', v)} options={HSP_OPTIONS} width="100%" />
+          <Select label="Odpovědná osoba" required placeholder="Vybrat odpovědnou osobu" value={String(form.odpovednaOsoba ?? '')} onChange={v => set('odpovednaOsoba', v)} options={OSOBA_OPTIONS} width="100%" />
         </TwoCol>
+        <Select label="Stav" required placeholder="Vybrat stav" value={String(form.stav ?? '')} onChange={v => set('stav', v)} options={STAV_OPTIONS} width="100%" />
         <ToggleItem
           label="Zobrazit na webu"
           checked={Boolean(form.zobrazitNaWebu)}
@@ -292,12 +309,12 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
         {exportToggles.sreality && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <TwoCol>
-              <TextField label="ID pobočky na Sreality" value={String(form.sreality_id ?? '')} onChange={v => set('sreality_id', v)} width="100%" />
-              <TextField label="Hash pobočky pro přihlášení" value={String(form.sreality_hash ?? '')} onChange={v => set('sreality_hash', v)} width="100%" />
+              <Input label="ID pobočky na Sreality" value={String(form.sreality_id ?? '')} onChange={v => set('sreality_id', v)} width="100%" />
+              <Input label="Hash pobočky pro přihlášení" value={String(form.sreality_hash ?? '')} onChange={v => set('sreality_hash', v)} width="100%" />
             </TwoCol>
             <TwoCol>
-              <TextField label="Klíč pobočky pro přihlášení" value={String(form.sreality_klic ?? '')} onChange={v => set('sreality_klic', v)} width="100%" />
-              <TextField label="ID makléře zastupujícího Callcentrum" value={String(form.sreality_idMaklere ?? '')} onChange={v => set('sreality_idMaklere', v)} width="100%" />
+              <Input label="Klíč pobočky pro přihlášení" value={String(form.sreality_klic ?? '')} onChange={v => set('sreality_klic', v)} width="100%" />
+              <Input label="ID makléře zastupujícího Callcentrum" value={String(form.sreality_idMaklere ?? '')} onChange={v => set('sreality_idMaklere', v)} width="100%" />
             </TwoCol>
           </div>
         )}
@@ -307,10 +324,10 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
         {exportToggles.realityMix && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <TwoCol>
-              <TextField label="ID na realtymix" value={String(form.realityMix_id ?? '')} onChange={v => set('realityMix_id', v)} width="100%" />
-              <TextField label="Přihlašovací heslo" value={String(form.realityMix_heslo ?? '')} onChange={v => set('realityMix_heslo', v)} width="100%" />
+              <Input label="ID na realtymix" value={String(form.realityMix_id ?? '')} onChange={v => set('realityMix_id', v)} width="100%" />
+              <Input label="Přihlašovací heslo" value={String(form.realityMix_heslo ?? '')} onChange={v => set('realityMix_heslo', v)} width="100%" />
             </TwoCol>
-            <TextField label="Klíč" value={String(form.realityMix_klic ?? '')} onChange={v => set('realityMix_klic', v)} width="100%" />
+            <Input label="Klíč" value={String(form.realityMix_klic ?? '')} onChange={v => set('realityMix_klic', v)} width="100%" />
           </div>
         )}
 
@@ -318,8 +335,8 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
         <ExportSectionHeader label="Bazoš.cz" active={exportToggles.bazos} onToggle={v => toggleExport('bazos', v)} />
         {exportToggles.bazos && (
           <TwoCol>
-            <TextField label="Přihlašovací jméno" value={String(form.bazos_jmeno ?? '')} onChange={v => set('bazos_jmeno', v)} width="100%" />
-            <TextField label="Přihlašovací heslo" value={String(form.bazos_heslo ?? '')} onChange={v => set('bazos_heslo', v)} width="100%" />
+            <Input label="Přihlašovací jméno" value={String(form.bazos_jmeno ?? '')} onChange={v => set('bazos_jmeno', v)} width="100%" />
+            <Input label="Přihlašovací heslo" value={String(form.bazos_heslo ?? '')} onChange={v => set('bazos_heslo', v)} width="100%" />
           </TwoCol>
         )}
 
@@ -328,10 +345,10 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
         {exportToggles.realingo && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <TwoCol>
-              <TextField label="ID na realingo" value={String(form.realingo_id ?? '')} onChange={v => set('realingo_id', v)} width="100%" />
-              <TextField label="Přihlašovací heslo" value={String(form.realingo_heslo ?? '')} onChange={v => set('realingo_heslo', v)} width="100%" />
+              <Input label="ID na realingo" value={String(form.realingo_id ?? '')} onChange={v => set('realingo_id', v)} width="100%" />
+              <Input label="Přihlašovací heslo" value={String(form.realingo_heslo ?? '')} onChange={v => set('realingo_heslo', v)} width="100%" />
             </TwoCol>
-            <TextField label="Klíč" value={String(form.realingo_klic ?? '')} onChange={v => set('realingo_klic', v)} width="100%" />
+            <Input label="Klíč" value={String(form.realingo_klic ?? '')} onChange={v => set('realingo_klic', v)} width="100%" />
           </div>
         )}
 
@@ -340,12 +357,12 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
         {exportToggles.idnes && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <TwoCol>
-              <TextField label="Přihl. jméno k API" value={String(form.idnes_jmenoApi ?? '')} onChange={v => set('idnes_jmenoApi', v)} width="100%" />
-              <TextField label="Přihl. heslo k API" value={String(form.idnes_hesloApi ?? '')} onChange={v => set('idnes_hesloApi', v)} width="100%" />
+              <Input label="Přihl. jméno k API" value={String(form.idnes_jmenoApi ?? '')} onChange={v => set('idnes_jmenoApi', v)} width="100%" />
+              <Input label="Přihl. heslo k API" value={String(form.idnes_hesloApi ?? '')} onChange={v => set('idnes_hesloApi', v)} width="100%" />
             </TwoCol>
             <TwoCol>
-              <TextField label="Přihl. jméno k FTP" value={String(form.idnes_jmenoFtp ?? '')} onChange={v => set('idnes_jmenoFtp', v)} width="100%" />
-              <TextField label="Přihl. heslo k FTP" value={String(form.idnes_hesloFtp ?? '')} onChange={v => set('idnes_hesloFtp', v)} width="100%" />
+              <Input label="Přihl. jméno k FTP" value={String(form.idnes_jmenoFtp ?? '')} onChange={v => set('idnes_jmenoFtp', v)} width="100%" />
+              <Input label="Přihl. heslo k FTP" value={String(form.idnes_hesloFtp ?? '')} onChange={v => set('idnes_hesloFtp', v)} width="100%" />
             </TwoCol>
           </div>
         )}
@@ -355,10 +372,10 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
         {exportToggles.ceskeReality && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <TwoCol>
-              <TextField label="ID na ceskychrealtach" value={String(form.ceskeReality_id ?? '')} onChange={v => set('ceskeReality_id', v)} width="100%" />
-              <TextField label="Heslo" value={String(form.ceskeReality_heslo ?? '')} onChange={v => set('ceskeReality_heslo', v)} width="100%" />
+              <Input label="ID na ceskychrealtach" value={String(form.ceskeReality_id ?? '')} onChange={v => set('ceskeReality_id', v)} width="100%" />
+              <Input label="Heslo" value={String(form.ceskeReality_heslo ?? '')} onChange={v => set('ceskeReality_heslo', v)} width="100%" />
             </TwoCol>
-            <TextField label="ID firmy" value={String(form.ceskeReality_idFirmy ?? '')} onChange={v => set('ceskeReality_idFirmy', v)} width="100%" />
+            <Input label="ID firmy" value={String(form.ceskeReality_idFirmy ?? '')} onChange={v => set('ceskeReality_idFirmy', v)} width="100%" />
           </div>
         )}
 
@@ -367,10 +384,10 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
         {exportToggles.eurobydleni && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <TwoCol>
-              <TextField label="ID na eurobydlení" value={String(form.eurobydleni_id ?? '')} onChange={v => set('eurobydleni_id', v)} width="100%" />
-              <TextField label="Přihlašovací heslo" value={String(form.eurobydleni_heslo ?? '')} onChange={v => set('eurobydleni_heslo', v)} width="100%" />
+              <Input label="ID na eurobydlení" value={String(form.eurobydleni_id ?? '')} onChange={v => set('eurobydleni_id', v)} width="100%" />
+              <Input label="Přihlašovací heslo" value={String(form.eurobydleni_heslo ?? '')} onChange={v => set('eurobydleni_heslo', v)} width="100%" />
             </TwoCol>
-            <TextField label="Klíč" value={String(form.eurobydleni_klic ?? '')} onChange={v => set('eurobydleni_klic', v)} width="100%" />
+            <Input label="Klíč" value={String(form.eurobydleni_klic ?? '')} onChange={v => set('eurobydleni_klic', v)} width="100%" />
           </div>
         )}
 
@@ -379,12 +396,12 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
         {exportToggles.b3 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <TwoCol>
-              <TextField label="ID pobočky na B3 technology" value={String(form.b3_id ?? '')} onChange={v => set('b3_id', v)} width="100%" />
-              <TextField label="Hash pobočky pro přihlášení" value={String(form.b3_hash ?? '')} onChange={v => set('b3_hash', v)} width="100%" />
+              <Input label="ID pobočky na B3 technology" value={String(form.b3_id ?? '')} onChange={v => set('b3_id', v)} width="100%" />
+              <Input label="Hash pobočky pro přihlášení" value={String(form.b3_hash ?? '')} onChange={v => set('b3_hash', v)} width="100%" />
             </TwoCol>
             <TwoCol>
-              <TextField label="Klíč pobočky pro přihlášení" value={String(form.b3_klic ?? '')} onChange={v => set('b3_klic', v)} width="100%" />
-              <TextField label="ID makléře zastupujícího Callcentrum" value={String(form.b3_idMaklere ?? '')} onChange={v => set('b3_idMaklere', v)} width="100%" />
+              <Input label="Klíč pobočky pro přihlášení" value={String(form.b3_klic ?? '')} onChange={v => set('b3_klic', v)} width="100%" />
+              <Input label="ID makléře zastupujícího Callcentrum" value={String(form.b3_idMaklere ?? '')} onChange={v => set('b3_idMaklere', v)} width="100%" />
             </TwoCol>
           </div>
         )}
@@ -393,8 +410,8 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
         <ExportSectionHeader label="Osobní web" active={exportToggles.osobniWeb} onToggle={v => toggleExport('osobniWeb', v)} />
         {exportToggles.osobniWeb && (
           <TwoCol>
-            <TextField label="Uživatelské jméno" value={String(form.osobniWeb_jmeno ?? '')} onChange={v => set('osobniWeb_jmeno', v)} width="100%" />
-            <TextField label="Heslo" value={String(form.osobniWeb_heslo ?? '')} onChange={v => set('osobniWeb_heslo', v)} width="100%" />
+            <Input label="Uživatelské jméno" value={String(form.osobniWeb_jmeno ?? '')} onChange={v => set('osobniWeb_jmeno', v)} width="100%" />
+            <Input label="Heslo" value={String(form.osobniWeb_heslo ?? '')} onChange={v => set('osobniWeb_heslo', v)} width="100%" />
           </TwoCol>
         )}
       </Card>

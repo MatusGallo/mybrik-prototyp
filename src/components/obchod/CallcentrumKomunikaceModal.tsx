@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import { IconButton, Button, TextField, TextArea, Select } from '@matusgallo/mysabds'
+import { IconButton, Button, Input, TextArea, Select } from '@matusgallo/mysabds'
 
 const TYP_OPT = [
   { value: 'Telefon', label: 'Telefon' },
@@ -71,7 +71,7 @@ export default function CallcentrumKomunikaceModal({ onClose }: Props) {
 
           <div style={{ padding: '0 24px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-              <TextField label="Datum a čas" required value={datum} onChange={setDatum} width="100%" />
+              <Input label="Datum a čas" required value={datum} onChange={setDatum} width="100%" />
               <Select label="Typ komunikace" options={TYP_OPT} value={typ} onChange={setTyp} width="100%" />
             </div>
             <Select label="Výsledek komunikace" options={VYSLEDEK_OPT} value={vysledek} onChange={setVysledek} width="100%" />

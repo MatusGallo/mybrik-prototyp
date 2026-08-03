@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X, CloudUpload, FileText, Trash2 } from 'lucide-react'
-import { IconButton, Button, Select, TextField } from '@matusgallo/mysabds'
+import { IconButton, Button, Select, Input } from '@matusgallo/mysabds'
 
 const KATEGORIE_OPT = [
   { value: 'naberovy-list', label: 'Náběrový list' },
@@ -89,14 +89,14 @@ export default function NahratDokumentyModal({ onClose, defaultKategorie }: Prop
             />
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <TextField
+              <Input
                 label="Platnost od"
                 value={platnostOd}
                 onChange={setPlatnostOd}
                 placeholder="DD.MM.RRRR"
                 width="100%"
               />
-              <TextField
+              <Input
                 label="Platnost do"
                 value={platnostDo}
                 onChange={setPlatnostDo}

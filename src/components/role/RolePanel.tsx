@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Form, LineTabGroup, TextField, Divider, CheckboxItem, Badge } from '@matusgallo/mysabds'
+import { Form, LineTabGroup, Input, Divider, CheckboxItem, Tag } from '@matusgallo/mysabds'
 import { TableHeaderCell, TableCell, IconButton } from '@matusgallo/mysabds'
 import { Pencil, UserCog, X } from 'lucide-react'
 import { uzivateleData } from '../../data/mockOstatni'
@@ -526,7 +526,7 @@ export default function RolePanel({ mode, role, onClose, onEdit }: RolePanelProp
             <span style={{ fontSize: 14, color: 'var(--t-textPrimary)' }}>{roleName || '–'}</span>
           </div>
         ) : (
-          <TextField label="Název role" required value={roleName} onChange={setRoleName} width="100%" />
+          <Input label="Název role" required value={roleName} onChange={setRoleName} width="100%" />
         )}
         <CheckboxItem
           label="Aktualizovat práva pro všechny uživatele s touto rolí"
@@ -606,18 +606,18 @@ export default function RolePanel({ mode, role, onClose, onEdit }: RolePanelProp
               onMouseEnter={() => setHoveredUser(i)}
               onMouseLeave={() => setHoveredUser(null)}
             >
-              <TableCell size="lg" width={60} hovered={hovered} borderBottom={!isLast} label={String(u.id)} />
+              <TableCell size="spacious" width={60} hovered={hovered} borderBottom={!isLast} label={String(u.id)} />
               <div style={{ flex: 1, minWidth: 100 }}>
-                <TableCell size="lg" width="100%" hovered={hovered} borderBottom={!isLast} label={u.jmeno} />
+                <TableCell size="spacious" width="100%" hovered={hovered} borderBottom={!isLast} label={u.jmeno} />
               </div>
               <div style={{ flex: 1, minWidth: 100 }}>
-                <TableCell size="lg" width="100%" hovered={hovered} borderBottom={!isLast} label={u.prijmeni} />
+                <TableCell size="spacious" width="100%" hovered={hovered} borderBottom={!isLast} label={u.prijmeni} />
               </div>
-              <TableCell size="lg" width={110} hovered={hovered} borderBottom={!isLast} content={<Badge label={u.stav} variant={stavVariant(u.stav)} size="sm" lead="indicator" />} />
-              <TableCell size="lg" width={120} hovered={hovered} borderBottom={!isLast} label="Ne" />
+              <TableCell size="spacious" width={110} hovered={hovered} borderBottom={!isLast} content={<Tag label={u.stav} variant={stavVariant(u.stav)} size="sm" lead="indicator" />} />
+              <TableCell size="spacious" width={120} hovered={hovered} borderBottom={!isLast} label="Ne" />
               <div style={{ position: 'sticky', right: 0, flexShrink: 0, background: 'var(--t-bgPrimary)' }}>
                 <TableCell
-                  size="lg"
+                  size="spacious"
                   width={USERS_ACTIONS_W}
                   hovered={hovered}
                   borderBottom={!isLast}

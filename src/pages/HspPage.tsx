@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Badge } from '@matusgallo/mysabds'
+import { useNavigate } from 'react-router-dom'
+import { Tag } from '@matusgallo/mysabds'
 import ListPageShell from '../components/shared/ListPageShell'
 import DataTable from '../components/shared/DataTable'
 import PageFilterBar from '../components/shared/PageFilterBar'
@@ -15,13 +16,14 @@ const stavVariant = (stav: string): 'success' | 'danger' =>
 const cols = [
   { key: 'id', label: 'ID', width: 60 },
   { key: 'nazev', label: 'Název HSP', width: 400, flex: true },
-  { key: 'stav', label: 'Stav', width: 120, render: (r: Record<string, unknown>) => <Badge label={r.stav as string} size="sm" variant={stavVariant(r.stav as string)} lead="indicator" /> },
+  { key: 'stav', label: 'Stav', width: 120, render: (r: Record<string, unknown>) => <Tag label={r.stav as string} size="sm" variant={stavVariant(r.stav as string)} lead="indicator" /> },
   { key: 'odpovednáOsoba', label: 'Odpovědná osoba', width: 240, render: renderAvatarName('odpovednáOsoba') },
   { key: 'datumVytvoreni', label: 'Vytvořeno', width: 110, render: renderDatum('datumVytvoreni') },
   { key: 'datumPosledniZmeny', label: 'Upraveno', width: 110, render: renderDatum('datumPosledniZmeny') },
 ]
 
 export default function HspPage() {
+  const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [fDatumVytvoreni, setFDatumVytvoreni] = useState('')
@@ -40,7 +42,7 @@ export default function HspPage() {
     <ListPageShell
       title="HSP"
       actions={[
-        { label: 'Vytvořit HSP', variant: 'primary', icon: 'plus' },
+        { label: 'Vytvořit HSP', variant: 'primary', icon: 'plus', onClick: () => navigate('/hsp/nove') },
       ]}
       filterBar={
         <PageFilterBar

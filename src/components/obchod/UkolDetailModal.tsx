@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import { IconButton, Button, TextArea, Badge, Dialog } from '@matusgallo/mysabds'
+import { IconButton, Button, TextArea, Tag, Dialog } from '@matusgallo/mysabds'
 import { CheckSquare } from 'lucide-react'
 
-type BadgeVariant = 'neutral' | 'success' | 'danger' | 'warning' | 'info' | 'brand' | 'outline' | 'invert'
+type TagVariant = 'neutral' | 'success' | 'danger' | 'warning' | 'info' | 'brand' | 'outline' | 'invert'
 
-function stavVariant(stav: string): BadgeVariant {
+function stavVariant(stav: string): TagVariant {
   if (stav === 'Po termínu' || stav === 'Zrušen') return 'danger'
   if (stav === 'Aktivní') return 'success'
   return 'neutral'
@@ -45,7 +45,7 @@ export default function UkolDetailModal({ u, onClose, onVyresit }: Props) {
   }, [onClose])
 
   const metaRows = [
-    { label: 'Stav', content: <Badge label={u.stav} variant={stavVariant(u.stav)} size="sm" /> },
+    { label: 'Stav', content: <Tag label={u.stav} variant={stavVariant(u.stav)} size="sm" /> },
     { label: 'Řešitel', value: maklerLabel },
     { label: 'Termín', value: termin },
     ...(u.pripomenutiDatum ? [{ label: 'Připomínka', value: u.pripomenutiDatum }] : []),

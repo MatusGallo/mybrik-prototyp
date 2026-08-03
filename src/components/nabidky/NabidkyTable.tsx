@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Copy, Pencil, Trash } from 'lucide-react'
-import { TableHeaderCell, TableHeaderCellContent, TableCell, IconButton, Pagination, Badge } from '@matusgallo/mysabds'
+import { TableHeaderCell, TableHeaderCellContent, TableCell, IconButton, Pagination, Tag } from '@matusgallo/mysabds'
 import type { Nabidka } from '../../data/mockData'
 import EmptyState from '../shared/EmptyState'
 
@@ -192,8 +192,8 @@ export default function NabidkyTable({ data, page, totalPages, onPageChange, hid
                   onMouseLeave={() => setHoveredRow(null)}
                   onClick={() => onRowClick?.(row.id)}
                 >
-                  {show('id')         && <TableCell size="lg" width={72} hovered={hovered} borderBottom label={String(row.id)} />}
-                  {show('nabidka')    && <TableCell size="lg" width={400} hovered={hovered} borderBottom content={
+                  {show('id')         && <TableCell size="spacious" width={72} hovered={hovered} borderBottom label={String(row.id)} />}
+                  {show('nabidka')    && <TableCell size="spacious" width={400} hovered={hovered} borderBottom content={
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: 368, overflow: 'hidden' }}>
                       <img
                         src={`https://picsum.photos/seed/${photoSeed}/60/40`}
@@ -210,12 +210,12 @@ export default function NabidkyTable({ data, page, totalPages, onPageChange, hid
                       </div>
                     </div>
                   } />}
-                  {show('typObjektu')   && <TableCell size="lg" width={120} hovered={hovered} borderBottom content={<Badge label={capitalize(row.typObjektu)} size="sm" variant="outline" />} />}
-                  {show('pobocka')      && <TableCell size="lg" width={160} hovered={hovered} borderBottom label={row.pobocka} />}
-                  {show('makler')       && <TableCell size="lg" width={180} hovered={hovered} borderBottom label={row.makler} />}
-                  {show('podkategorie') && <TableCell size="lg" width={156} hovered={hovered} borderBottom content={<Badge label={row.podkategorie} size="sm" variant="outline" />} />}
-                  {show('stavNabidky')  && <TableCell size="lg" width={200} hovered={hovered} borderBottom content={<Badge label={row.stavNabidky} size="sm" variant={stavVariant(row.stavNabidky)} lead="indicator" />} />}
-                  {show('vyhradni')     && <TableCell size="lg" width={160} hovered={hovered} borderBottom label={row.vyhradni ? 'Ano' : 'Ne'} />}
+                  {show('typObjektu')   && <TableCell size="spacious" width={120} hovered={hovered} borderBottom content={<Tag label={capitalize(row.typObjektu)} size="sm" variant="outline" />} />}
+                  {show('pobocka')      && <TableCell size="spacious" width={160} hovered={hovered} borderBottom label={row.pobocka} />}
+                  {show('makler')       && <TableCell size="spacious" width={180} hovered={hovered} borderBottom label={row.makler} />}
+                  {show('podkategorie') && <TableCell size="spacious" width={156} hovered={hovered} borderBottom content={<Tag label={row.podkategorie} size="sm" variant="outline" />} />}
+                  {show('stavNabidky')  && <TableCell size="spacious" width={200} hovered={hovered} borderBottom content={<Tag label={row.stavNabidky} size="sm" variant={stavVariant(row.stavNabidky)} lead="indicator" />} />}
+                  {show('vyhradni')     && <TableCell size="spacious" width={160} hovered={hovered} borderBottom label={row.vyhradni ? 'Ano' : 'Ne'} />}
                   {show('klient') && (
                     <div style={{ flex: 1, minWidth: KLIENT_MIN_WIDTH, background: hovered ? 'var(--t-bgHover)' : 'var(--t-bgPrimary)', transition: 'background-color 150ms', borderBottom: '1px solid var(--t-borderPrimary)', display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', overflow: 'hidden' }}>
                       <span style={{ fontSize: 14, color: 'var(--t-textPrimary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -223,13 +223,13 @@ export default function NabidkyTable({ data, page, totalPages, onPageChange, hid
                       </span>
                     </div>
                   )}
-                  {show('cena')         && <TableCell size="lg" width={160} hovered={hovered} borderBottom label={formatCena(row.cena)} align="right" />}
-                  {show('vytvoreno')    && <TableCell size="lg" width={130} hovered={hovered} borderBottom label={vytvoreno.date} supporting={vytvoreno.time} />}
-                  {show('upraveno')     && <TableCell size="lg" width={130} hovered={hovered} borderBottom label={upraveno.date} supporting={upraveno.time} />}
-                  {show('konecLhuty')   && <TableCell size="lg" width={116} hovered={hovered} borderBottom label={konecLhuty?.date ?? '–'} supporting={konecLhuty?.time} />}
+                  {show('cena')         && <TableCell size="spacious" width={160} hovered={hovered} borderBottom label={formatCena(row.cena)} align="right" />}
+                  {show('vytvoreno')    && <TableCell size="spacious" width={130} hovered={hovered} borderBottom label={vytvoreno.date} supporting={vytvoreno.time} />}
+                  {show('upraveno')     && <TableCell size="spacious" width={130} hovered={hovered} borderBottom label={upraveno.date} supporting={upraveno.time} />}
+                  {show('konecLhuty')   && <TableCell size="spacious" width={116} hovered={hovered} borderBottom label={konecLhuty?.date ?? '–'} supporting={konecLhuty?.time} />}
                   <div style={{ position: 'sticky', right: 0, zIndex: 1, flexShrink: 0, background: 'var(--t-bgPrimary)' }} onClick={e => e.stopPropagation()}>
                     <TableCell
-                      size="lg"
+                      size="spacious"
                       width={ACTION_WIDTH}
                       hovered={hovered}
                       borderBottom

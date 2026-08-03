@@ -174,32 +174,32 @@ export default function NabidkaNemovitostiDetailPage() {
               <div style={{ borderRadius: 8, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', background: 'var(--t-bgSecondary)' }}>
                   <div style={{ pointerEvents: 'none' }}>
-                    <TableHeaderCell label="Datum zápisu" width={170} />
+                    <TableHeaderCell label="Datum zápisu" size="dense" width={170} />
                   </div>
                   <div style={{ pointerEvents: 'none' }}>
-                    <TableHeaderCell label="Typ komunikace" width={160} />
+                    <TableHeaderCell label="Typ komunikace" size="dense" width={160} />
                   </div>
                   <div style={{ flex: 1, pointerEvents: 'none' }}>
-                    <TableHeaderCell label="Poznámka" width="100%" />
+                    <TableHeaderCell label="Poznámka" size="dense" width="100%" />
                   </div>
                   <div style={{ pointerEvents: 'none' }}>
-                    <TableHeaderCell label="Výsledek" width={240} />
+                    <TableHeaderCell label="Výsledek" size="dense" width={240} />
                   </div>
                 </div>
                 {KOMUNIKACE_ITEMS.map((k, i) => {
                   const isLast = i === KOMUNIKACE_ITEMS.length - 1
                   return (
                     <div key={k.id} style={{ display: 'flex' }}>
-                      <TableCell size="sm" width={170} hovered={false} borderBottom={!isLast} label={k.datumZapisu} />
-                      <TableCell size="sm" width={160} hovered={false} borderBottom={!isLast} label={k.typ} />
+                      <TableCell size="dense" width={170} hovered={false} borderBottom={!isLast} label={k.datumZapisu} />
+                      <TableCell size="dense" width={160} hovered={false} borderBottom={!isLast} label={k.typ} />
                       <div style={{
                         flex: 1, display: 'flex', alignItems: 'center',
-                        paddingLeft: 16, paddingRight: 16,
+                        paddingLeft: 12, paddingRight: 12,
                         borderBottom: !isLast ? '1px solid var(--t-borderPrimary)' : undefined,
                       }}>
                         <span style={{ fontSize: 14, lineHeight: '20px', color: 'var(--t-textPrimary)' }}>{k.poznamka || '—'}</span>
                       </div>
-                      <TableCell size="sm" width={240} hovered={false} borderBottom={!isLast} label={k.vysledek} />
+                      <TableCell size="dense" width={240} hovered={false} borderBottom={!isLast} label={k.vysledek} />
                     </div>
                   )
                 })}
@@ -213,10 +213,10 @@ export default function NabidkaNemovitostiDetailPage() {
               <div style={{ borderRadius: 8, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', background: 'var(--t-bgSecondary)' }}>
                   <div style={{ flex: 1, pointerEvents: 'none' }}>
-                    <TableHeaderCell label="Typ záznamu" width="100%" />
+                    <TableHeaderCell label="Typ záznamu" size="dense" width="100%" />
                   </div>
                   <div style={{ pointerEvents: 'none' }}>
-                    <TableHeaderCell label="Datum záznamu" width={200} />
+                    <TableHeaderCell label="Datum záznamu" size="dense" width={200} />
                   </div>
                 </div>
                 {HISTORIE_KOMUNIKACE.map((h, i) => {
@@ -225,12 +225,12 @@ export default function NabidkaNemovitostiDetailPage() {
                     <div key={h.id} style={{ display: 'flex' }}>
                       <div style={{
                         flex: 1, display: 'flex', alignItems: 'center',
-                        paddingLeft: 16, paddingRight: 16, minHeight: 40,
+                        paddingLeft: 12, paddingRight: 12, minHeight: 40,
                         borderBottom: !isLast ? '1px solid var(--t-borderPrimary)' : undefined,
                       }}>
                         <span style={{ fontSize: 14, lineHeight: '20px', color: 'var(--t-textPrimary)' }}>{h.typ}</span>
                       </div>
-                      <TableCell size="sm" width={200} hovered={false} borderBottom={!isLast} label={h.datum} />
+                      <TableCell size="dense" width={200} hovered={false} borderBottom={!isLast} label={h.datum} />
                     </div>
                   )
                 })}

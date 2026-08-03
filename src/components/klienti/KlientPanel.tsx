@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Copy, ArrowUpRight, Pencil, X } from 'lucide-react'
-import { Form, TextField, IconButton, Badge } from '@matusgallo/mysabds'
+import { Form, Input, IconButton, Tag } from '@matusgallo/mysabds'
 
 export type KlientPanelMode = 'detail' | 'edit' | 'create'
 
@@ -84,7 +84,7 @@ function CardTitle({ title, badge, copy }: { title: string; badge?: number; copy
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 16, fontWeight: 600, lineHeight: '24px', color: 'var(--t-textPrimary)' }}>{title}</span>
-        {badge !== undefined && <Badge label={String(badge)} size="sm" />}
+        {badge !== undefined && <Tag label={String(badge)} size="sm" />}
       </div>
       {copy && <IconButton icon={Copy} variant="ghost" size="md" tooltip="Kopírovat" onClick={copy} />}
     </div>
@@ -175,7 +175,7 @@ export default function KlientPanel({ mode, klient, onClose, onEdit, onSave }: K
       <Card>
         <CardTitle title="Kontaktní osoba" />
         <div style={{ padding: '12px 0' }}>
-          <TextField
+          <Input
             label="Telefonní číslo"
             required
             value={String(form.telefon ?? '')}
@@ -188,7 +188,7 @@ export default function KlientPanel({ mode, klient, onClose, onEdit, onSave }: K
       <Card>
         <CardTitle title={`Údaje vázané na uvedené tel. číslo ${form.telefon ?? ''}`} />
         <div style={{ padding: '12px 0 4px' }}>
-          <TextField
+          <Input
             label="E-mail"
             required
             value={String(form.email ?? '')}
@@ -199,18 +199,18 @@ export default function KlientPanel({ mode, klient, onClose, onEdit, onSave }: K
         <SectionLabel>Základní údaje</SectionLabel>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '8px 0' }}>
           <div style={{ display: 'flex', gap: 12 }}>
-            <TextField label="Jméno" required value={String(form.jmeno ?? '')} onChange={v => setField('jmeno', v)} width="100%" />
-            <TextField label="Příjmení" required value={String(form.prijmeni ?? '')} onChange={v => setField('prijmeni', v)} width="100%" />
+            <Input label="Jméno" required value={String(form.jmeno ?? '')} onChange={v => setField('jmeno', v)} width="100%" />
+            <Input label="Příjmení" required value={String(form.prijmeni ?? '')} onChange={v => setField('prijmeni', v)} width="100%" />
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
-            <TextField label="Titul před" value={String(form.titulPred ?? '')} onChange={v => setField('titulPred', v)} width="100%" />
-            <TextField label="Titul za" value={String(form.titulZa ?? '')} onChange={v => setField('titulZa', v)} width="100%" />
+            <Input label="Titul před" value={String(form.titulPred ?? '')} onChange={v => setField('titulPred', v)} width="100%" />
+            <Input label="Titul za" value={String(form.titulZa ?? '')} onChange={v => setField('titulZa', v)} width="100%" />
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
-            <TextField label="Název společnosti" value={String(form.nazevSpolecnosti ?? '')} onChange={v => setField('nazevSpolecnosti', v)} width="100%" />
-            <TextField label="IČ společnosti" value={String(form.icSpolecnosti ?? '')} onChange={v => setField('icSpolecnosti', v)} width="100%" />
+            <Input label="Název společnosti" value={String(form.nazevSpolecnosti ?? '')} onChange={v => setField('nazevSpolecnosti', v)} width="100%" />
+            <Input label="IČ společnosti" value={String(form.icSpolecnosti ?? '')} onChange={v => setField('icSpolecnosti', v)} width="100%" />
           </div>
-          <TextField label="Pozice zastupující osoby" value={String(form.poziceZastupujiciOsoby ?? '')} onChange={v => setField('poziceZastupujiciOsoby', v)} width="100%" />
+          <Input label="Pozice zastupující osoby" value={String(form.poziceZastupujiciOsoby ?? '')} onChange={v => setField('poziceZastupujiciOsoby', v)} width="100%" />
         </div>
       </Card>
 
@@ -218,13 +218,13 @@ export default function KlientPanel({ mode, klient, onClose, onEdit, onSave }: K
         <CardTitle title="Kontaktní adresa" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '8px 0' }}>
           <div style={{ display: 'flex', gap: 12 }}>
-            <TextField label="Ulice" value={String(form.ulice ?? '')} onChange={v => setField('ulice', v)} width="100%" />
-            <TextField label="Č. p." value={String(form.cisloPopisne ?? '')} onChange={v => setField('cisloPopisne', v)} width={96} />
-            <TextField label="Č. o." value={String(form.cisloOrientacni ?? '')} onChange={v => setField('cisloOrientacni', v)} width={80} />
+            <Input label="Ulice" value={String(form.ulice ?? '')} onChange={v => setField('ulice', v)} width="100%" />
+            <Input label="Č. p." value={String(form.cisloPopisne ?? '')} onChange={v => setField('cisloPopisne', v)} width={96} />
+            <Input label="Č. o." value={String(form.cisloOrientacni ?? '')} onChange={v => setField('cisloOrientacni', v)} width={80} />
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
-            <TextField label="PSČ" value={String(form.psc ?? '')} onChange={v => setField('psc', v)} width={120} />
-            <TextField label="Město" value={String(form.mesto ?? '')} onChange={v => setField('mesto', v)} width="100%" />
+            <Input label="PSČ" value={String(form.psc ?? '')} onChange={v => setField('psc', v)} width={120} />
+            <Input label="Město" value={String(form.mesto ?? '')} onChange={v => setField('mesto', v)} width="100%" />
           </div>
         </div>
       </Card>

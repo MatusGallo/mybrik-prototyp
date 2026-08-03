@@ -20,7 +20,9 @@ import KlientiPage from './pages/KlientiPage'
 import DokumentyPage from './pages/DokumentyPage'
 import PobockyPage from './pages/PobockyPage'
 import HspPage from './pages/HspPage'
+import NoveHspPage from './pages/NoveHspPage'
 import UzivatelePage from './pages/UzivatelePage'
+import NovyUzivatelPage from './pages/NovyUzivatelPage'
 import RoleAPravaPage from './pages/RoleAPravaPage'
 import KalendarPage from './pages/KalendarPage'
 import VyuctovaniPage from './pages/vyuctovani/VyuctovaniPage'
@@ -30,6 +32,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Fullscreen formuláře — bez topbaru a sidebaru, stejně jako vytvoření nabídky */}
+        <Route path="/hsp/nove" element={<NoveHspPage />} />
+        <Route path="/uzivatele/novy" element={<NovyUzivatelPage />} />
+
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/nastanka" replace />} />
           <Route path="/nastanka" element={<DashboardPage />} />

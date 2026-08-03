@@ -1,3 +1,16 @@
+export function renderNazevPodtitul(key: string, subKey: string) {
+  return (r: Record<string, unknown>) => {
+    const nazev = String(r[key] ?? '')
+    const podtitul = String(r[subKey] ?? '')
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--t-textPrimary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nazev || '–'}</span>
+        {podtitul && <span style={{ fontSize: 12, color: 'var(--t-textSecondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{podtitul}</span>}
+      </div>
+    )
+  }
+}
+
 export function renderDatum(key: string) {
   return (r: Record<string, unknown>) => {
     const val = String(r[key] ?? '')

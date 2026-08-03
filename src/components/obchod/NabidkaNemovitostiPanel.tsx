@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Search as SearchIcon, Pencil, Home, X } from 'lucide-react'
-import { Form, TextButton, TextField, Select, TextArea, Button, IconButton, SwitchGroup } from '@matusgallo/mysabds'
+import { Form, TextButton, Input, Select, TextArea, Button, IconButton, SwitchGroup } from '@matusgallo/mysabds'
 import SelectSearch from '../shared/SelectSearch'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import KlientSearchModal from '../klienti/KlientSearchModal'
@@ -268,7 +268,7 @@ export default function NabidkaNemovitostiPanel({ onClose, initial }: Props) {
 
                   {/* Adresa nemovitosti */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <TextField
+                    <Input
                       label="Adresa nemovitosti"
                       required
                       placeholder="Zadejte adresu nemovitosti"
@@ -292,7 +292,7 @@ export default function NabidkaNemovitostiPanel({ onClose, initial }: Props) {
                         />
                       </div>
                       <div style={{ width: 180 }}>
-                        <TextField
+                        <Input
                           label="Cena"
                           required
                           placeholder="5 000 000"
@@ -330,15 +330,15 @@ export default function NabidkaNemovitostiPanel({ onClose, initial }: Props) {
                     <TextButton label="Vyhledat klienta" variant="brand" leadIcon={SearchIcon} onClick={() => setKlientModalOpen(true)} />
                   </div>
                   <div style={G4}>
-                    <TextField label="Telefon" value={telefon} onChange={setTelefon} width="100%" />
-                    <TextField label="E-mail" required value={email} onChange={setEmail} width="100%" />
-                    <TextField label="Jméno" required value={jmeno} onChange={setJmeno} width="100%" />
-                    <TextField label="Příjmení" required value={prijmeni} onChange={setPrijmeni} width="100%" />
+                    <Input label="Telefon" value={telefon} onChange={setTelefon} width="100%" />
+                    <Input label="E-mail" required value={email} onChange={setEmail} width="100%" />
+                    <Input label="Jméno" required value={jmeno} onChange={setJmeno} width="100%" />
+                    <Input label="Příjmení" required value={prijmeni} onChange={setPrijmeni} width="100%" />
                   </div>
                   <div style={G3}>
-                    <TextField label="Název společnosti" value={nazevSpolecnosti} onChange={setNazevSpolecnosti} width="100%" />
-                    <TextField label="IČ společnosti" value={icSpolecnosti} onChange={setIcSpolecnosti} width="100%" />
-                    <TextField label="Pozice zastupující osoby" value={pozice} onChange={setPozice} width="100%" />
+                    <Input label="Název společnosti" value={nazevSpolecnosti} onChange={setNazevSpolecnosti} width="100%" />
+                    <Input label="IČ společnosti" value={icSpolecnosti} onChange={setIcSpolecnosti} width="100%" />
+                    <Input label="Pozice zastupující osoby" value={pozice} onChange={setPozice} width="100%" />
                   </div>
                 </div>
 

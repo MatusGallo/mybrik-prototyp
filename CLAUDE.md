@@ -38,23 +38,34 @@ Umožňuje zpracovat celý životní cyklus obchodu — akvizici klienta, obsluh
 
 ## Design System
 
-Tento projekt používá sdílený design system `@matusgallo/mydock-ui`.
+Tento projekt používá sdílený design system `@matusgallo/mysabds`.
 
 ### POVINNÉ PRAVIDLO
 
 Před jakoukoli prací na UI komponentách nebo obrazovkách:
 
-1. Načti `node_modules/@matusgallo/mydock-ui/docs/design-system.md`
-2. Importuj komponenty výhradně z `@matusgallo/mydock-ui`
-3. Na začátku entry pointu importuj tokeny: `import '@matusgallo/mydock-ui/tokens.css'`
+1. Načti `node_modules/@matusgallo/mysabds/docs/design-system.md`
+2. Importuj komponenty výhradně z `@matusgallo/mysabds`
+3. Na začátku entry pointu importuj tokeny **i styly** (od 1.4.0 jsou komponenty
+   na CSS Modules, bez `styles.css` ztratí vzhled):
+   ```ts
+   import '@matusgallo/mysabds/tokens.css'
+   import '@matusgallo/mysabds/styles.css'
+   ```
+4. Než sáhneš po konkrétní komponentě, načti její stránku
+   `node_modules/@matusgallo/mysabds/docs-app/content/components/<nazev>.mdx`.
+   Sekce **„Kdy použít"** a **„Kdy nepoužít"** jsou závazná pravidla, ne popis pro
+   čtenáře - „Kdy nepoužít" vždy říká, co použít místo toho. Když ti pravidlo pro
+   daný případ nesedí, řekni to a navrhni úpravu stránky v design systému;
+   neobcházej ho tichem.
 
 ### Dostupné komponenty
 
 ```tsx
 import {
   Button, IconButton, TextButton,
-  TextField, TextArea, Select, Checkbox, Radio, Switch, Toggle,
-  Avatar, Badge, Tag, Alert, Tooltip,
+  Input, TextArea, Select, DatePicker, Checkbox, Radio, Switch, Toggle,
+  Avatar, Tag, Chip, ChipGroup, NotificationBadge, Alert, Tooltip,
   Dialog, Menu, Filter,
   LineTab, PillTab,
   Form, FormHeader, FormBody, FormFooter, FormTitleHeader,
@@ -62,12 +73,27 @@ import {
   TableCell, TableHeaderCell,
   Divider, Breadcrumbs, Pagination,
   CheckboxItem, CheckboxGroupItem,
-} from '@matusgallo/mydock-ui'
+} from '@matusgallo/mysabds'
 ```
+
+### Pozor na názvy štítků
+
+Od verze 1.5.0 znamená `Tag` něco jiného než dřív. Nesahej po něm z paměti:
+
+| Co potřebuješ | Komponenta | Dřívější název |
+| --- | --- | --- |
+| Statický štítek stavu, bez křížku | `Tag` | `Badge` |
+| Odstranitelný štítek s křížkem | `Chip` | `Tag` |
+| Počitadlo nových událostí | `NotificationBadge` | - |
+
+`Badge`, `TextField` a `DropdownItem` jsou `@deprecated` aliasy a v příští major
+verzi zmizí - v myBRIKu už se nepoužívají, nezaváděj je zpátky. Alias `Tag` → `Chip`
+schválně neexistuje, takže `<Tag label="…" />` se zkompiluje a jen vykreslí něco
+jiného, než čekáš.
 
 ### UX Writing guidelines
 
-Před psaním textů v UI načti všechny soubory ze složky `node_modules/@matusgallo/mydock-ui/IN/`:
+Před psaním textů v UI načti všechny soubory ze složky `node_modules/@matusgallo/mysabds/IN/`:
 - `IN/INFO_UXWRITTING.md` — obecná UX writing pravidla
 - `IN/INFO_CTA.md` — pravidla pro výzvy k akci
 - `IN/INFO_FORMATOVANI.md` — formátování textů
@@ -81,7 +107,7 @@ Před psaním textů v UI načti všechny soubory ze složky `node_modules/@matu
 
 ## Instalace závislostí
 
-Projekt vyžaduje `.npmrc` s GitHub token pro stažení `@matusgallo/mydock-ui`.
+Projekt vyžaduje `.npmrc` s GitHub token pro stažení `@matusgallo/mysabds`.
 Viz `.npmrc.example` pro formát.
 
 ```

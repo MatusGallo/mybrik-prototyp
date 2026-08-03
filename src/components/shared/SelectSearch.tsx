@@ -17,7 +17,9 @@ interface Props {
   width?: number | string
 }
 
-const DROP_MAX_H = 320
+// 4px padding panelu + 8,8 × 32px položka - jako SelectMenu v design systému.
+// Rozříznutý řádek na konci je záměrný, aby bylo poznat, že seznam pokračuje.
+const DROP_MAX_H = 285.6
 const DROP_GAP   = 4
 
 function OptionItem({ option, isSelected, onSelect }: {
@@ -35,7 +37,7 @@ function OptionItem({ option, isSelected, onSelect }: {
         onMouseEnter={() => setHov(true)}
         onMouseLeave={() => setHov(false)}
         style={{
-          height: 40, paddingLeft: 8, paddingRight: 8, borderRadius: 4,
+          minHeight: 32, paddingLeft: 8, paddingRight: 8, borderRadius: 4,
           background: hov ? 'var(--t-bgHover)' : 'transparent',
           display: 'flex', alignItems: 'center', cursor: 'pointer',
           transition: 'background 0.1s',
@@ -158,7 +160,7 @@ export default function SelectSearch({
           onMouseEnter={() => setHov(true)}
           onMouseLeave={() => setHov(false)}
           style={{
-            width: '100%', height: 40,
+            width: '100%', height: 32,
             paddingTop: 4, paddingBottom: 4, paddingLeft: 8, paddingRight: 4,
             background: 'var(--t-bgPrimary)',
             borderRadius: 8,

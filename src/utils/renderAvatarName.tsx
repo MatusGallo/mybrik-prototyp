@@ -32,6 +32,27 @@ export function renderAvatarName(key: string) {
   }
 }
 
+/** Avatar + celé jméno s titulem na prvním řádku, doplňkový údaj (např. role) na druhém. */
+export function renderAvatarJmenoPodtitul(titulKey: string, firstKey: string, lastKey: string, subKey: string) {
+  return (r: Record<string, unknown>) => {
+    const titul = String(r[titulKey] ?? '').trim()
+    const full = [String(r[firstKey] ?? '').trim(), String(r[lastKey] ?? '').trim()].filter(Boolean).join(' ')
+    const podtitul = String(r[subKey] ?? '').trim()
+    if (!full) return <span style={{ color: 'var(--t-textPrimary)', fontSize: 14 }}>–</span>
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+        <Avatar size="md" initials={initials(full)} color={avatarColor(full)} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--t-textPrimary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {[titul, full].filter(Boolean).join(' ')}
+          </span>
+          {podtitul && <span style={{ fontSize: 12, color: 'var(--t-textSecondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{podtitul}</span>}
+        </div>
+      </div>
+    )
+  }
+}
+
 export function renderAvatarNameSplit(firstKey: string, lastKey: string) {
   return (r: Record<string, unknown>) => {
     const first = String(r[firstKey] ?? '').trim()

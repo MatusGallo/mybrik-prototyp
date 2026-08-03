@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ArrowDownToLine, ArrowUpFromLine, type LucideIcon } from 'lucide-react'
-import { IconButton, Button, TextField, TextArea } from '@matusgallo/mysabds'
+import { IconButton, Button, Input, TextArea } from '@matusgallo/mysabds'
 
 export type TokTyp = 'prijem' | 'vydaj'
 
@@ -118,7 +118,7 @@ export default function OstatniTokModal({ onClose, initialData }: Props) {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 16 }}>
-              <TextField
+              <Input
                 label="Datum"
                 required
                 value={datum}
@@ -127,7 +127,7 @@ export default function OstatniTokModal({ onClose, initialData }: Props) {
                 width="100%"
                 error={errors.datum}
               />
-              <TextField
+              <Input
                 label="Variabilní symbol"
                 required
                 value={vs}
@@ -137,7 +137,7 @@ export default function OstatniTokModal({ onClose, initialData }: Props) {
                 numeric
                 error={errors.vs}
               />
-              <TextField
+              <Input
                 label="Částka"
                 required
                 value={castka}

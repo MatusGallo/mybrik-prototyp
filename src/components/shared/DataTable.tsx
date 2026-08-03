@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { TableHeaderCell, TableCell, IconButton } from '@matusgallo/mysabds'
-import { Eye, Pencil, Trash, RotateCcw, UserCog, History } from 'lucide-react'
+import { Eye, Pencil, Trash, RotateCcw, UserCog, History, Ban } from 'lucide-react'
 import EmptyState from './EmptyState'
+import TruncatedText from './TruncatedText'
 
 export interface ColDef {
   key: string
@@ -16,12 +17,14 @@ export interface ColDef {
   format?: (value: unknown, row: Record<string, unknown>) => string
 }
 
+export type TableAction = 'view' | 'restore' | 'edit' | 'delete' | 'rights' | 'history' | 'deactivate'
+
 interface DataTableProps {
   cols: ColDef[]
   rows: Record<string, unknown>[]
-  actions?: ('view' | 'restore' | 'edit' | 'delete' | 'rights' | 'history')[]
+  actions?: TableAction[]
   onRowClick?: (row: Record<string, unknown>) => void
-  onAction?: (action: 'view' | 'restore' | 'edit' | 'delete' | 'rights' | 'history', row: Record<string, unknown>) => void
+  onAction?: (action: TableAction, row: Record<string, unknown>) => void
   emptyVariant?: 'default' | 'search'
   emptyTitle?: string
   emptyDescription?: string
@@ -100,34 +103,31 @@ export default function DataTable({ cols, rows, actions = ['view', 'restore', 'e
               {cols.map(c => {
                 const formattedLabel = c.format ? c.format(row[c.key], row) : (c.render ? undefined : String(row[c.key] ?? '–'))
                 const renderedContent = !c.format && c.render ? c.render(row) : undefined
+                // prostý text jde přes TruncatedText, aby se zkrácená hodnota dala přečíst v tooltipu
+                const textContent = renderedContent ?? (
+                  <TruncatedText text={formattedLabel ?? '–'} align={c.align} />
+                )
                 return c.flex ? (
                   <div key={c.key} style={{ flex: 1, minWidth: c.width, background: bg, transition: 'background-color 150ms', borderBottom: '1px solid var(--t-borderPrimary)', display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', overflow: 'hidden' }}>
-                    {renderedContent ?? (
-                      <span style={{ fontSize: 14, color: 'var(--t-textPrimary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {formattedLabel ?? '–'}
-                      </span>
-                    )}
+                    <div style={{ minWidth: 0, flex: 1 }}>{textContent}</div>
                   </div>
                 ) : c.hugged ? (
-                  <div key={c.key} style={{ flexShrink: 0 }}>
-                    <TableCell
-                      size="lg"
-                      hovered={hovered}
-                      borderBottom
-                      label={formattedLabel}
-                      content={renderedContent ? <div>{renderedContent}</div> : undefined}
-                      align={c.align === 'right' ? 'right' : 'left'}
-                    />
-                  </div>
+                  <TableCell
+                    key={c.key}
+                    size="spacious"
+                    hovered={hovered}
+                    borderBottom
+                    content={<div style={{ minWidth: 0 }}>{textContent}</div>}
+                    align={c.align === 'right' ? 'right' : 'left'}
+                  />
                 ) : (
                   <TableCell
                     key={c.key}
-                    size="lg"
+                    size="spacious"
                     width={c.width}
                     hovered={hovered}
                     borderBottom
-                    label={formattedLabel}
-                    content={renderedContent ? <div style={{ overflow: 'hidden', minWidth: 0, width: (c.width ?? 0) - 32 }}>{renderedContent}</div> : undefined}
+                    content={<div style={{ overflow: 'hidden', minWidth: 0, width: (c.width ?? 0) - 32 }}>{textContent}</div>}
                     align={c.align === 'right' ? 'right' : 'left'}
                   />
                 )
@@ -135,21 +135,22 @@ export default function DataTable({ cols, rows, actions = ['view', 'restore', 'e
               {actions.length > 0 && (
                 <div style={{ position: 'sticky', right: 0, zIndex: 1, flexShrink: 0, background: 'var(--t-bgPrimary)' }}>
                   <TableCell
-                    size="lg"
+                    size="spacious"
                     width={actionsWidth}
                     hovered={hovered}
                     borderBottom
                     content={
                       <div style={{ display: 'flex', gap: 2 }}>
                         {(() => {
-                          const order: typeof actions = ['view', 'delete', 'restore', 'history', 'edit', 'rights']
+                          const order: TableAction[] = ['view', 'delete', 'restore', 'history', 'deactivate', 'edit', 'rights']
                           return order.filter(a => actions.includes(a)).map(action => (
                             <div key={action} onClick={e => e.stopPropagation()}>
-                              {action === 'view'    && <IconButton icon={Eye}       variant="ghost" size="lg" tooltip="Zobrazit"      onClick={() => onAction?.('view', row)} />}
-                              {action === 'restore' && <IconButton icon={RotateCcw} variant="ghost" size="lg" tooltip="Obnovit"       onClick={() => onAction?.('restore', row)} />}
-                              {action === 'edit'    && <IconButton icon={Pencil}    variant="ghost" size="lg" tooltip="Upravit"       onClick={() => onAction?.('edit', row)} />}
-                              {action === 'rights'  && <IconButton icon={UserCog}   variant="ghost" size="lg" tooltip="Upravit práva" onClick={() => onAction?.('rights', row)} />}
-                              {action === 'history' && <IconButton icon={History}   variant="ghost" size="lg" tooltip="Historie"      onClick={() => onAction?.('history', row)} />}
+                              {action === 'view'       && <IconButton icon={Eye}       variant="ghost" size="lg" tooltip="Zobrazit"      onClick={() => onAction?.('view', row)} />}
+                              {action === 'restore'    && <IconButton icon={RotateCcw} variant="ghost" size="lg" tooltip="Obnovit"       onClick={() => onAction?.('restore', row)} />}
+                              {action === 'edit'       && <IconButton icon={Pencil}    variant="ghost" size="lg" tooltip="Upravit"       onClick={() => onAction?.('edit', row)} />}
+                              {action === 'deactivate' && <IconButton icon={Ban}       variant="ghost" size="lg" tooltip="Deaktivovat"   onClick={() => onAction?.('deactivate', row)} />}
+                              {action === 'rights'     && <IconButton icon={UserCog}   variant="ghost" size="lg" tooltip="Upravit práva" onClick={() => onAction?.('rights', row)} />}
+                              {action === 'history'    && <IconButton icon={History}   variant="ghost" size="lg" tooltip="Historie"      onClick={() => onAction?.('history', row)} />}
                               {action === 'delete'  && <span className="icon-trash-primary"><IconButton icon={Trash} variant="ghost" size="lg" tooltip="Smazat" onClick={() => onAction?.('delete', row)} /></span>}
                             </div>
                           ))

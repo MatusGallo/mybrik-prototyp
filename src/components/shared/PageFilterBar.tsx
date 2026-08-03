@@ -5,7 +5,7 @@ import type { LucideProps, LucideIcon } from 'lucide-react'
 const BrandCheck = forwardRef<SVGSVGElement, LucideProps>((props, ref) => (
   <Check ref={ref} {...props} color="var(--t-textMyDOCKPrimary)" />
 )) as LucideIcon
-import { FilterButton, FilterSelect, Tag, TextButton, Menu, MenuItem, Search } from '@matusgallo/mysabds'
+import { FilterButton, FilterSelect, Chip, TextButton, Menu, MenuItem, Search } from '@matusgallo/mysabds'
 import { DateField, TextInputField } from './FilterDropdown'
 
 export interface FilterGroupConfig {
@@ -189,7 +189,7 @@ export default function PageFilterBar({ search, groups = [], fields = [], onClea
                   : 'tagEnter 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both',
               }}
             >
-              <Tag label={tag.label} size="sm" onDismiss={() => dismiss(tag.key, tag.onRemove)} />
+              <Chip label={tag.label} size="sm" onDismiss={() => dismiss(tag.key, tag.onRemove)} />
             </div>
           ))}
           <div style={{ marginLeft: 4 }}>

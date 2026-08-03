@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import { IconButton, Button, TextField, TextArea } from '@matusgallo/mysabds'
+import { IconButton, Button, Input, TextArea } from '@matusgallo/mysabds'
 import { klientiData } from '../../data/mockOstatni'
 
 const klienti = klientiData.filter(k => k.jmeno || k.prijmeni)
@@ -86,7 +86,7 @@ export default function OdeslatSmsDialog({ onClose, onSend }: Props) {
 
           {/* Příjemce — search klientů */}
           <div ref={wrapperRef} style={{ position: 'relative' }} onFocus={() => setDropdownOpen(true)}>
-            <TextField
+            <Input
               label="Příjemce"
               placeholder="Vyhledejte klienta…"
               value={prijemceQuery}
@@ -129,7 +129,7 @@ export default function OdeslatSmsDialog({ onClose, onSend }: Props) {
           </div>
 
           {/* Telefonní číslo — auto-fill, povinné */}
-          <TextField
+          <Input
             label="Telefonní číslo"
             placeholder="+420"
             value={telefon}

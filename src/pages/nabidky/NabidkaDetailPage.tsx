@@ -5,7 +5,7 @@ import {
   ArrowLeft, ArrowRight, Pencil, Download, Mail, Phone, Plus, Trash2,
   Folder, FolderOpen, Upload,
   ChevronRight, ChevronLeft, ChevronDown, ChevronUp, X,
-  Maximize2, Building2, Clock, Hammer, KeyRound, ShieldCheck, Tag, Calendar, Home,
+  Maximize2, Building2, Clock, Hammer, KeyRound, ShieldCheck, Tag as TagIcon, Calendar, Home,
   RefreshCw, TrendingUp, Coins, FileText, PenLine, CalendarCheck, CalendarClock, ArrowDownToLine,
   Share2, Users, Landmark, User, StickyNote,
   CircleCheck, CircleX, Circle,
@@ -13,9 +13,9 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import {
-  IconButton, TableHeaderCell, TableCell, Badge,
+  IconButton, TableHeaderCell, TableCell, Tag,
   Avatar, TextButton, Menu, MenuItem, FilterSelect, FilterButton, Alert, Dialog, Search, Breadcrumbs,
-  Toggle, typography, TooltipIcon, LineTabGroup, PillTabGroup,
+  Toggle, typography, TooltipIcon, LineTabGroup, PillTabGroup, Divider,
 } from '@matusgallo/mysabds'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { nabidkyData } from '../../data/mockData'
@@ -25,6 +25,7 @@ import NovyNakladModal, { type NakladFormData } from '../../components/nabidky/N
 import OstatniTokModal, { type OstatniTokFormData } from '../../components/nabidky/OstatniTokModal'
 import PridatUhraduModal, { type UhradaFormData, uhradaFormaLabel } from '../../components/nabidky/PridatUhraduModal'
 import NahratDokumentyModal from '../../components/nabidky/NahratDokumentyModal'
+import VyporadaniPlateb from '../../components/nabidky/VyporadaniPlateb'
 import AutomatickeStatistikyModal, {
   type StatsAutoSettings, defaultStatsSettings, statsSummaryLabel,
 } from '../../components/nabidky/AutomatickeStatistikyModal'
@@ -442,9 +443,9 @@ function formatCena(cena: number) {
   return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(cena)
 }
 
-type BadgeVariant = 'neutral' | 'outline' | 'invert' | 'brand' | 'info' | 'success' | 'warning' | 'danger'
+type TagVariant = 'neutral' | 'outline' | 'invert' | 'brand' | 'info' | 'success' | 'warning' | 'danger'
 
-function stavVariant(stav: string): BadgeVariant {
+function stavVariant(stav: string): TagVariant {
   const s = stav.toLowerCase()
   if (s === 'aktivní') return 'brand'
   if (s === 'podepsaná smlouva' || s === 'zobchodováno') return 'success'
@@ -829,7 +830,7 @@ function WidgetStavHypoteky({ onTab }: { onTab: (t: string) => void }) {
           </span>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, minWidth: 0 }}>
             <span style={{ fontSize: 13, color: 'var(--t-textSecondary)' }}>žádosti o hypotéku</span>
-            <Badge label="Řešeno sabem" variant="info" size="sm" lead="indicator" />
+            <Tag label="Řešeno sabem" variant="info" size="sm" lead="indicator" />
           </div>
         </div>
 
@@ -1160,7 +1161,7 @@ function RezervacniZalohaWidget({ stav }: { stav: string }) {
           />
         </span>
         {!relevant && (
-          <Badge label="Saldo se doplňuje ve stavu Rezervace a Podepsaná smlouva" variant="neutral" size="sm" />
+          <Tag label="Saldo se doplňuje ve stavu Rezervace a Podepsaná smlouva" variant="neutral" size="sm" />
         )}
         <div style={{ marginLeft: 'auto' }}>
           <TextButton label="Nová platba" variant="brand" leadIcon={Plus} onClick={openAdd} />
@@ -1723,8 +1724,8 @@ export default function NabidkaDetailPage() {
                       {formatCena(n.cena)}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <Badge label={n.stavNabidky} variant={stavVariant(n.stavNabidky)} size="sm" lead="indicator" />
-                      <Badge label={`ID ${n.id}`} variant="brand" size="sm" />
+                      <Tag label={n.stavNabidky} variant={stavVariant(n.stavNabidky)} size="sm" lead="indicator" />
+                      <Tag label={`ID ${n.id}`} variant="brand" size="sm" />
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -1772,7 +1773,7 @@ export default function NabidkaDetailPage() {
             }}>
               <FactLine icon={Home}        label="Typ nemovitosti"  value={n.typObjektu.charAt(0).toUpperCase() + n.typObjektu.slice(1)} />
               <FactLine icon={Maximize2}   label="Užitná plocha"    value={`${d.uzitnaPocha} m²`} />
-              <FactLine icon={Tag}         label="Typ transakce"    value={d.typTransakce} />
+              <FactLine icon={TagIcon}     label="Typ transakce"    value={d.typTransakce} />
               <FactLine icon={ShieldCheck} label="Stav nemovitosti" value={d.stavNemovitosti} />
               <FactLine icon={KeyRound}    label="Vlastnictví"      value={d.vlastnictvi} />
               <FactLine icon={Hammer}      label="Budova"           value={d.budova} />
@@ -1897,7 +1898,7 @@ export default function NabidkaDetailPage() {
                     <span style={{ fontSize: 15, fontWeight: 600, lineHeight: '22px', color: 'var(--t-textPrimary)' }}>
                       {statsSummaryLabel(statsSettings)}
                     </span>
-                    <Badge
+                    <Tag
                       label={statsSettings.active ? 'Aktivní' : 'Vypnuto'}
                       variant={statsSettings.active ? 'success' : 'neutral'}
                       lead="indicator"
@@ -2351,7 +2352,7 @@ export default function NabidkaDetailPage() {
                             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToExportError() } }}
                             style={{ display: 'flex', alignItems: 'center', paddingLeft: 34, cursor: 'pointer', width: 'fit-content' }}
                           >
-                            <Badge label={badge.label} variant={badge.variant} lead="icon" icon={badge.icon} size="sm" />
+                            <Tag label={badge.label} variant={badge.variant} lead="icon" icon={badge.icon} size="sm" />
                           </div>
                         )}
                       </div>
@@ -2379,54 +2380,54 @@ export default function NabidkaDetailPage() {
               <div style={{ overflow: 'auto' }}>
                 {/* Header */}
                 <div style={{ display: 'flex', background: 'var(--t-bgSecondary)', borderRadius: 8 }}>
-                  <div style={{ width: 110, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell label="Datum" width="100%" /></div>
-                  <div style={{ flex: 1, minWidth: 160, pointerEvents: 'none' }}><TableHeaderCell label="Název" width="100%" /></div>
-                  <div style={{ flex: 1, minWidth: 160, pointerEvents: 'none' }}><TableHeaderCell label="Dodavatel" width="100%" /></div>
-                  <div style={{ flex: 1, minWidth: 160, pointerEvents: 'none' }}><TableHeaderCell label="Kategorie" width="100%" /></div>
+                  <div style={{ width: 110, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Datum" width="100%" /></div>
+                  <div style={{ flex: 1, minWidth: 160, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Název" width="100%" /></div>
+                  <div style={{ flex: 1, minWidth: 160, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Dodavatel" width="100%" /></div>
+                  <div style={{ flex: 1, minWidth: 160, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Kategorie" width="100%" /></div>
                   {['Částka bez DPH', 'Částka s DPH', 'Z provize', 'Makléř', 'Makléř (bez str.)', 'HSP'].map(col => (
                     <div key={col} className="th-right" style={{ width: 140, flexShrink: 0, pointerEvents: 'none' }}>
-                      <TableHeaderCell label={col} width="100%" />
+                      <TableHeaderCell size="dense" label={col} width="100%" />
                     </div>
                   ))}
                   <div style={{
                     width: 100, flexShrink: 0, pointerEvents: 'none',
                     position: 'sticky', right: 0, zIndex: 2,
                     background: 'var(--t-bgSecondary)',
-                  }}><TableHeaderCell empty width="100%" /></div>
+                  }}><TableHeaderCell size="dense" empty width="100%" /></div>
                 </div>
                 {/* Data rows */}
                 {NAKLADY_ROWS.map((r, idx) => {
                   return (
                     <div key={`${r.datum}-${r.nazev}`} style={{ display: 'flex' }}>
                       <div style={{ width: 110, flexShrink: 0 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom label={r.datum} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.datum} />
                       </div>
                       <div style={{ flex: 1, minWidth: 160 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom label={r.nazev} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.nazev} />
                       </div>
                       <div style={{ flex: 1, minWidth: 160 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom label={r.dodavatel || '—'} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.dodavatel || '—'} />
                       </div>
                       <div style={{ flex: 1, minWidth: 160 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom label={r.kategorie} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.kategorie} />
                       </div>
                       <div style={{ width: 140, flexShrink: 0 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.castkaBezDph)} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.castkaBezDph)} />
                       </div>
                       <div style={{ width: 140, flexShrink: 0 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom align="right" label={r.castkaSDph === null ? '—' : formatCena(r.castkaSDph)} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={r.castkaSDph === null ? '—' : formatCena(r.castkaSDph)} />
                       </div>
                       <div style={{ width: 140, flexShrink: 0 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.zProvize)} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.zProvize)} />
                       </div>
                       <div style={{ width: 140, flexShrink: 0 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.makler)} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.makler)} />
                       </div>
                       <div style={{ width: 140, flexShrink: 0 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.maklerBezStruktury)} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.maklerBezStruktury)} />
                       </div>
                       <div style={{ width: 140, flexShrink: 0 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.hsp)} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.hsp)} />
                       </div>
                       <div style={{
                         width: 100, flexShrink: 0,
@@ -2434,7 +2435,7 @@ export default function NabidkaDetailPage() {
                         background: 'var(--t-bgPrimary)',
                       }}>
                         <TableCell
-                          size="sm" width="100%" hovered={false} borderBottom
+                          size="dense" width="100%" hovered={false} borderBottom
                           content={
                             <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                               <IconButton icon={Pencil} variant="ghost" size="md" tooltip="Upravit náklad" onClick={() => setEditNakladData(rowToNakladForm(r))} />
@@ -2451,37 +2452,37 @@ export default function NabidkaDetailPage() {
                 {/* Totals row */}
                 <div style={{ display: 'flex', background: 'var(--t-bgSecondary)', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
                   <div style={{ width: 110 + 160 + 160 + 160, flexShrink: 0 }}>
-                    <TableCell size="sm" width="100%" hovered={false} borderBottom={false} align="right"
+                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
                       content={<span style={{ fontSize: 13, fontWeight: 500, color: 'var(--t-textSecondary)' }}>Náklady celkem:</span>}
                     />
                   </div>
                   <div style={{ width: 140, flexShrink: 0 }}>
-                    <TableCell size="sm" width="100%" hovered={false} borderBottom={false} align="right"
+                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
                       content={<span style={{ fontSize: 14, fontWeight: 600 }}>{formatCena(NAKLADY_ROWS.reduce((s, r) => s + r.castkaBezDph, 0))}</span>}
                     />
                   </div>
                   <div style={{ width: 140, flexShrink: 0 }}>
-                    <TableCell size="sm" width="100%" hovered={false} borderBottom={false} align="right"
+                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
                       content={<span style={{ fontSize: 14, fontWeight: 600 }}>{formatCena(NAKLADY_ROWS.reduce((s, r) => s + (r.castkaSDph ?? 0), 0))}</span>}
                     />
                   </div>
                   <div style={{ width: 140, flexShrink: 0 }}>
-                    <TableCell size="sm" width="100%" hovered={false} borderBottom={false} align="right"
+                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
                       content={<span style={{ fontSize: 14, fontWeight: 600 }}>{formatCena(NAKLADY_ROWS.reduce((s, r) => s + r.zProvize, 0))}</span>}
                     />
                   </div>
                   <div style={{ width: 140, flexShrink: 0 }}>
-                    <TableCell size="sm" width="100%" hovered={false} borderBottom={false} align="right"
+                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
                       content={<span style={{ fontSize: 14, fontWeight: 600 }}>{formatCena(NAKLADY_ROWS.reduce((s, r) => s + r.makler, 0))}</span>}
                     />
                   </div>
                   <div style={{ width: 140, flexShrink: 0 }}>
-                    <TableCell size="sm" width="100%" hovered={false} borderBottom={false} align="right"
+                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
                       content={<span style={{ fontSize: 14, fontWeight: 600 }}>{formatCena(NAKLADY_ROWS.reduce((s, r) => s + r.maklerBezStruktury, 0))}</span>}
                     />
                   </div>
                   <div style={{ width: 140, flexShrink: 0 }}>
-                    <TableCell size="sm" width="100%" hovered={false} borderBottom={false} align="right"
+                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
                       content={<span style={{ fontSize: 14, fontWeight: 600 }}>{formatCena(NAKLADY_ROWS.reduce((s, r) => s + r.hsp, 0))}</span>}
                     />
                   </div>
@@ -2490,7 +2491,7 @@ export default function NabidkaDetailPage() {
                     position: 'sticky', right: 0, zIndex: 1,
                     background: 'var(--t-bgSecondary)',
                   }}>
-                    <TableCell size="sm" width="100%" hovered={false} borderBottom={false} label="" />
+                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} label="" />
                   </div>
                 </div>
               </div>
@@ -2508,14 +2509,14 @@ export default function NabidkaDetailPage() {
               <div style={{ marginTop: 16 }}>
                 {/* Header */}
                 <div style={{ display: 'flex', background: 'var(--t-bgSecondary)', borderRadius: 8, overflow: 'hidden' }}>
-                  <div style={{ flex: 3, minWidth: 0, pointerEvents: 'none' }}><TableHeaderCell label="Jméno" width="100%" /></div>
-                  <div style={{ flex: 2, minWidth: 0, pointerEvents: 'none' }}><TableHeaderCell label="Pozice" width="100%" /></div>
+                  <div style={{ flex: 3, minWidth: 0, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Jméno" width="100%" /></div>
+                  <div style={{ flex: 2, minWidth: 0, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Pozice" width="100%" /></div>
                   {['Provize', 'Náklady', 'K výplatě'].map(col => (
                     <div key={col} className="th-right" style={{ flex: 2, minWidth: 0, pointerEvents: 'none' }}>
-                      <TableHeaderCell label={col} width="100%" />
+                      <TableHeaderCell size="dense" label={col} width="100%" />
                     </div>
                   ))}
-                  <div style={{ width: 132, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell label="Stav" width="100%" /></div>
+                  <div style={{ width: 132, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Stav" width="100%" /></div>
                 </div>
                 {/* Rows */}
                 {ROZPAD_ROWS.map((r, i) => {
@@ -2523,24 +2524,24 @@ export default function NabidkaDetailPage() {
                   return (
                     <div key={r.jmeno} style={{ display: 'flex' }}>
                       <div style={{ flex: 3, minWidth: 0 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom={!isLast} label={r.jmeno} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom={!isLast} label={r.jmeno} />
                       </div>
                       <div style={{ flex: 2, minWidth: 0 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom={!isLast} label={r.pozice} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom={!isLast} label={r.pozice} />
                       </div>
                       <div style={{ flex: 2, minWidth: 0 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom={!isLast} align="right" label={formatCena(r.provize)} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom={!isLast} align="right" label={formatCena(r.provize)} />
                       </div>
                       <div style={{ flex: 2, minWidth: 0 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom={!isLast} align="right" label={formatCena(r.naklady)} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom={!isLast} align="right" label={formatCena(r.naklady)} />
                       </div>
                       <div style={{ flex: 2, minWidth: 0 }}>
-                        <TableCell size="sm" width="100%" hovered={false} borderBottom={!isLast} align="right" label={formatCena(r.kVyplate)} />
+                        <TableCell size="dense" width="100%" hovered={false} borderBottom={!isLast} align="right" label={formatCena(r.kVyplate)} />
                       </div>
                       <div style={{ width: 132, flexShrink: 0 }}>
                         <TableCell
-                          size="sm" width="100%" hovered={false} borderBottom={!isLast}
-                          content={<Badge label={r.stav} variant="warning" size="sm" lead="indicator" />}
+                          size="dense" width="100%" hovered={false} borderBottom={!isLast}
+                          content={<Tag label={r.stav} variant="warning" size="sm" lead="indicator" />}
                         />
                       </div>
                     </div>
@@ -2548,6 +2549,13 @@ export default function NabidkaDetailPage() {
                 })}
               </div>
             </Widget>
+
+            {/* ── Nový návrh vypořádání plateb ───────────────────────────────
+                Zatím vedle původního rozvržení, aby se dala obě porovnat. */}
+            <div style={{ marginTop: 8 }}>
+              <Divider variant="label" label="Nový návrh — Vypořádání plateb" />
+            </div>
+            <VyporadaniPlateb onNovyNaklad={() => setNovyNakladOpen(true)} />
           </>
           )}
 
@@ -2563,14 +2571,14 @@ export default function NabidkaDetailPage() {
                 <div>
                   {/* Header */}
                   <div style={{ display: 'flex', background: 'var(--t-bgSecondary)', borderRadius: 8 }}>
-                    <div style={{ width: 120, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell label="Datum" width="100%" /></div>
-                    <div style={{ width: 120, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell label="Typ" width="100%" /></div>
-                    <div style={{ width: 140, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell label="VS" width="100%" /></div>
+                    <div style={{ width: 120, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Datum" width="100%" /></div>
+                    <div style={{ width: 120, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Typ" width="100%" /></div>
+                    <div style={{ width: 140, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="VS" width="100%" /></div>
                     <div className="th-right" style={{ width: 160, flexShrink: 0, pointerEvents: 'none' }}>
-                      <TableHeaderCell label="Částka" width="100%" />
+                      <TableHeaderCell size="dense" label="Částka" width="100%" />
                     </div>
-                    <div style={{ flex: 1, minWidth: 200, pointerEvents: 'none' }}><TableHeaderCell label="Poznámka" width="100%" /></div>
-                    <div style={{ width: 100, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell empty width="100%" /></div>
+                    <div style={{ flex: 1, minWidth: 200, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Poznámka" width="100%" /></div>
+                    <div style={{ width: 100, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell size="dense" empty width="100%" /></div>
                   </div>
 
                   {/* Rows */}
@@ -2585,13 +2593,13 @@ export default function NabidkaDetailPage() {
                       return (
                         <div key={r.id} style={{ display: 'flex', background: rowBg }}>
                           <div style={{ width: 120, flexShrink: 0 }}>
-                            <TableCell size="sm" width="100%" hovered={false} borderBottom label={r.datum} />
+                            <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.datum} />
                           </div>
                           <div style={{ width: 120, flexShrink: 0 }}>
                             <TableCell
-                              size="sm" width="100%" hovered={false} borderBottom
+                              size="dense" width="100%" hovered={false} borderBottom
                               content={
-                                <Badge
+                                <Tag
                                   label={isPrijem ? 'Příjem' : 'Výdaj'}
                                   variant={isPrijem ? 'success' : 'danger'}
                                   size="sm"
@@ -2600,11 +2608,11 @@ export default function NabidkaDetailPage() {
                             />
                           </div>
                           <div style={{ width: 140, flexShrink: 0 }}>
-                            <TableCell size="sm" width="100%" hovered={false} borderBottom label={r.vs} />
+                            <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.vs} />
                           </div>
                           <div style={{ width: 160, flexShrink: 0 }}>
                             <TableCell
-                              size="sm" width="100%" hovered={false} borderBottom align="right"
+                              size="dense" width="100%" hovered={false} borderBottom align="right"
                               content={
                                 <span style={{ fontSize: 14, fontWeight: 600, color: isPrijem ? 'var(--t-textSuccessPrimary)' : 'var(--t-textDangerPrimary)' }}>
                                   {(isPrijem ? '+ ' : '− ') + formatCena(r.castka)}
@@ -2613,11 +2621,11 @@ export default function NabidkaDetailPage() {
                             />
                           </div>
                           <div style={{ flex: 1, minWidth: 200 }}>
-                            <TableCell size="sm" width="100%" hovered={false} borderBottom label={r.poznamka || '—'} />
+                            <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.poznamka || '—'} />
                           </div>
                           <div style={{ width: 100, flexShrink: 0 }}>
                             <TableCell
-                              size="sm" width="100%" hovered={false} borderBottom
+                              size="dense" width="100%" hovered={false} borderBottom
                               content={
                                 <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                                   <IconButton icon={Pencil} variant="ghost" size="md" tooltip="Upravit" onClick={() => setTokEdit(r)} />
@@ -2639,12 +2647,12 @@ export default function NabidkaDetailPage() {
                     return (
                       <div style={{ display: 'flex', background: 'var(--t-bgSecondary)', borderRadius: '0 0 8px 8px' }}>
                         <div style={{ width: 120 + 120 + 140, flexShrink: 0 }}>
-                          <TableCell size="sm" width="100%" hovered={false} borderBottom={false} align="right"
+                          <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
                             content={<span style={{ fontSize: 13, fontWeight: 500, color: 'var(--t-textSecondary)' }}>Saldo:</span>}
                           />
                         </div>
                         <div style={{ width: 160, flexShrink: 0 }}>
-                          <TableCell size="sm" width="100%" hovered={false} borderBottom={false} align="right"
+                          <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
                             content={
                               <span style={{
                                 fontSize: 14, fontWeight: 700,
@@ -2656,10 +2664,10 @@ export default function NabidkaDetailPage() {
                           />
                         </div>
                         <div style={{ flex: 1, minWidth: 200 }}>
-                          <TableCell size="sm" width="100%" hovered={false} borderBottom={false} label="" />
+                          <TableCell size="dense" width="100%" hovered={false} borderBottom={false} label="" />
                         </div>
                         <div style={{ width: 100, flexShrink: 0 }}>
-                          <TableCell size="sm" width="100%" hovered={false} borderBottom={false} label="" />
+                          <TableCell size="dense" width="100%" hovered={false} borderBottom={false} label="" />
                         </div>
                       </div>
                     )

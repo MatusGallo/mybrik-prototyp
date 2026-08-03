@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ArrowUpRight } from 'lucide-react'
-import { IconButton, Button, TextButton, Badge, typography } from '@matusgallo/mysabds'
+import { IconButton, Button, TextButton, Tag, typography } from '@matusgallo/mysabds'
 
 export interface ParRow {
   klient: string
@@ -116,7 +116,7 @@ export default function DetailParuModal({ par, onClose }: Props) {
                 </a>
                 <span style={{ ...typography.body14Regular, color: 'var(--t-textSecondary)' }}>{par.adresa}</span>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                  {par.tagy.map(t => <Badge key={t} label={t} variant="neutral" size="sm" />)}
+                  {par.tagy.map(t => <Tag key={t} label={t} variant="neutral" size="sm" />)}
                 </div>
               </div>
             </div>
@@ -138,7 +138,7 @@ export default function DetailParuModal({ par, onClose }: Props) {
                           <span style={{ fontSize: 13, color: 'var(--t-textPrimary)' }}>{h.posledniAktivita}</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                          <Badge label={h.stav} variant="info" size="sm" />
+                          <Tag label={h.stav} variant="info" size="sm" />
                           <span style={{ fontSize: 12, color: 'var(--t-textSecondary)' }}>
                             Vytvořeno uživatelem <strong style={{ color: 'var(--t-textPrimary)' }}>{h.vytvorilUzivatel}</strong> dne {h.vytvoreno}
                           </span>

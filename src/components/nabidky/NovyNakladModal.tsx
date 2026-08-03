@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import { IconButton, Button, TextField, Select, ToggleItem } from '@matusgallo/mysabds'
+import { IconButton, Button, Input, Select, ToggleItem } from '@matusgallo/mysabds'
 
 const KATEGORIE_OPT = [
   { value: 'pravni-sluzby', label: 'Právní služby' },
@@ -119,7 +119,7 @@ export default function NovyNakladModal({ onClose, initialData }: Props) {
           {/* Body */}
           <div style={{ padding: '0 24px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            <TextField
+            <Input
               label="Název nákladu"
               required
               value={nazev}
@@ -129,7 +129,7 @@ export default function NovyNakladModal({ onClose, initialData }: Props) {
               error={errors.nazev}
             />
 
-            <TextField
+            <Input
               label="Dodavatel služeb"
               value={dodavatel}
               onChange={setDodavatel}
@@ -156,13 +156,13 @@ export default function NovyNakladModal({ onClose, initialData }: Props) {
 
             {/* Datum + Částka row — both half width */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <TextField
+              <Input
                 label="Datum vzniku"
                 value={datum}
                 onChange={setDatum}
                 width="100%"
               />
-              <TextField
+              <Input
                 label={platceDPH ? 'Částka bez DPH' : 'Částka'}
                 required
                 value={castka}
@@ -192,7 +192,7 @@ export default function NovyNakladModal({ onClose, initialData }: Props) {
                     width="100%"
                   />
                   <div style={{
-                    height: 40,
+                    height: 32,
                     padding: '0 16px',
                     background: 'var(--t-bgSecondary)',
                     border: '1px solid var(--t-borderPrimary)',

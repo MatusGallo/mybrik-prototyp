@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Modal, Select, TextArea, Tag, Alert, Divider } from '@matusgallo/mysabds'
+import { Modal, Select, TextArea, Chip, Alert, Divider } from '@matusgallo/mysabds'
 
 // ── Nastavení automatického odesílání statistik klientovi ─────────────────────
 
@@ -142,7 +142,7 @@ function EmailChipInput({
         onClick={() => !disabled && inputRef.current?.focus()}
         style={{
           display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6,
-          minHeight: 40, padding: '6px 10px',
+          minHeight: 32, padding: '4px 8px',
           borderRadius: 8,
           border: `1px solid ${shownError ? 'var(--t-borderDanger, #DC2626)' : 'var(--t-borderPrimary)'}`,
           background: disabled ? 'var(--t-bgSecondary)' : 'var(--t-bgPrimary)',
@@ -150,7 +150,7 @@ function EmailChipInput({
         }}
       >
         {emails.map(e => (
-          <Tag
+          <Chip
             key={e}
             label={e}
             size="sm"

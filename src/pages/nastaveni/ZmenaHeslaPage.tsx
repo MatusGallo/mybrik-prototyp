@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TextField, Button } from '@matusgallo/mysabds'
+import { Input, Button } from '@matusgallo/mysabds'
 
 export default function ZmenaHeslaPage() {
   const [aktualniHeslo, setAktualniHeslo] = useState('')
@@ -34,7 +34,7 @@ export default function ZmenaHeslaPage() {
           Heslo musí obsahovat minimálně jedno velké písmeno, jedno malé písmeno a jednu číslici o celkové délce minimálně 8 znaků.
         </p>
 
-        <TextField
+        <Input
           label="Aktuální heslo"
           required
           type="password"
@@ -46,7 +46,7 @@ export default function ZmenaHeslaPage() {
 
         <div style={{ height: 1, background: 'var(--t-borderPrimary)' }} />
 
-        <TextField
+        <Input
           label="Heslo"
           required
           type="password"
@@ -56,7 +56,7 @@ export default function ZmenaHeslaPage() {
           width="100%"
         />
 
-        <TextField
+        <Input
           label="Heslo znova"
           required
           type="password"

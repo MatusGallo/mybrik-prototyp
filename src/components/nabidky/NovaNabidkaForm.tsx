@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, AlertTriangle, Search as SearchIcon, Home, Building, MapPin, Building2, Warehouse, Upload, Trash2, Plus, Calculator, X, type LucideIcon } from 'lucide-react'
-import { Button, TextButton, TextField, Select, TextArea, CheckboxItem, Badge, IconButton } from '@matusgallo/mysabds'
+import { Button, TextButton, Input, Select, TextArea, CheckboxItem, Tag, IconButton } from '@matusgallo/mysabds'
 import SelectSearch from '../shared/SelectSearch'
 import KlientSearchModal from '../klienti/KlientSearchModal'
 import type { KlientData } from '../klienti/KlientPanel'
@@ -535,7 +535,7 @@ function SummaryChips({ items }: { items: string[] }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
       {visible.map((item, i) => (
-        <Badge key={i} label={item} variant="neutral" size="sm" />
+        <Tag key={i} label={item} variant="neutral" size="sm" />
       ))}
     </div>
   )
@@ -961,7 +961,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
       </FieldGroup>
 
       <FieldGroup title="Název nabídky">
-        <TextField
+        <Input
           value={form.nazevNabidky}
           onChange={(v: string) => setField('nazevNabidky', v)}
           placeholder="Např. Slunný byt 3+kk v centru Prahy"
@@ -990,7 +990,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
           onChange={(v: string) => setField('urovenZnepresnenia', v)}
           width="100%"
         />
-        <TextField
+        <Input
           value={form.adresa}
           onChange={(v: string) => setField('adresa', v)}
           placeholder="Zadejte adresu…"
@@ -1009,12 +1009,12 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
         <div style={G4}>
           <Select label="Materiál *" options={MATERIAL_OPT} value={form.material} onChange={v => setField('material', v)} width="100%" error={has1('material') ? 'Tento údaj je povinný.' : undefined} />
           <Select label="Lokace" options={LOKACE_OPT} value={form.lokace} onChange={v => setField('lokace', v)} width="100%" />
-          <TextField label="Rok kolaudace" value={form.rokKolaudace} onChange={v => setField('rokKolaudace', v)} placeholder="2015" width="100%" numeric />
-          <TextField label="Datum zahájení výstavby" value={form.datumZahajeni} onChange={v => setField('datumZahajeni', v)} placeholder="DD.MM.RRRR" width="100%" />
-          <TextField label="Datum ukončení výstavby" value={form.datumUkonceni} onChange={v => setField('datumUkonceni', v)} placeholder="DD.MM.RRRR" width="100%" />
-          <TextField label="Rok výstavby" value={form.rokVystavby} onChange={v => setField('rokVystavby', v)} placeholder="1990" width="100%" numeric />
-          <TextField label="Datum nastěhování" value={form.datumNastehovani} onChange={v => setField('datumNastehovani', v)} placeholder="DD.MM.RRRR" width="100%" />
-          <TextField label="Rok rekonstrukce" value={form.rokRekonstrukce} onChange={v => setField('rokRekonstrukce', v)} placeholder="2020" width="100%" numeric />
+          <Input label="Rok kolaudace" value={form.rokKolaudace} onChange={v => setField('rokKolaudace', v)} placeholder="2015" width="100%" numeric />
+          <Input label="Datum zahájení výstavby" value={form.datumZahajeni} onChange={v => setField('datumZahajeni', v)} placeholder="DD.MM.RRRR" width="100%" />
+          <Input label="Datum ukončení výstavby" value={form.datumUkonceni} onChange={v => setField('datumUkonceni', v)} placeholder="DD.MM.RRRR" width="100%" />
+          <Input label="Rok výstavby" value={form.rokVystavby} onChange={v => setField('rokVystavby', v)} placeholder="1990" width="100%" numeric />
+          <Input label="Datum nastěhování" value={form.datumNastehovani} onChange={v => setField('datumNastehovani', v)} placeholder="DD.MM.RRRR" width="100%" />
+          <Input label="Rok rekonstrukce" value={form.rokRekonstrukce} onChange={v => setField('rokRekonstrukce', v)} placeholder="2020" width="100%" numeric />
         </div>
       </FieldGroup>
 
@@ -1028,14 +1028,14 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
 
       <FieldGroup title="Plochy">
         <div style={G4}>
-          <TextField label="Užitná plocha *" value={form.uzitnaPolocha} onChange={v => setField('uzitnaPolocha', v)} placeholder="85" width="100%" suffix="m²" numeric textAlign="right" error={has1('uzitnaPolocha') ? 'Tento údaj je povinný.' : undefined} />
-          <TextField label="Plocha zastavená" value={form.plochaZastavena} onChange={v => setField('plochaZastavena', v)} placeholder="0" width="100%" suffix="m²" numeric textAlign="right" />
-          <TextField label="Zahrada" value={form.zahrada} onChange={v => setField('zahrada', v)} placeholder="0" width="100%" suffix="m²" numeric textAlign="right" />
-          <TextField label="Plocha pozemku *" value={form.plochaPozemku} onChange={v => setField('plochaPozemku', v)} placeholder="300" width="100%" suffix="m²" numeric textAlign="right" error={has1('plochaPozemku') ? 'Tento údaj je povinný.' : undefined} />
-          <TextField label="Celková plocha" value={form.celkovaPlocha} onChange={v => setField('celkovaPlocha', v)} placeholder="0" width="100%" suffix="m²" numeric textAlign="right" />
-          <TextField label="Užitná plocha přízemí" value={form.uzitnaPlochaPrizemi} onChange={v => setField('uzitnaPlochaPrizemi', v)} placeholder="0" width="100%" suffix="m²" numeric textAlign="right" />
-          <TextField label="Plocha dílen" value={form.plochaDilen} onChange={v => setField('plochaDilen', v)} placeholder="0" width="100%" suffix="m²" numeric textAlign="right" />
-          <TextField label="Plocha zahrady" value={form.plochaZahrady} onChange={v => setField('plochaZahrady', v)} placeholder="0" width="100%" suffix="m²" numeric textAlign="right" />
+          <Input label="Užitná plocha *" value={form.uzitnaPolocha} onChange={v => setField('uzitnaPolocha', v)} placeholder="85" width="100%" suffix="m²" numeric textAlign="right" error={has1('uzitnaPolocha') ? 'Tento údaj je povinný.' : undefined} />
+          <Input label="Plocha zastavená" value={form.plochaZastavena} onChange={v => setField('plochaZastavena', v)} placeholder="0" width="100%" suffix="m²" numeric textAlign="right" />
+          <Input label="Zahrada" value={form.zahrada} onChange={v => setField('zahrada', v)} placeholder="0" width="100%" suffix="m²" numeric textAlign="right" />
+          <Input label="Plocha pozemku *" value={form.plochaPozemku} onChange={v => setField('plochaPozemku', v)} placeholder="300" width="100%" suffix="m²" numeric textAlign="right" error={has1('plochaPozemku') ? 'Tento údaj je povinný.' : undefined} />
+          <Input label="Celková plocha" value={form.celkovaPlocha} onChange={v => setField('celkovaPlocha', v)} placeholder="0" width="100%" suffix="m²" numeric textAlign="right" />
+          <Input label="Užitná plocha přízemí" value={form.uzitnaPlochaPrizemi} onChange={v => setField('uzitnaPlochaPrizemi', v)} placeholder="0" width="100%" suffix="m²" numeric textAlign="right" />
+          <Input label="Plocha dílen" value={form.plochaDilen} onChange={v => setField('plochaDilen', v)} placeholder="0" width="100%" suffix="m²" numeric textAlign="right" />
+          <Input label="Plocha zahrady" value={form.plochaZahrady} onChange={v => setField('plochaZahrady', v)} placeholder="0" width="100%" suffix="m²" numeric textAlign="right" />
         </div>
       </FieldGroup>
 
@@ -1044,8 +1044,8 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
           V případě vyplnění umístěním se musí vyplnit i počet nadzemních podlaží, které je rovno nebo větší než hodnota umístění.
         </span>
         <div style={G4}>
-          <TextField label="Nadzemních" value={form.nadzemnich} onChange={v => setField('nadzemnich', v)} placeholder="2" width="100%" numeric />
-          <TextField label="Podzemních" value={form.podzemnich} onChange={v => setField('podzemnich', v)} placeholder="1" width="100%" numeric />
+          <Input label="Nadzemních" value={form.nadzemnich} onChange={v => setField('nadzemnich', v)} placeholder="2" width="100%" numeric />
+          <Input label="Podzemních" value={form.podzemnich} onChange={v => setField('podzemnich', v)} placeholder="1" width="100%" numeric />
         </div>
       </FieldGroup>
 
@@ -1078,10 +1078,10 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
       <FieldGroup title="Další informace">
         <div style={G4}>
           <Select label="Ochrana" options={OCHRANA_OPT} value={form.ochrana} onChange={v => setField('ochrana', v)} width="100%" />
-          <TextField label="Náklady na bydlení" value={form.nakladyBydleni} onChange={v => setField('nakladyBydleni', v)} placeholder="5 000" width="100%" suffix="Kč" numeric textAlign="right" />
+          <Input label="Náklady na bydlení" value={form.nakladyBydleni} onChange={v => setField('nakladyBydleni', v)} placeholder="5 000" width="100%" suffix="Kč" numeric textAlign="right" />
           <Select label="Vybavení" options={VYBAVENI_OPT} value={form.vybaveni} onChange={v => setField('vybaveni', v)} width="100%" />
-          <TextField label="Počet garáží" value={form.pocetGarazi} onChange={v => setField('pocetGarazi', v)} placeholder="1" width="100%" numeric />
-          <TextField label="Míst k parkování" value={form.mistKParkovani} onChange={v => setField('mistKParkovani', v)} placeholder="2" width="100%" numeric />
+          <Input label="Počet garáží" value={form.pocetGarazi} onChange={v => setField('pocetGarazi', v)} placeholder="1" width="100%" numeric />
+          <Input label="Míst k parkování" value={form.mistKParkovani} onChange={v => setField('mistKParkovani', v)} placeholder="2" width="100%" numeric />
         </div>
       </FieldGroup>
 
@@ -1089,7 +1089,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
         <div style={G3}>
           <Select label="En. náročnost" options={EN_NAROCNOST_OPT} value={form.enNarocnost} onChange={v => setField('enNarocnost', v)} width="100%" />
           <Select label="Vyhláška" options={VYHLASKA_OPT} value={form.vyhlaska} onChange={v => setField('vyhlaska', v)} width="100%" />
-          <TextField label="Uk. en. náročnosti" value={form.ukEnNarocnosti} onChange={v => setField('ukEnNarocnosti', v)} placeholder="120" width="100%" suffix="m²·K" numeric textAlign="right" />
+          <Input label="Uk. en. náročnosti" value={form.ukEnNarocnosti} onChange={v => setField('ukEnNarocnosti', v)} placeholder="120" width="100%" suffix="m²·K" numeric textAlign="right" />
         </div>
         <CheckboxItem label="Nízkoenergetický" checked={form.nizkoenergeticky} onChange={v => setField('nizkoenergeticky', v)} />
       </FieldGroup>
@@ -1200,33 +1200,33 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={G2}>
-            <TextField label="Telefon *" value={form.telefon} onChange={v => setField('telefon', v)} placeholder="+420 123 456 789" width="100%" error={has2('telefon') ? 'Tento údaj je povinný.' : undefined} />
-            <TextField label="E-mail" value={form.email} onChange={v => setField('email', v)} placeholder="jmeno@email.cz" width="100%" />
+            <Input label="Telefon *" value={form.telefon} onChange={v => setField('telefon', v)} placeholder="+420 123 456 789" width="100%" error={has2('telefon') ? 'Tento údaj je povinný.' : undefined} />
+            <Input label="E-mail" value={form.email} onChange={v => setField('email', v)} placeholder="jmeno@email.cz" width="100%" />
           </div>
 
           <FieldGroup title="Základní údaje">
             <div style={G4}>
-              <TextField label="Jméno *" value={form.jmeno} onChange={v => setField('jmeno', v)} placeholder="Jan" width="100%" error={has2('jmeno') ? 'Tento údaj je povinný.' : undefined} />
-              <TextField label="Příjmení *" value={form.prijmeni} onChange={v => setField('prijmeni', v)} placeholder="Novák" width="100%" error={has2('prijmeni') ? 'Tento údaj je povinný.' : undefined} />
-              <TextField label="Titul před jménem" value={form.titulPred} onChange={v => setField('titulPred', v)} placeholder="Ing." width="100%" />
-              <TextField label="Titul za jménem" value={form.titulZa} onChange={v => setField('titulZa', v)} placeholder="MBA" width="100%" />
+              <Input label="Jméno *" value={form.jmeno} onChange={v => setField('jmeno', v)} placeholder="Jan" width="100%" error={has2('jmeno') ? 'Tento údaj je povinný.' : undefined} />
+              <Input label="Příjmení *" value={form.prijmeni} onChange={v => setField('prijmeni', v)} placeholder="Novák" width="100%" error={has2('prijmeni') ? 'Tento údaj je povinný.' : undefined} />
+              <Input label="Titul před jménem" value={form.titulPred} onChange={v => setField('titulPred', v)} placeholder="Ing." width="100%" />
+              <Input label="Titul za jménem" value={form.titulZa} onChange={v => setField('titulZa', v)} placeholder="MBA" width="100%" />
             </div>
             <div style={G3}>
-              <TextField label="Název společnosti" value={form.nazevSpolecnosti} onChange={v => setField('nazevSpolecnosti', v)} placeholder="Název s.r.o." width="100%" />
-              <TextField label="IČ společnosti" value={form.ic} onChange={v => setField('ic', v)} placeholder="12345678" width="100%" numeric />
-              <TextField label="Pozice zastupující osoby" value={form.pozice} onChange={v => setField('pozice', v)} placeholder="Jednatel" width="100%" />
+              <Input label="Název společnosti" value={form.nazevSpolecnosti} onChange={v => setField('nazevSpolecnosti', v)} placeholder="Název s.r.o." width="100%" />
+              <Input label="IČ společnosti" value={form.ic} onChange={v => setField('ic', v)} placeholder="12345678" width="100%" numeric />
+              <Input label="Pozice zastupující osoby" value={form.pozice} onChange={v => setField('pozice', v)} placeholder="Jednatel" width="100%" />
             </div>
           </FieldGroup>
 
           <FieldGroup title="Kontaktní adresa">
             <div style={G4}>
-              <TextField label="Ulice" value={form.ulice} onChange={v => setField('ulice', v)} placeholder="Nová" width="100%" />
-              <TextField label="Č.p." value={form.cp} onChange={v => setField('cp', v)} placeholder="12" width="100%" />
-              <TextField label="Č.o." value={form.co} onChange={v => setField('co', v)} placeholder="3" width="100%" />
-              <TextField label="Město" value={form.mesto} onChange={v => setField('mesto', v)} placeholder="Praha" width="100%" />
+              <Input label="Ulice" value={form.ulice} onChange={v => setField('ulice', v)} placeholder="Nová" width="100%" />
+              <Input label="Č.p." value={form.cp} onChange={v => setField('cp', v)} placeholder="12" width="100%" />
+              <Input label="Č.o." value={form.co} onChange={v => setField('co', v)} placeholder="3" width="100%" />
+              <Input label="Město" value={form.mesto} onChange={v => setField('mesto', v)} placeholder="Praha" width="100%" />
             </div>
             <div style={G4}>
-              <TextField label="PSČ" value={form.psc} onChange={v => setField('psc', v)} placeholder="110 00" width="100%" />
+              <Input label="PSČ" value={form.psc} onChange={v => setField('psc', v)} placeholder="110 00" width="100%" />
             </div>
           </FieldGroup>
         </div>
@@ -1245,26 +1245,26 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={G2}>
-              <TextField label="Telefon *" value={v.telefon} onChange={val => updateVlastnik(idx, 'telefon', val)} placeholder="+420 123 456 789" width="100%" />
-              <TextField label="E-mail" value={v.email} onChange={val => updateVlastnik(idx, 'email', val)} placeholder="jmeno@email.cz" width="100%" />
+              <Input label="Telefon *" value={v.telefon} onChange={val => updateVlastnik(idx, 'telefon', val)} placeholder="+420 123 456 789" width="100%" />
+              <Input label="E-mail" value={v.email} onChange={val => updateVlastnik(idx, 'email', val)} placeholder="jmeno@email.cz" width="100%" />
             </div>
             <FieldGroup title="Základní údaje">
               <div style={G4}>
-                <TextField label="Jméno" value={v.jmeno} onChange={val => updateVlastnik(idx, 'jmeno', val)} placeholder="Jan" width="100%" />
-                <TextField label="Příjmení" value={v.prijmeni} onChange={val => updateVlastnik(idx, 'prijmeni', val)} placeholder="Novák" width="100%" />
-                <TextField label="Titul před jménem" value={v.titulPred} onChange={val => updateVlastnik(idx, 'titulPred', val)} placeholder="Ing." width="100%" />
-                <TextField label="Titul za jménem" value={v.titulZa} onChange={val => updateVlastnik(idx, 'titulZa', val)} placeholder="MBA" width="100%" />
+                <Input label="Jméno" value={v.jmeno} onChange={val => updateVlastnik(idx, 'jmeno', val)} placeholder="Jan" width="100%" />
+                <Input label="Příjmení" value={v.prijmeni} onChange={val => updateVlastnik(idx, 'prijmeni', val)} placeholder="Novák" width="100%" />
+                <Input label="Titul před jménem" value={v.titulPred} onChange={val => updateVlastnik(idx, 'titulPred', val)} placeholder="Ing." width="100%" />
+                <Input label="Titul za jménem" value={v.titulZa} onChange={val => updateVlastnik(idx, 'titulZa', val)} placeholder="MBA" width="100%" />
               </div>
             </FieldGroup>
             <FieldGroup title="Kontaktní adresa">
               <div style={G4}>
-                <TextField label="Ulice" value={v.ulice} onChange={val => updateVlastnik(idx, 'ulice', val)} placeholder="Nová" width="100%" />
-                <TextField label="Č.p." value={v.cp} onChange={val => updateVlastnik(idx, 'cp', val)} placeholder="12" width="100%" />
-                <TextField label="Č.o." value={v.co} onChange={val => updateVlastnik(idx, 'co', val)} placeholder="3" width="100%" />
-                <TextField label="Město" value={v.mesto} onChange={val => updateVlastnik(idx, 'mesto', val)} placeholder="Praha" width="100%" />
+                <Input label="Ulice" value={v.ulice} onChange={val => updateVlastnik(idx, 'ulice', val)} placeholder="Nová" width="100%" />
+                <Input label="Č.p." value={v.cp} onChange={val => updateVlastnik(idx, 'cp', val)} placeholder="12" width="100%" />
+                <Input label="Č.o." value={v.co} onChange={val => updateVlastnik(idx, 'co', val)} placeholder="3" width="100%" />
+                <Input label="Město" value={v.mesto} onChange={val => updateVlastnik(idx, 'mesto', val)} placeholder="Praha" width="100%" />
               </div>
               <div style={G4}>
-                <TextField label="PSČ" value={v.psc} onChange={val => updateVlastnik(idx, 'psc', val)} placeholder="110 00" width="100%" />
+                <Input label="PSČ" value={v.psc} onChange={val => updateVlastnik(idx, 'psc', val)} placeholder="110 00" width="100%" />
               </div>
             </FieldGroup>
           </div>
@@ -1282,7 +1282,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
     <>
       <FieldGroup title="Cena nemovitosti *">
         <div style={G3}>
-          <TextField
+          <Input
             label="Cena"
             required
             value={form.cena}
@@ -1335,7 +1335,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
           onChange={v => setField('najemceNeplaitProvizi', v)}
         />
         <div style={G3}>
-          <TextField
+          <Input
             label="Výše vratné kauce"
             value={form.vyseVratneKauce}
             onChange={(v: string) => setField('vyseVratneKauce', v)}
@@ -1350,7 +1350,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
 
       <FieldGroup title="Provize *">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 1fr', gap: 12, alignItems: 'end' }}>
-          <TextField
+          <Input
             label="Výše provize bez DPH"
             value={form.provize}
             onChange={(v: string) => setField('provize', v)}
@@ -1408,7 +1408,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
                 placeholder="Vyberte makléře"
                 width="100%"
               />
-              <TextField
+              <Input
                 label={idx === 0 ? 'Procento z provize' : ''}
                 value={m.procento}
                 onChange={val => updateMakler(idx, 'procento', val)}
@@ -1418,7 +1418,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
                 numeric
                 textAlign="right"
               />
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 40 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 32 }}>
                 {form.makleri.length > 1 && (
                   <IconButton
                     icon={Trash2}
@@ -1486,7 +1486,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
 
       <FieldGroup title="Odkaz na YouTube">
         <div style={{ maxWidth: 400 }}>
-          <TextField
+          <Input
             label="YouTube"
             value={form.youtube}
             onChange={(v: string) => setField('youtube', v)}
@@ -1498,7 +1498,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
 
       <FieldGroup title="Virtuální prohlídka Matterport">
         <div style={{ maxWidth: 400 }}>
-          <TextField
+          <Input
             label="Matterport"
             value={form.matterport}
             onChange={(v: string) => setField('matterport', v)}
@@ -1513,7 +1513,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
           </div>
         </FieldGroup>
         <div style={{ maxWidth: 400 }}>
-          <TextField
+          <Input
             label="Url na panoramu z Mapy.cz"
             value={form.mapyPanorama}
             onChange={(v: string) => setField('mapyPanorama', v)}

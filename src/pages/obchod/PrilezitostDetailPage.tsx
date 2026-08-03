@@ -5,7 +5,7 @@ import {
   ArrowLeft, Eye, MessageCircle, Phone, CheckSquare, FileText,
   Bell, Copy, Pencil, Trash, Plus, User, ArrowUpRight, Mail, type LucideIcon,
 } from 'lucide-react'
-import { IconButton, LineTabGroup, TextButton, Tooltip, Badge, TableHeaderCell, TableCell, Avatar, Dialog } from '@matusgallo/mysabds'
+import { IconButton, LineTabGroup, TextButton, Tooltip, Tag, TableHeaderCell, TableCell, Avatar, Dialog } from '@matusgallo/mysabds'
 import { prilezitostiData } from '../../data/mockObchod'
 import NovyUkolModal from '../../components/obchod/NovyUkolModal'
 import ZapsatKomunikaceModal from '../../components/obchod/ZapsatKomunikaceModal'
@@ -291,7 +291,7 @@ function ProhlidkaRow({ p }: { p: typeof PROHLIDKY[0]; isLast?: boolean }) {
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ alignSelf: 'flex-start' }}>
-          <Badge label={p.stav} variant={stavVariant(p.stav)} size="sm" />
+          <Tag label={p.stav} variant={stavVariant(p.stav)} size="sm" />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
@@ -330,9 +330,9 @@ function UkolRow({ u }: { u: typeof UKOLY[0] }) {
       <DateBadge month={MONTH_ABBR[ukolMonth] ?? ukolMonth.slice(0, 3)} day={ukolDay} time={u.cas} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          <Badge label={u.stav} variant={ukolStavVariant(u.stav)} size="sm" />
-          <Badge label={u.pripomenutiDatum || u.priorita} variant="neutral" size="sm" lead="icon" icon={Bell} />
-          <Badge label={u.makler.replace('\n', ' ')} variant="neutral" size="sm" lead="icon" icon={User} />
+          <Tag label={u.stav} variant={ukolStavVariant(u.stav)} size="sm" />
+          <Tag label={u.pripomenutiDatum || u.priorita} variant="neutral" size="sm" lead="icon" icon={Bell} />
+          <Tag label={u.makler.replace('\n', ' ')} variant="neutral" size="sm" lead="icon" icon={User} />
         </div>
         <span style={{ fontSize: 14, lineHeight: '20px', color: 'var(--t-textPrimary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {u.nazev}
@@ -394,10 +394,10 @@ function KomunikaceItem({ k }: { k: typeof KOMUNIKACE_ITEMS[0] }) {
   return (
     <div style={{ background: 'var(--t-bgSecondary)', borderRadius: 8, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Badge label={typLabel} variant="neutral" size="sm" lead="icon" icon={TypIcon} />
+        <Tag label={typLabel} variant="neutral" size="sm" lead="icon" icon={TypIcon} />
         <Tooltip content="Vytvořil" placement="top">
           <span style={{ display: 'inline-flex' }}>
-            <Badge label={k.autor} variant="neutral" size="sm" lead="icon" icon={User} />
+            <Tag label={k.autor} variant="neutral" size="sm" lead="icon" icon={User} />
           </span>
         </Tooltip>
         <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--t-textSecondary)', whiteSpace: 'nowrap' }}>{k.datum}</span>
@@ -577,13 +577,13 @@ export default function PrilezitostDetailPage() {
               {/* Header */}
               <div style={{ display: 'flex', background: 'var(--t-bgSecondary)', borderRadius: 8, overflow: 'hidden' }}>
                 <div style={{ pointerEvents: 'none' }}>
-                  <TableHeaderCell label="Datum" width={170} />
+                  <TableHeaderCell label="Datum" size="dense" width={170} />
                 </div>
                 <div style={{ flex: 1, pointerEvents: 'none' }}>
-                  <TableHeaderCell label="Událost" width="100%" />
+                  <TableHeaderCell label="Událost" size="dense" width="100%" />
                 </div>
                 <div style={{ pointerEvents: 'none' }}>
-                  <TableHeaderCell label="Autor" width={200} />
+                  <TableHeaderCell label="Autor" size="dense" width={200} />
                 </div>
               </div>
               {/* Rows */}
@@ -591,16 +591,16 @@ export default function PrilezitostDetailPage() {
                 const isLast = i === HISTORIE_ITEMS.length - 1
                 return (
                   <div key={i} style={{ display: 'flex' }}>
-                    <TableCell size="sm" width={170} hovered={false} borderBottom={!isLast} label={h.datum} />
+                    <TableCell size="dense" width={170} hovered={false} borderBottom={!isLast} label={h.datum} />
                     <div style={{
                       flex: 1, display: 'flex', alignItems: 'center',
-                      paddingLeft: 16, paddingRight: 16,
+                      paddingLeft: 12, paddingRight: 12,
                       borderBottom: !isLast ? '1px solid var(--t-borderPrimary)' : undefined,
                     }}>
                       <span style={{ fontSize: 14, lineHeight: '20px', color: 'var(--t-textPrimary)' }}>{h.udalost}</span>
                     </div>
                     <TableCell
-                      size="sm"
+                      size="dense"
                       width={200}
                       hovered={false}
                       borderBottom={!isLast}
@@ -648,7 +648,7 @@ export default function PrilezitostDetailPage() {
             <div style={KV_ROW}>
               <span style={KV_LABEL}>Stav</span>
               <div style={{ flex: 1 }}>
-                <Badge label={p.stavPrilezitosti} variant={stavPrilezitostiVariant(p.stavPrilezitosti)} size="sm" />
+                <Tag label={p.stavPrilezitosti} variant={stavPrilezitostiVariant(p.stavPrilezitosti)} size="sm" />
               </div>
             </div>
             <KVRow label="Poslední aktivita" value={p.datumPosledniZmeny} />
@@ -694,7 +694,7 @@ export default function PrilezitostDetailPage() {
               </p>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {['Velmi dobrý', 'Osobní', 'Cílová'].map(tag => (
-                  <Badge key={tag} label={tag} variant="neutral" size="sm" />
+                  <Tag key={tag} label={tag} variant="neutral" size="sm" />
                 ))}
               </div>
             </div>
