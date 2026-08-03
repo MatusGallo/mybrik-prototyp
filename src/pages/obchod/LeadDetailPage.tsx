@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Search as SearchIcon, Eye, Plus } from 'lucide-react'
 import { IconButton, Breadcrumbs, LineTabGroup, TextButton, Tag, TableHeaderCell, TableCell, Avatar } from '@matusgallo/mysabds'
-import { leadData, prilezitostiData } from '../../data/mockObchod'
+import { leadData, poptavkyData } from '../../data/mockObchod'
 import { initials, avatarColor } from '../../utils/renderAvatarName'
 import DetailParuModal, { type ParRow } from '../../components/obchod/DetailParuModal'
 import NovyKlientLeadPanel from '../../components/obchod/NovyKlientLeadPanel'
@@ -109,7 +109,7 @@ export default function LeadDetailPage() {
   }
 
   const leadKod = `L${lead.id}`
-  const prilezitostiZleadu = prilezitostiData.filter(p => p.idLeadu === leadKod)
+  const prilezitostiZleadu = poptavkyData.filter(p => p.idLeadu === leadKod)
 
   return (
     <>
@@ -193,10 +193,10 @@ export default function LeadDetailPage() {
                       { key: 'plocha',     label: 'Plocha',     width: 80,  align: 'right', render: () => <span style={{ fontSize: 14, color: 'var(--t-textPrimary)' }}>55</span> },
                       { key: 'cena',       label: 'Cena',       width: 140, align: 'right', render: () => <span style={{ fontSize: 14, color: 'var(--t-textPrimary)' }}>{fmtCena(5490000)}</span> },
                       { key: 'datumPosledniZmeny', label: 'Poslední aktivita', width: 160 },
-                      { key: 'stavPrilezitosti', label: 'Stav', width: 110, render: r => <Tag label={String(r.stavPrilezitosti)} variant="success" size="sm" lead="indicator" /> },
+                      { key: 'stavPoptavky', label: 'Stav', width: 110, render: r => <Tag label={String(r.stavPoptavky)} variant="success" size="sm" lead="indicator" /> },
                     ]}
                     rows={prilezitostiZleadu as unknown as Record<string, unknown>[]}
-                    onRowClick={(row) => window.open(`/obchod/prilezitosti/${row.id}`, '_blank')}
+                    onRowClick={(row) => window.open(`/obchod/poptavky/${row.id}`, '_blank')}
                   />
                 )}
               </SectionCard>

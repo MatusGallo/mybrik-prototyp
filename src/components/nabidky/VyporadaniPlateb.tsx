@@ -1,12 +1,14 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
-  Percent, Plus, Minus, FileText, CircleCheck, Coins, Receipt,
+  Percent, Plus, Minus, Pencil, Trash2, FileText, CircleCheck, Coins, Receipt,
   type LucideIcon,
 } from 'lucide-react'
 import {
-  Button, IconButton, Tag, Tooltip, TooltipIcon, TableCell, TableHeaderCell,
+  Button, IconButton, Tag, Tooltip, TooltipIcon, TableCell, TableHeaderCell, Dialog,
   typography, iconSize, type TagVariant,
 } from '@matusgallo/mysabds'
+import NovyNakladModal, { type NakladFormData } from './NovyNakladModal'
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Vypořádání plateb — nový návrh finanční části nabídky.
@@ -64,32 +66,65 @@ const PROVIZE_ZDROJE: Array<{
 
 // Náklady drží součty vyúčtování: 15 690 Kč bez DPH, 2 310 Kč vstupní DPH,
 // 18 000 Kč s DPH. Poslední dodavatel je neplátce, proto u něj DPH chybí.
-const NAKLADY = [
-  { datum: '12.06.2026', nazev: 'Fotografie a video', dodavatel: 'Foto Studio Brno', kategorie: 'Fotografické práce, video', bezDph: 5000, sDph: 6050 },
-  { datum: '18.06.2026', nazev: 'Home staging', dodavatel: 'Staging Praha', kategorie: 'Staging', bezDph: 4000, sDph: 4840 },
-  { datum: '24.06.2026', nazev: 'Inzerce na Sreality', dodavatel: 'Seznam.cz', kategorie: 'Inzerce vč. sociálních sítí', bezDph: 2000, sDph: 2420 },
-  { datum: '30.06.2026', nazev: 'Právní služby', dodavatel: 'AK Dvořák (neplátce DPH)', kategorie: 'Právní služby', bezDph: 4690, sDph: 4690 },
+interface NakladRow {
+  id: number
+  datum: string
+  nazev: string
+  dodavatel: string
+  kategorie: string
+  kategorieKey: string
+  bezDph: number
+  sDph: number
+}
+
+const NAKLADY: NakladRow[] = [
+  { id: 1, datum: '12.06.2026', nazev: 'Fotografie a video', dodavatel: 'Foto Studio Brno', kategorie: 'Fotografické práce, video', kategorieKey: 'foto', bezDph: 5000, sDph: 6050 },
+  { id: 2, datum: '18.06.2026', nazev: 'Home staging', dodavatel: 'Staging Praha', kategorie: 'Staging', kategorieKey: 'staging', bezDph: 4000, sDph: 4840 },
+  { id: 3, datum: '24.06.2026', nazev: 'Inzerce na Sreality', dodavatel: 'Seznam.cz', kategorie: 'Inzerce vč. sociálních sítí', kategorieKey: 'inzerce', bezDph: 2000, sDph: 2420 },
+  { id: 4, datum: '30.06.2026', nazev: 'Právní služby', dodavatel: 'AK Dvořák (neplátce DPH)', kategorie: 'Právní služby', kategorieKey: 'pravni-sluzby', bezDph: 4690, sDph: 4690 },
 ]
 
-const ROZPAD = [
-  { jmeno: 'Dominik Bránka', pozice: 'Expert I', provize: 105000, naklady: 15690, kVyplate: 89310 },
-  { jmeno: 'Jana Marková', pozice: 'Manažer kanceláře', provize: 15000, naklady: 0, kVyplate: 15000 },
-  { jmeno: 'SAB servis s.r.o.', pozice: 'HSP', provize: 30000, naklady: 0, kVyplate: 30000 },
+function nakladToForm(r: NakladRow): NakladFormData {
+  return {
+    nazev: r.nazev,
+    dodavatel: r.dodavatel,
+    kategorie: r.kategorieKey,
+    platba: 'provize',
+    datum: r.datum,
+    platceDPH: r.sDph !== r.bezDph,
+    dph: '21',
+    castka: String(r.bezDph),
+  }
+}
+
+// Podíly na provizi jsou dané strukturou; náklady nese makléř zakázky, proto
+// se celá jejich částka odečítá z jeho podílu.
+const ROZPAD_PODILY = [
+  { jmeno: 'Dominik Bránka', pozice: 'Expert I', provize: 105000, nosiNaklady: true },
+  { jmeno: 'Jana Marková', pozice: 'Manažer kanceláře', provize: 15000, nosiNaklady: false },
+  { jmeno: 'SAB servis s.r.o.', pozice: 'HSP', provize: 30000, nosiNaklady: false },
 ]
+
+const PROVIZE_UHRAZENO = 0
 
 // ── Odvozené součty ───────────────────────────────────────────────────────────
 
 const ZALOHA_PREDEPSANO = ZALOHA_SPLATKY.reduce((s, r) => s + r.castka, 0)
 const ZALOHA_UHRAZENO = ZALOHA_UHRADY.reduce((s, r) => s + r.castka, 0)
 
-const NAKLADY_BEZ_DPH = NAKLADY.reduce((s, r) => s + r.bezDph, 0)
-const NAKLADY_S_DPH = NAKLADY.reduce((s, r) => s + r.sDph, 0)
-const NAKLADY_DPH = NAKLADY_S_DPH - NAKLADY_BEZ_DPH
+// Náklady se dají editovat, proto se součty počítají ze živých řádků.
+function nakladySoucty(rows: NakladRow[]) {
+  const bezDph = rows.reduce((s, r) => s + r.bezDph, 0)
+  const sDph = rows.reduce((s, r) => s + r.sDph, 0)
+  return { bezDph, sDph, dph: sDph - bezDph }
+}
 
-const K_VYPLATE = ROZPAD.reduce((s, r) => s + r.kVyplate, 0)
-const DPH_ODVOD = PROVIZE.dph - NAKLADY_DPH
-
-const PROVIZE_UHRAZENO = 0
+function rozpadRows(nakladyBezDph: number) {
+  return ROZPAD_PODILY.map(p => {
+    const naklady = p.nosiNaklady ? nakladyBezDph : 0
+    return { ...p, naklady, kVyplate: p.provize - naklady }
+  })
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -381,7 +416,9 @@ function TableHead({ cols }: { cols: Col[] }) {
             pointerEvents: 'none',
           }}
         >
-          <TableHeaderCell size="dense" label={c.label} width="100%" />
+          {c.label
+            ? <TableHeaderCell size="dense" label={c.label} width="100%" />
+            : <TableHeaderCell size="dense" empty width="100%" />}
         </div>
       ))}
     </div>
@@ -442,7 +479,13 @@ function ZdrojeProvizeTable() {
   )
 }
 
-function NakladyTable() {
+function NakladyTable({
+  rows, onEdit, onDelete,
+}: {
+  rows: NakladRow[]
+  onEdit: (r: NakladRow) => void
+  onDelete: (r: NakladRow) => void
+}) {
   const cols: Col[] = [
     { label: 'Datum', width: 110 },
     { label: 'Náklad', flex: 1 },
@@ -450,14 +493,16 @@ function NakladyTable() {
     { label: 'Bez DPH', width: 130, align: 'right' },
     { label: 'DPH', width: 110, align: 'right' },
     { label: 'S DPH', width: 130, align: 'right' },
+    { label: '', width: 92 },
   ]
+  const soucty = nakladySoucty(rows)
   return (
     <div style={{ overflowX: 'auto' }}>
       <TableHead cols={cols} />
-      {NAKLADY.map(r => {
+      {rows.map(r => {
         const dph = r.sDph - r.bezDph
         return (
-          <div key={r.nazev} style={{ display: 'flex' }}>
+          <div key={r.id} style={{ display: 'flex' }}>
             <div style={{ width: 110, flexShrink: 0 }}>
               <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.datum} />
             </div>
@@ -484,6 +529,19 @@ function NakladyTable() {
             <div style={{ width: 130, flexShrink: 0 }}>
               <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.sDph)} />
             </div>
+            <div style={{ width: 92, flexShrink: 0 }}>
+              <TableCell
+                size="dense" width="100%" hovered={false} borderBottom
+                content={
+                  <span style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                    <IconButton icon={Pencil} variant="ghost" size="md" tooltip="Upravit náklad" onClick={() => onEdit(r)} />
+                    <span className="icon-trash-primary">
+                      <IconButton icon={Trash2} variant="ghost" size="md" tooltip="Smazat náklad" onClick={() => onDelete(r)} />
+                    </span>
+                  </span>
+                }
+              />
+            </div>
           </div>
         )
       })}
@@ -500,27 +558,30 @@ function NakladyTable() {
         <div style={{ width: 130, flexShrink: 0 }}>
           <TableCell
             size="dense" width="100%" hovered={false} borderBottom={false} align="right"
-            content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(NAKLADY_BEZ_DPH)}</span>}
+            content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(soucty.bezDph)}</span>}
           />
         </div>
         <div style={{ width: 110, flexShrink: 0 }}>
           <TableCell
             size="dense" width="100%" hovered={false} borderBottom={false} align="right"
-            content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(NAKLADY_DPH)}</span>}
+            content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(soucty.dph)}</span>}
           />
         </div>
         <div style={{ width: 130, flexShrink: 0 }}>
           <TableCell
             size="dense" width="100%" hovered={false} borderBottom={false} align="right"
-            content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(NAKLADY_S_DPH)}</span>}
+            content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(soucty.sDph)}</span>}
           />
+        </div>
+        <div style={{ width: 92, flexShrink: 0 }}>
+          <TableCell size="dense" width="100%" hovered={false} borderBottom={false} label="" />
         </div>
       </div>
     </div>
   )
 }
 
-function RozpadTable() {
+function RozpadTable({ nakladyBezDph }: { nakladyBezDph: number }) {
   const cols: Col[] = [
     { label: 'Jméno', flex: 3 },
     { label: 'Pozice', flex: 2 },
@@ -529,10 +590,12 @@ function RozpadTable() {
     { label: 'K výplatě', flex: 2, align: 'right' },
     { label: 'Stav', width: 140 },
   ]
+  const rows = rozpadRows(nakladyBezDph)
+  const kVyplateCelkem = rows.reduce((s, r) => s + r.kVyplate, 0)
   return (
     <div>
       <TableHead cols={cols} />
-      {ROZPAD.map(r => (
+      {rows.map(r => (
         <div key={r.jmeno} style={{ display: 'flex' }}>
           <div style={{ flex: 3, minWidth: 0 }}>
             <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.jmeno} />
@@ -573,13 +636,13 @@ function RozpadTable() {
         <div style={{ flex: 2, minWidth: 0 }}>
           <TableCell
             size="dense" width="100%" hovered={false} borderBottom={false} align="right"
-            content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(NAKLADY_BEZ_DPH)}</span>}
+            content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(nakladyBezDph)}</span>}
           />
         </div>
         <div style={{ flex: 2, minWidth: 0 }}>
           <TableCell
             size="dense" width="100%" hovered={false} borderBottom={false} align="right"
-            content={<span style={{ ...typography.body14Semibold, color: 'var(--textSuccessPrimary)' }}>{formatCena(K_VYPLATE)}</span>}
+            content={<span style={{ ...typography.body14Semibold, color: 'var(--textSuccessPrimary)' }}>{formatCena(kVyplateCelkem)}</span>}
           />
         </div>
         <div style={{ width: 140, flexShrink: 0 }}>
@@ -629,7 +692,7 @@ function ProvizeHero() {
 
 // ── Hlavní komponenta ─────────────────────────────────────────────────────────
 
-export default function VyporadaniPlateb({ onNovyNaklad }: { onNovyNaklad?: () => void }) {
+export default function VyporadaniPlateb() {
   const [openZaloha, setOpenZaloha] = useState(true)
   const [openProvize, setOpenProvize] = useState(true)
   const [openVyuctovani, setOpenVyuctovani] = useState(true)
@@ -639,12 +702,26 @@ export default function VyporadaniPlateb({ onNovyNaklad }: { onNovyNaklad?: () =
   const [openNaklady, setOpenNaklady] = useState(false)
   const [openRozpad, setOpenRozpad] = useState(false)
 
+  const [naklady, setNaklady] = useState<NakladRow[]>(NAKLADY)
+  const [novyNakladOpen, setNovyNakladOpen] = useState(false)
+  const [editNaklad, setEditNaklad] = useState<NakladRow | null>(null)
+  const [deleteNaklad, setDeleteNaklad] = useState<NakladRow | null>(null)
+
   const zalohaZbyva = Math.max(0, ZALOHA_PREDEPSANO - ZALOHA_UHRAZENO)
   const zalohaPct = pctOf(ZALOHA_UHRAZENO, ZALOHA_PREDEPSANO)
   const zalohaUhrazena = zalohaZbyva === 0
 
   const provizeZbyva = PROVIZE.sDph - PROVIZE_UHRAZENO
   const provizePct = pctOf(PROVIZE_UHRAZENO, PROVIZE.sDph)
+
+  const soucty = nakladySoucty(naklady)
+  const kVyplate = PROVIZE.bezDph - soucty.bezDph
+  const dphOdvod = PROVIZE.dph - soucty.dph
+
+  function confirmDelete() {
+    if (deleteNaklad) setNaklady(rows => rows.filter(r => r.id !== deleteNaklad.id))
+    setDeleteNaklad(null)
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -653,7 +730,7 @@ export default function VyporadaniPlateb({ onNovyNaklad }: { onNovyNaklad?: () =
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <span style={{ ...typography.subheadline18Semibold, color: 'var(--textPrimary)' }}>Vypořádání plateb</span>
         <div style={{ marginLeft: 'auto' }}>
-          <Button label="Nový náklad" variant="outlined" size="md" leadIcon={Plus} onClick={onNovyNaklad} />
+          <Button label="Nový náklad" variant="outlined" size="md" leadIcon={Plus} onClick={() => setNovyNakladOpen(true)} />
         </div>
       </div>
 
@@ -782,7 +859,7 @@ export default function VyporadaniPlateb({ onNovyNaklad }: { onNovyNaklad?: () =
         title="Vyúčtování zakázky"
         tooltip="Vyúčtování rozdělí provizi do struktury a odečte náklady. Otevře se, až bude nastavení provize dokončené."
         status={{ label: 'Čeká', variant: 'neutral' }}
-        summary={<>nevyfakturováno · náklady <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(NAKLADY_S_DPH)}</strong></>}
+        summary={<>nevyfakturováno · náklady <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(soucty.sDph)}</strong></>}
         open={openVyuctovani}
         onToggle={() => setOpenVyuctovani(o => !o)}
         actions={
@@ -796,15 +873,15 @@ export default function VyporadaniPlateb({ onNovyNaklad }: { onNovyNaklad?: () =
         <StatStrip
           items={[
             { label: 'Provize', value: formatCena(PROVIZE.bezDph), note: `bez DPH · ${formatCena(PROVIZE.sDph)} s DPH` },
-            { label: 'Náklady', value: `− ${formatCena(NAKLADY_BEZ_DPH)}`, valueColor: 'var(--textDangerPrimary)', note: `bez DPH · ${formatCena(NAKLADY_S_DPH)} s DPH` },
-            { label: 'Výplaty', value: formatCena(K_VYPLATE), valueColor: 'var(--textSuccessPrimary)', note: 'bez DPH · DPH dle příjemce' },
-            { label: 'DPH - odvod', value: formatCena(DPH_ODVOD), note: `výstup ${formatCena(PROVIZE.dph)} - vstup ${formatCena(NAKLADY_DPH)}` },
+            { label: 'Náklady', value: `− ${formatCena(soucty.bezDph)}`, valueColor: 'var(--textDangerPrimary)', note: `bez DPH · ${formatCena(soucty.sDph)} s DPH` },
+            { label: 'Výplaty', value: formatCena(kVyplate), valueColor: 'var(--textSuccessPrimary)', note: 'bez DPH · DPH dle příjemce' },
+            { label: 'DPH - odvod', value: formatCena(dphOdvod), note: `výstup ${formatCena(PROVIZE.dph)} - vstup ${formatCena(soucty.dph)}` },
           ]}
         />
 
         <RemainderRow
           label="Stav zakázky"
-          amount={formatCena(-NAKLADY_BEZ_DPH)}
+          amount={formatCena(-soucty.bezDph)}
           amountColor="var(--textMyDOCKPrimary)"
           caption="Vyrovnání zakázky · po úhradě provize a výplatě všech podílů skončí na 0 Kč"
           pct={0}
@@ -813,24 +890,54 @@ export default function VyporadaniPlateb({ onNovyNaklad }: { onNovyNaklad?: () =
 
         <SubPanel
           title="Náklady na zakázku"
-          meta={`${NAKLADY.length} položky · ${formatCena(NAKLADY_S_DPH)}`}
+          meta={`${naklady.length} položky · ${formatCena(soucty.sDph)}`}
           open={openNaklady}
           onToggle={() => setOpenNaklady(o => !o)}
           padded={false}
         >
-          <NakladyTable />
+          <NakladyTable rows={naklady} onEdit={setEditNaklad} onDelete={setDeleteNaklad} />
         </SubPanel>
 
         <SubPanel
           title="Rozpad provize do struktury"
-          meta={<>k výplatě <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(K_VYPLATE)}</strong></>}
+          meta={<>k výplatě <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(kVyplate)}</strong></>}
           open={openRozpad}
           onToggle={() => setOpenRozpad(o => !o)}
           padded={false}
         >
-          <RozpadTable />
+          <RozpadTable nakladyBezDph={soucty.bezDph} />
         </SubPanel>
       </StepCard>
+
+      {novyNakladOpen && <NovyNakladModal onClose={() => setNovyNakladOpen(false)} />}
+
+      {editNaklad && (
+        <NovyNakladModal initialData={nakladToForm(editNaklad)} onClose={() => setEditNaklad(null)} />
+      )}
+
+      {deleteNaklad && createPortal(
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(10,13,18,0.4)' }} />
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 201, pointerEvents: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{ pointerEvents: 'auto' }}>
+              <Dialog
+                icon={Trash2}
+                title="Smazat náklad?"
+                description={`Náklad ${deleteNaklad.nazev} za ${formatCena(deleteNaklad.sDph)} bude odebraný. Tuto akci nelze vrátit.`}
+                primaryLabel="Smazat"
+                secondaryLabel="Zrušit"
+                destructive
+                onPrimary={confirmDelete}
+                onSecondary={() => setDeleteNaklad(null)}
+              />
+            </div>
+          </div>
+        </>,
+        document.body,
+      )}
     </div>
   )
 }

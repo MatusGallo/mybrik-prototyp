@@ -14,13 +14,14 @@ import ZajemOVykupPage from './pages/obchod/ZajemOVykupPage'
 import LeadHypoPage from './pages/obchod/LeadHypoPage'
 import LeadPage from './pages/obchod/LeadPage'
 import LeadDetailPage from './pages/obchod/LeadDetailPage'
-import PrilezitostiPage from './pages/obchod/PrilezitostiPage'
-import PrilezitostDetailPage from './pages/obchod/PrilezitostDetailPage'
+import PoptavkyPage from './pages/obchod/PoptavkyPage'
+import PoptavkaDetailPage from './pages/obchod/PoptavkaDetailPage'
 import KlientiPage from './pages/KlientiPage'
 import DokumentyPage from './pages/DokumentyPage'
 import PobockyPage from './pages/PobockyPage'
+import NovaPobockaPage from './pages/NovaPobockaPage'
 import HspPage from './pages/HspPage'
-import NoveHspPage from './pages/NoveHspPage'
+import HspFormPage from './pages/HspFormPage'
 import UzivatelePage from './pages/UzivatelePage'
 import NovyUzivatelPage from './pages/NovyUzivatelPage'
 import RoleAPravaPage from './pages/RoleAPravaPage'
@@ -33,8 +34,10 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* Fullscreen formuláře — bez topbaru a sidebaru, stejně jako vytvoření nabídky */}
-        <Route path="/hsp/nove" element={<NoveHspPage />} />
+        <Route path="/hsp/nove" element={<HspFormPage mode="create" />} />
+        <Route path="/hsp/:id/upravit" element={<HspFormPage mode="edit" />} />
         <Route path="/uzivatele/novy" element={<NovyUzivatelPage />} />
+        <Route path="/pobocky/nova" element={<NovaPobockaPage />} />
 
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/nastanka" replace />} />
@@ -55,8 +58,8 @@ export default function App() {
           <Route path="/obchod/lead-hypo" element={<LeadHypoPage />} />
           <Route path="/obchod/lead" element={<LeadPage />} />
           <Route path="/obchod/lead/:id" element={<LeadDetailPage />} />
-          <Route path="/obchod/prilezitosti" element={<PrilezitostiPage />} />
-          <Route path="/obchod/prilezitosti/:id" element={<PrilezitostDetailPage />} />
+          <Route path="/obchod/poptavky" element={<PoptavkyPage />} />
+          <Route path="/obchod/poptavky/:id" element={<PoptavkaDetailPage />} />
 
           <Route path="/klienti" element={<KlientiPage />} />
           <Route path="/dokumenty" element={<DokumentyPage />} />

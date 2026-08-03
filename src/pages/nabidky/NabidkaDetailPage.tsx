@@ -6,7 +6,7 @@ import {
   Folder, FolderOpen, Upload,
   ChevronRight, ChevronLeft, ChevronDown, ChevronUp, X,
   Maximize2, Building2, Clock, Hammer, KeyRound, ShieldCheck, Tag as TagIcon, Calendar, Home,
-  RefreshCw, TrendingUp, Coins, FileText, PenLine, CalendarCheck, CalendarClock, ArrowDownToLine,
+  RefreshCw, TrendingUp, Coins, FileText, PenLine, CalendarCheck, CalendarClock,
   Share2, Users, Landmark, User, StickyNote,
   CircleCheck, CircleX, Circle,
   ExternalLink, MailX,
@@ -14,16 +14,15 @@ import {
 } from 'lucide-react'
 import {
   IconButton, TableHeaderCell, TableCell, Tag,
-  Avatar, TextButton, Menu, MenuItem, FilterSelect, FilterButton, Alert, Dialog, Search, Breadcrumbs,
-  Toggle, typography, TooltipIcon, LineTabGroup, PillTabGroup, Divider,
+  Avatar, TextButton, Menu, MenuItem, FilterSelect, FilterButton, Dialog, Search, Breadcrumbs,
+  Toggle, typography, LineTabGroup, PillTabGroup,
 } from '@matusgallo/mysabds'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { nabidkyData } from '../../data/mockData'
 import OdeslatHypotekariModal from '../../components/nabidky/OdeslatHypotekariModal'
 import InterniPoznamkaModal from '../../components/nabidky/InterniPoznamkaModal'
-import NovyNakladModal, { type NakladFormData } from '../../components/nabidky/NovyNakladModal'
+import NovyNakladModal from '../../components/nabidky/NovyNakladModal'
 import OstatniTokModal, { type OstatniTokFormData } from '../../components/nabidky/OstatniTokModal'
-import PridatUhraduModal, { type UhradaFormData, uhradaFormaLabel } from '../../components/nabidky/PridatUhraduModal'
 import NahratDokumentyModal from '../../components/nabidky/NahratDokumentyModal'
 import VyporadaniPlateb from '../../components/nabidky/VyporadaniPlateb'
 import AutomatickeStatistikyModal, {
@@ -58,35 +57,6 @@ const OSTATNI_TOKY_INITIAL: OstatniTokRow[] = [
 
 function rowToTokForm(r: OstatniTokRow): OstatniTokFormData {
   return { typ: r.typ, datum: r.datum, vs: r.vs, castka: String(r.castka), poznamka: r.poznamka }
-}
-
-const KATEGORIE_MAP: Record<string, string> = {
-  'právní služby': 'pravni-sluzby',
-  'staging': 'staging',
-  'inzerce vč. sociálních sítí': 'inzerce',
-  'geometrické práce': 'geometricke',
-  'inspekce nemovitosti': 'inspekce',
-  'PENB': 'penb',
-  'půdorysy': 'pudorysy',
-  '3d prohlídka': '3d',
-  'grafické práce': 'graficke',
-  'fotografické práce, video': 'foto',
-  'vizualizace': 'vizualizace',
-  'jiné': 'jine',
-  'topování': 'topovani',
-}
-
-function rowToNakladForm(r: typeof NAKLADY_ROWS[0]): NakladFormData {
-  return {
-    nazev: r.nazev,
-    dodavatel: r.dodavatel,
-    kategorie: KATEGORIE_MAP[r.kategorie] ?? 'jine',
-    platba: 'provize',
-    datum: r.datum,
-    platceDPH: r.castkaSDph !== null,
-    dph: '21',
-    castka: String(r.castkaBezDph),
-  }
 }
 
 // ── Mock photos ───────────────────────────────────────────────────────────────
@@ -153,43 +123,6 @@ const KONTAKTNI_OSOBY = [
   { jmeno: 'Petra Nováková', telefon: '776 123 456', email: 'petra.novakova@blogic.cz' },
   { jmeno: 'Martin Dvořák', telefon: '608 987 321', email: 'martin.dvorak@blogic.cz' },
   { jmeno: 'Lucie Svobodová', telefon: '721 555 044', email: 'lucie.svobodova@blogic.cz' },
-]
-
-const ROZPAD_ROWS = [
-  { jmeno: 'Dominik Bránka', pozice: 'Expert I', provize: 7000, naklady: 0, kVyplate: 7000, stav: 'K fakturaci' },
-  { jmeno: 'SAB servis s.r.o.', pozice: 'HSP', provize: 3000, naklady: 0, kVyplate: 3000, stav: 'K fakturaci' },
-]
-
-const NAKLADY_ROWS = [
-  {
-    datum: '31.05.2026', nazev: 'Moje workflow', dodavatel: '', kategorie: 'inzerce vč. sociálních sítí',
-    castkaBezDph: 10000, castkaSDph: 12100, zProvize: 0, makler: 0, maklerBezStruktury: 12100, hsp: 0,
-  },
-  {
-    datum: '01.06.2026', nazev: 'X', dodavatel: '', kategorie: 'právní služby',
-    castkaBezDph: 10000, castkaSDph: null, zProvize: 10000, makler: 0, maklerBezStruktury: 0, hsp: 0,
-  },
-]
-
-// Rezervační záloha — předpis (co má klient uhradit) vs. přijaté platby
-// (reálně přijaté částky). Rezervační záloha může být zaplacená ve více
-// splátkách, proto je saldo = přijato − předpis (záporné = zbývá doplatit).
-interface ZalohaPlatba {
-  id: number
-  datum: string
-  vs: string
-  ss: string
-  zpusob: string
-  castka: number
-}
-
-const ZALOHA_PREDPIS: ZalohaPlatba[] = [
-  { id: 1, datum: '30.11.2024', vs: '572', ss: '1458', zpusob: 'Převodem', castka: 400000 },
-]
-
-const ZALOHA_PRIJATE: ZalohaPlatba[] = [
-  { id: 1, datum: '02.12.2024', vs: '572', ss: '1458', zpusob: 'Převodem', castka: 250000 },
-  { id: 2, datum: '18.12.2024', vs: '572', ss: '1458', zpusob: 'Převodem', castka: 100000 },
 ]
 
 interface ExportServer {
@@ -971,257 +904,6 @@ function WidgetPodpisy({ onTab }: { onTab: (t: string) => void }) {
   )
 }
 
-function isSaldoRelevantState(stav: string): boolean {
-  const s = stav.toLowerCase()
-  return s.includes('rezervace') || s.includes('podepsaná smlouva')
-}
-
-// Barvy salda — kladné/vyrovnané zeleně, dluh v brand oranžové, neaktivní stav šedě.
-const SALDO_GREEN = '#16A34A'
-const SALDO_ORANGE = '#E05524'
-
-// Hero panel se saldem — dominantní číslo + progress uhrazení předpisu.
-// Přijaté platby snižují dluh (záporné saldo) směrem k nule.
-function SaldoHero({ predpis, prijato, saldo, relevant }: {
-  predpis: number; prijato: number; saldo: number; relevant: boolean
-}) {
-  const pct = predpis > 0 ? Math.min(100, Math.round((prijato / predpis) * 100)) : 0
-  const settled = saldo >= 0
-  const accent = !relevant ? 'var(--t-textTertiary)' : settled ? SALDO_GREEN : SALDO_ORANGE
-  const label = !relevant ? 'Saldo' : settled ? (saldo > 0 ? 'Přeplatek' : 'Vyrovnáno') : 'Zbývá doplatit'
-
-  return (
-    <div style={{
-      display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 24,
-      padding: '16px 20px', borderRadius: 12,
-      background: 'var(--t-bgSecondary)', border: '1px solid var(--t-borderPrimary)',
-      marginBottom: 16,
-    }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 150 }}>
-        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--t-textSecondary)' }}>{label}</span>
-        <span style={{ fontSize: 28, fontWeight: 700, lineHeight: '34px', color: accent }}>
-          {relevant ? formatCena(saldo) : '—'}
-        </span>
-      </div>
-      <div style={{ flex: 1, minWidth: 220, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
-          <span style={{ fontSize: 13, color: 'var(--t-textSecondary)' }}>
-            Uhrazeno <span style={{ fontWeight: 600, color: 'var(--t-textPrimary)' }}>{formatCena(prijato)}</span> z {formatCena(predpis)}
-          </span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t-textPrimary)' }}>{relevant ? `${pct} %` : '—'}</span>
-        </div>
-        <div style={{ height: 8, borderRadius: 999, background: 'var(--t-bgPrimary)', border: '1px solid var(--t-borderPrimary)', overflow: 'hidden' }}>
-          <div style={{
-            width: `${relevant ? pct : 0}%`, height: '100%',
-            background: settled ? SALDO_GREEN : SALDO_ORANGE,
-            transition: 'width 250ms ease',
-          }} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Časová osa rezervační zálohy — místo tabulky. Předpis je úvodní uzel (dluh),
-// každá přijatá platba je uzel, který běžící saldo přibližuje k nule.
-// „Saldo po platbě“ je vpravo u každé položky; akce jen u přijatých plateb.
-function ZalohaTimeline({
-  predpis, prijate, onEditRow, onDeleteRow,
-}: {
-  predpis: ZalohaPlatba[]
-  prijate: ZalohaPlatba[]
-  onEditRow: (r: ZalohaPlatba) => void
-  onDeleteRow: (r: ZalohaPlatba) => void
-}) {
-  type Entry = { key: string; kind: 'predpis' | 'platba'; src: ZalohaPlatba; zpusob: string; delta: number; bal: number }
-  const entries: Entry[] = []
-  let bal = 0
-  for (const p of predpis) { bal -= p.castka; entries.push({ key: `p${p.id}`, kind: 'predpis', src: p, zpusob: 'Rezervační záloha (předpis)', delta: -p.castka, bal }) }
-  for (const p of prijate) { bal += p.castka; entries.push({ key: `r${p.id}`, kind: 'platba', src: p, zpusob: p.zpusob, delta: p.castka, bal }) }
-  const saldoColor = (v: number) => (v >= 0 ? SALDO_GREEN : SALDO_ORANGE)
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {entries.map((e, i) => {
-        const last = i === entries.length - 1
-        const isPredpis = e.kind === 'predpis'
-        const NodeIcon = isPredpis ? FileText : ArrowDownToLine
-        const nodeBg = isPredpis ? 'var(--t-bgMyDOCKTertiary)' : 'var(--t-bgSuccessTertiary, #DCFCE7)'
-        const nodeColor = isPredpis ? 'var(--t-textMyDOCKPrimary)' : 'var(--t-textSuccessPrimary, #16A34A)'
-        return (
-          <div key={e.key} style={{ display: 'flex', gap: 14, alignItems: 'stretch' }}>
-            {/* Osa — spojnice nahoře, uzel na střed karty, spojnice dole */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 32, flexShrink: 0 }}>
-              <div style={{ flex: 1, width: 2, borderRadius: 999, background: i === 0 ? 'transparent' : 'var(--t-borderPrimary)' }} />
-              <div style={{
-                width: 32, height: 32, borderRadius: 999, flexShrink: 0, margin: '4px 0',
-                background: nodeBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <NodeIcon size={16} style={{ color: nodeColor }} />
-              </div>
-              <div style={{ flex: 1, width: 2, borderRadius: 999, background: last ? 'transparent' : 'var(--t-borderPrimary)' }} />
-            </div>
-
-            {/* Karta položky — symetrická mezera, aby uzel seděl na střed */}
-            <div style={{ flex: 1, minWidth: 0, paddingTop: 6, paddingBottom: 6 }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '10px 14px', borderRadius: 12,
-                border: '1px solid var(--t-borderPrimary)',
-                background: isPredpis ? 'var(--t-bgSecondary)' : 'var(--t-bgPrimary)',
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: isPredpis ? 600 : 500, color: 'var(--t-textPrimary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {e.zpusob}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--t-textSecondary)', marginTop: 2 }}>
-                    <span style={{ color: 'var(--t-textPrimary)' }}>{e.src.datum}</span> · VS {e.src.vs} · SS {e.src.ss}
-                  </div>
-                </div>
-
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: isPredpis ? 'var(--t-textPrimary)' : SALDO_GREEN, whiteSpace: 'nowrap' }}>
-                    {isPredpis ? formatCena(e.src.castka) : `+ ${formatCena(e.delta)}`}
-                  </div>
-                  <div style={{ fontSize: 12, color: saldoColor(e.bal), marginTop: 2, whiteSpace: 'nowrap' }}>
-                    Saldo {formatCena(e.bal)}
-                  </div>
-                </div>
-
-                <div style={{ width: 72, flexShrink: 0, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                  {!isPredpis && (
-                    <>
-                      <IconButton icon={Pencil} variant="ghost" size="md" tooltip="Upravit platbu" onClick={() => onEditRow(e.src)} />
-                      <span className="icon-trash-primary">
-                        <IconButton icon={Trash2} variant="ghost" size="md" tooltip="Smazat platbu" onClick={() => onDeleteRow(e.src)} />
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// Text částky z formuláře („400 000“, „400000,50“) → číslo.
-function parseCastka(s: string): number {
-  const n = Number(s.replace(/\s/g, '').replace(',', '.').replace(/[^\d.-]/g, ''))
-  return Number.isFinite(n) ? n : 0
-}
-
-// Rezervační záloha — souhrn salda + předpis a přijaté platby vedle sebe.
-// Saldo = přijato − předpis (záporné = klientovi zbývá doplatit).
-function RezervacniZalohaWidget({ stav }: { stav: string }) {
-  const [prijate, setPrijate] = useState<ZalohaPlatba[]>(ZALOHA_PRIJATE)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editRow, setEditRow] = useState<ZalohaPlatba | null>(null)
-  const [deleteRow, setDeleteRow] = useState<ZalohaPlatba | null>(null)
-
-  const predpis = ZALOHA_PREDPIS.reduce((s, r) => s + r.castka, 0)
-  const prijato = prijate.reduce((s, r) => s + r.castka, 0)
-  const saldo = prijato - predpis
-  const relevant = isSaldoRelevantState(stav)
-  const predpisDatum = ZALOHA_PREDPIS[0]?.datum
-  const zbyva = Math.max(0, predpis - prijato)
-
-  function handleSave(data: UhradaFormData) {
-    const platba: Omit<ZalohaPlatba, 'id'> = {
-      datum: data.datum,
-      vs: ZALOHA_PREDPIS[0]?.vs ?? '',
-      ss: ZALOHA_PREDPIS[0]?.ss ?? '',
-      zpusob: uhradaFormaLabel(data.forma),
-      castka: parseCastka(data.castka),
-    }
-    if (editRow) {
-      setPrijate(rows => rows.map(r => (r.id === editRow.id ? { ...r, ...platba } : r)))
-    } else {
-      setPrijate(rows => [...rows, { ...platba, id: Math.max(0, ...rows.map(r => r.id)) + 1 }])
-    }
-  }
-
-  function openAdd() { setEditRow(null); setModalOpen(true) }
-  function openEdit(r: ZalohaPlatba) { setEditRow(r); setModalOpen(true) }
-  function confirmDelete() {
-    if (deleteRow) setPrijate(rows => rows.filter(r => r.id !== deleteRow.id))
-    setDeleteRow(null)
-  }
-
-  return (
-    <Widget>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 18, fontWeight: 600, lineHeight: '26px', color: 'var(--t-textPrimary)' }}>
-          Rezervační záloha
-          <TooltipIcon
-            placement="top"
-            content="Rezervační zálohu lze uhradit ve více splátkách. U každé úhrady vidíte saldo po platbě, tedy kolik z rezervační zálohy zbývá doplatit."
-          />
-        </span>
-        {!relevant && (
-          <Tag label="Saldo se doplňuje ve stavu Rezervace a Podepsaná smlouva" variant="neutral" size="sm" />
-        )}
-        <div style={{ marginLeft: 'auto' }}>
-          <TextButton label="Nová platba" variant="brand" leadIcon={Plus} onClick={openAdd} />
-        </div>
-      </div>
-
-      {/* Saldo hero — dominantní číslo + progress uhrazení */}
-      <SaldoHero predpis={predpis} prijato={prijato} saldo={saldo} relevant={relevant} />
-
-      {/* Časová osa — předpis jako úvodní dluh, platby ho přibližují k nule */}
-      <div style={{ fontSize: 16, fontWeight: 600, lineHeight: '24px', color: 'var(--t-textPrimary)', marginBottom: 6 }}>
-        Předpis a úhrady
-      </div>
-      <ZalohaTimeline
-        predpis={ZALOHA_PREDPIS}
-        prijate={prijate}
-        onEditRow={openEdit}
-        onDeleteRow={setDeleteRow}
-      />
-
-      {modalOpen && (
-        <PridatUhraduModal
-          onClose={() => setModalOpen(false)}
-          onSave={handleSave}
-          predpisDatum={predpisDatum}
-          defaultCastka={editRow ? undefined : (zbyva > 0 ? String(zbyva) : undefined)}
-          initialData={editRow ? {
-            datum: editRow.datum,
-            ucel: 'rezervacni-poplatek',
-            forma: editRow.zpusob.toLowerCase() === 'hotovost' ? 'hotovost' : 'prevodem',
-            castka: String(editRow.castka),
-            poznamka: '',
-          } : undefined}
-        />
-      )}
-
-      {deleteRow && createPortal(
-        <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(10,13,18,0.4)' }} />
-          <div style={{ position: 'fixed', inset: 0, zIndex: 201, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-            <div style={{ pointerEvents: 'auto' }}>
-              <Dialog
-                icon={Trash2}
-                title="Smazat úhradu?"
-                description={`Úhrada ${formatCena(deleteRow.castka)} z ${deleteRow.datum} bude odebraná. Tuto akci nelze vrátit.`}
-                primaryLabel="Smazat"
-                secondaryLabel="Zrušit"
-                destructive
-                onPrimary={confirmDelete}
-                onSecondary={() => setDeleteRow(null)}
-              />
-            </div>
-          </div>
-        </>,
-        document.body,
-      )}
-    </Widget>
-  )
-}
-
 function QuickActionsColumn({ onEdit, onHypo, onNaklad, onDownloadPhotos, onPoznamka, showPoznamka, top }: { onEdit: () => void; onHypo: () => void; onNaklad: () => void; onDownloadPhotos: () => void; onPoznamka: () => void; showPoznamka: boolean; top: number }) {
   return (
     <div style={{
@@ -1489,8 +1171,6 @@ export default function NabidkaDetailPage() {
   const [activePhoto, setActivePhoto] = useState(0)
   const [hypotekariOpen, setHypotekariOpen] = useState(false)
   const [novyNakladOpen, setNovyNakladOpen] = useState(false)
-  const [editNakladData, setEditNakladData] = useState<NakladFormData | null>(null)
-  const [deleteNakladIdx, setDeleteNakladIdx] = useState<number | null>(null)
   const [tokAddOpen, setTokAddOpen] = useState(false)
   const [tokEdit, setTokEdit] = useState<OstatniTokRow | null>(null)
   const [tokDelete, setTokDelete] = useState<OstatniTokRow | null>(null)
@@ -2366,198 +2046,7 @@ export default function NabidkaDetailPage() {
           )}
 
           {/* ── Finance ────────────────────────────────────────────────── */}
-          {tab === 'finance' && (
-          <>
-            {/* Rezervační záloha — předpis, přijaté platby a saldo */}
-            <RezervacniZalohaWidget stav={n.stavNabidky} />
-
-            {/* Náklady widget */}
-            <Widget>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ fontSize: 18, fontWeight: 600, lineHeight: '26px', color: 'var(--t-textPrimary)' }}>Náklady</div>
-                <TextButton label="Nový náklad" variant="brand" leadIcon={Plus} onClick={() => setNovyNakladOpen(true)} />
-              </div>
-              <div style={{ overflow: 'auto' }}>
-                {/* Header */}
-                <div style={{ display: 'flex', background: 'var(--t-bgSecondary)', borderRadius: 8 }}>
-                  <div style={{ width: 110, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Datum" width="100%" /></div>
-                  <div style={{ flex: 1, minWidth: 160, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Název" width="100%" /></div>
-                  <div style={{ flex: 1, minWidth: 160, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Dodavatel" width="100%" /></div>
-                  <div style={{ flex: 1, minWidth: 160, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Kategorie" width="100%" /></div>
-                  {['Částka bez DPH', 'Částka s DPH', 'Z provize', 'Makléř', 'Makléř (bez str.)', 'HSP'].map(col => (
-                    <div key={col} className="th-right" style={{ width: 140, flexShrink: 0, pointerEvents: 'none' }}>
-                      <TableHeaderCell size="dense" label={col} width="100%" />
-                    </div>
-                  ))}
-                  <div style={{
-                    width: 100, flexShrink: 0, pointerEvents: 'none',
-                    position: 'sticky', right: 0, zIndex: 2,
-                    background: 'var(--t-bgSecondary)',
-                  }}><TableHeaderCell size="dense" empty width="100%" /></div>
-                </div>
-                {/* Data rows */}
-                {NAKLADY_ROWS.map((r, idx) => {
-                  return (
-                    <div key={`${r.datum}-${r.nazev}`} style={{ display: 'flex' }}>
-                      <div style={{ width: 110, flexShrink: 0 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.datum} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 160 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.nazev} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 160 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.dodavatel || '—'} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 160 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.kategorie} />
-                      </div>
-                      <div style={{ width: 140, flexShrink: 0 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.castkaBezDph)} />
-                      </div>
-                      <div style={{ width: 140, flexShrink: 0 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={r.castkaSDph === null ? '—' : formatCena(r.castkaSDph)} />
-                      </div>
-                      <div style={{ width: 140, flexShrink: 0 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.zProvize)} />
-                      </div>
-                      <div style={{ width: 140, flexShrink: 0 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.makler)} />
-                      </div>
-                      <div style={{ width: 140, flexShrink: 0 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.maklerBezStruktury)} />
-                      </div>
-                      <div style={{ width: 140, flexShrink: 0 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.hsp)} />
-                      </div>
-                      <div style={{
-                        width: 100, flexShrink: 0,
-                        position: 'sticky', right: 0, zIndex: 1,
-                        background: 'var(--t-bgPrimary)',
-                      }}>
-                        <TableCell
-                          size="dense" width="100%" hovered={false} borderBottom
-                          content={
-                            <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                              <IconButton icon={Pencil} variant="ghost" size="md" tooltip="Upravit náklad" onClick={() => setEditNakladData(rowToNakladForm(r))} />
-                              <span className="icon-trash-primary">
-                                <IconButton icon={Trash2} variant="ghost" size="md" tooltip="Smazat náklad" onClick={() => setDeleteNakladIdx(idx)} />
-                              </span>
-                            </div>
-                          }
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
-                {/* Totals row */}
-                <div style={{ display: 'flex', background: 'var(--t-bgSecondary)', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
-                  <div style={{ width: 110 + 160 + 160 + 160, flexShrink: 0 }}>
-                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
-                      content={<span style={{ fontSize: 13, fontWeight: 500, color: 'var(--t-textSecondary)' }}>Náklady celkem:</span>}
-                    />
-                  </div>
-                  <div style={{ width: 140, flexShrink: 0 }}>
-                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
-                      content={<span style={{ fontSize: 14, fontWeight: 600 }}>{formatCena(NAKLADY_ROWS.reduce((s, r) => s + r.castkaBezDph, 0))}</span>}
-                    />
-                  </div>
-                  <div style={{ width: 140, flexShrink: 0 }}>
-                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
-                      content={<span style={{ fontSize: 14, fontWeight: 600 }}>{formatCena(NAKLADY_ROWS.reduce((s, r) => s + (r.castkaSDph ?? 0), 0))}</span>}
-                    />
-                  </div>
-                  <div style={{ width: 140, flexShrink: 0 }}>
-                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
-                      content={<span style={{ fontSize: 14, fontWeight: 600 }}>{formatCena(NAKLADY_ROWS.reduce((s, r) => s + r.zProvize, 0))}</span>}
-                    />
-                  </div>
-                  <div style={{ width: 140, flexShrink: 0 }}>
-                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
-                      content={<span style={{ fontSize: 14, fontWeight: 600 }}>{formatCena(NAKLADY_ROWS.reduce((s, r) => s + r.makler, 0))}</span>}
-                    />
-                  </div>
-                  <div style={{ width: 140, flexShrink: 0 }}>
-                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
-                      content={<span style={{ fontSize: 14, fontWeight: 600 }}>{formatCena(NAKLADY_ROWS.reduce((s, r) => s + r.maklerBezStruktury, 0))}</span>}
-                    />
-                  </div>
-                  <div style={{ width: 140, flexShrink: 0 }}>
-                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} align="right"
-                      content={<span style={{ fontSize: 14, fontWeight: 600 }}>{formatCena(NAKLADY_ROWS.reduce((s, r) => s + r.hsp, 0))}</span>}
-                    />
-                  </div>
-                  <div style={{
-                    width: 100, flexShrink: 0,
-                    position: 'sticky', right: 0, zIndex: 1,
-                    background: 'var(--t-bgSecondary)',
-                  }}>
-                    <TableCell size="dense" width="100%" hovered={false} borderBottom={false} label="" />
-                  </div>
-                </div>
-              </div>
-            </Widget>
-
-            {/* Rozpad do struktury widget */}
-            <Widget>
-              <div style={{ fontSize: 18, fontWeight: 600, lineHeight: '26px', color: 'var(--t-textPrimary)', marginBottom: 16 }}>
-                Rozpad do struktury (uvedené částky jsou bez DPH)
-              </div>
-              <Alert
-                variant="warning"
-                label="Dokud není zakázka ve stavu zobchodováno. Níže uvedené údaje jsou pouze orientační."
-              />
-              <div style={{ marginTop: 16 }}>
-                {/* Header */}
-                <div style={{ display: 'flex', background: 'var(--t-bgSecondary)', borderRadius: 8, overflow: 'hidden' }}>
-                  <div style={{ flex: 3, minWidth: 0, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Jméno" width="100%" /></div>
-                  <div style={{ flex: 2, minWidth: 0, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Pozice" width="100%" /></div>
-                  {['Provize', 'Náklady', 'K výplatě'].map(col => (
-                    <div key={col} className="th-right" style={{ flex: 2, minWidth: 0, pointerEvents: 'none' }}>
-                      <TableHeaderCell size="dense" label={col} width="100%" />
-                    </div>
-                  ))}
-                  <div style={{ width: 132, flexShrink: 0, pointerEvents: 'none' }}><TableHeaderCell size="dense" label="Stav" width="100%" /></div>
-                </div>
-                {/* Rows */}
-                {ROZPAD_ROWS.map((r, i) => {
-                  const isLast = i === ROZPAD_ROWS.length - 1
-                  return (
-                    <div key={r.jmeno} style={{ display: 'flex' }}>
-                      <div style={{ flex: 3, minWidth: 0 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom={!isLast} label={r.jmeno} />
-                      </div>
-                      <div style={{ flex: 2, minWidth: 0 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom={!isLast} label={r.pozice} />
-                      </div>
-                      <div style={{ flex: 2, minWidth: 0 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom={!isLast} align="right" label={formatCena(r.provize)} />
-                      </div>
-                      <div style={{ flex: 2, minWidth: 0 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom={!isLast} align="right" label={formatCena(r.naklady)} />
-                      </div>
-                      <div style={{ flex: 2, minWidth: 0 }}>
-                        <TableCell size="dense" width="100%" hovered={false} borderBottom={!isLast} align="right" label={formatCena(r.kVyplate)} />
-                      </div>
-                      <div style={{ width: 132, flexShrink: 0 }}>
-                        <TableCell
-                          size="dense" width="100%" hovered={false} borderBottom={!isLast}
-                          content={<Tag label={r.stav} variant="warning" size="sm" lead="indicator" />}
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </Widget>
-
-            {/* ── Nový návrh vypořádání plateb ───────────────────────────────
-                Zatím vedle původního rozvržení, aby se dala obě porovnat. */}
-            <div style={{ marginTop: 8 }}>
-              <Divider variant="label" label="Nový návrh — Vypořádání plateb" />
-            </div>
-            <VyporadaniPlateb onNovyNaklad={() => setNovyNakladOpen(true)} />
-          </>
-          )}
+          {tab === 'finance' && <VyporadaniPlateb />}
 
           {/* ── Ostatní finanční toky ──────────────────────────────────── */}
           {tab === 'ostatni' && (
@@ -2871,9 +2360,6 @@ export default function NabidkaDetailPage() {
       {/* Nový náklad modal */}
       {novyNakladOpen && <NovyNakladModal onClose={() => setNovyNakladOpen(false)} />}
 
-      {/* Editace nákladu modal */}
-      {editNakladData && <NovyNakladModal initialData={editNakladData} onClose={() => setEditNakladData(null)} />}
-
       {/* Nastavení automatického odesílání statistik klientovi */}
       {statsModalOpen && (
         <AutomatickeStatistikyModal
@@ -2881,28 +2367,6 @@ export default function NabidkaDetailPage() {
           onClose={() => setStatsModalOpen(false)}
           onSave={setStatsSettings}
         />
-      )}
-
-      {/* Smazat náklad confirm dialog */}
-      {deleteNakladIdx !== null && createPortal(
-        <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(10,13,18,0.4)' }} />
-          <div style={{ position: 'fixed', inset: 0, zIndex: 201, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-            <div style={{ pointerEvents: 'auto' }}>
-              <Dialog
-                icon={Trash2}
-                title="Smazat náklad?"
-                description="Tuto akci nelze vrátit."
-                primaryLabel="Smazat"
-                secondaryLabel="Zrušit"
-                destructive
-                onPrimary={() => setDeleteNakladIdx(null)}
-                onSecondary={() => setDeleteNakladIdx(null)}
-              />
-            </div>
-          </div>
-        </>,
-        document.body,
       )}
 
       {/* Přidat / Editovat tok modal */}

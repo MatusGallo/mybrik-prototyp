@@ -7,7 +7,7 @@ import { Avatar, Tag, TextButton } from '@matusgallo/mysabds'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { prilezitostiData } from '../data/mockObchod'
+import { poptavkyData } from '../data/mockObchod'
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
 
@@ -29,7 +29,7 @@ const performanceData = [
 const kpiCards = [
   { label: 'Nabídky', value: '198', icon: Home, delta: 12, link: '/nabidky' },
   { label: 'Klienti', value: '2 625', icon: Users, delta: 8, link: '/klienti' },
-  { label: 'Příležitosti', value: '1 186', icon: TrendingUp, delta: -3, link: '/obchod/prilezitosti' },
+  { label: 'Příležitosti', value: '1 186', icon: TrendingUp, delta: -3, link: '/obchod/poptavky' },
   { label: 'Poptávky', value: '128', icon: MessageCircle, delta: 24, link: '/obchod/lead' },
 ]
 
@@ -214,7 +214,7 @@ function UkolRow({ u }: { u: typeof UKOLY[0] }) {
   )
 }
 
-function PrilezitostRow({ p, onClick }: { p: typeof prilezitostiData[0]; onClick: () => void }) {
+function PrilezitostRow({ p, onClick }: { p: typeof poptavkyData[0]; onClick: () => void }) {
   const [klientName] = p.klient.split('\n')
   return (
     <div
@@ -236,8 +236,8 @@ function PrilezitostRow({ p, onClick }: { p: typeof prilezitostiData[0]; onClick
         </span>
       </div>
       <Tag
-        label={p.stavPrilezitosti}
-        variant={p.stavPrilezitosti === 'Aktivní' ? 'success' : p.stavPrilezitosti === 'Prohlídka' ? 'info' : 'neutral'}
+        label={p.stavPoptavky}
+        variant={p.stavPoptavky === 'Aktivní' ? 'success' : p.stavPoptavky === 'Prohlídka' ? 'info' : 'neutral'}
         size="sm"
       />
     </div>
@@ -249,7 +249,7 @@ function PrilezitostRow({ p, onClick }: { p: typeof prilezitostiData[0]; onClick
 export default function DashboardPage() {
   const navigate = useNavigate()
 
-  const topPrilezitosti = prilezitostiData.slice(0, 5)
+  const topPrilezitosti = poptavkyData.slice(0, 5)
 
   return (
     <div style={{ margin: -24, padding: 24, background: 'var(--t-bgSecondary)', minHeight: 'calc(100vh - 56px)', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -330,11 +330,11 @@ export default function DashboardPage() {
           <div style={WIDGET}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={WIDGET_HEADING}>Aktivní příležitosti</span>
-              <TextButton label="Zobrazit vše" variant="brand" tailIcon={ArrowRight} onClick={() => navigate('/obchod/prilezitosti')} />
+              <TextButton label="Zobrazit vše" variant="brand" tailIcon={ArrowRight} onClick={() => navigate('/obchod/poptavky')} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {topPrilezitosti.map(p => (
-                <PrilezitostRow key={p.id} p={p} onClick={() => navigate(`/obchod/prilezitosti/${p.id}`)} />
+                <PrilezitostRow key={p.id} p={p} onClick={() => navigate(`/obchod/poptavky/${p.id}`)} />
               ))}
             </div>
           </div>

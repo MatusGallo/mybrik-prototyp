@@ -136,7 +136,7 @@ interface Props {
   onClose: () => void
 }
 
-export default function PrilezitostPanel({ onClose }: Props) {
+export default function PoptavkaPanel({ onClose }: Props) {
   const [showDiscard, setShowDiscard] = useState(false)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Nabidka | null>(null)
@@ -199,12 +199,12 @@ export default function PrilezitostPanel({ onClose }: Props) {
           footer={{
             actions: [
               { label: 'Zrušit', variant: 'outlined', onClick: handleClose },
-              { label: 'Vytvořit příležitost', variant: 'primary', disabled: !step1Done, onClick: onClose },
+              { label: 'Vytvořit poptávku', variant: 'primary', disabled: !step1Done, onClick: onClose },
             ],
           }}
         >
           <div style={{ position: 'sticky', top: 0, zIndex: 1, padding: 24, background: 'var(--t-bgSecondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-            <span style={{ fontSize: 24, fontWeight: 600, lineHeight: '32px', color: 'var(--t-textPrimary)', fontFamily: 'Inter' }}>Vytvořit příležitost</span>
+            <span style={{ fontSize: 24, fontWeight: 600, lineHeight: '32px', color: 'var(--t-textPrimary)', fontFamily: 'Inter' }}>Vytvořit poptávku</span>
             <IconButton icon={X} variant="ghost" size="md" onClick={handleClose} />
           </div>
           <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -284,7 +284,7 @@ export default function PrilezitostPanel({ onClose }: Props) {
 
                 <div style={WIDGET}>
                   <span style={HEADING}>Interní poznámka</span>
-                  <TextArea placeholder="Zadejte doplňující informace k příležitosti" value={poznamka} onChange={setPoznamka} width="100%" minHeight={120} />
+                  <TextArea placeholder="Zadejte doplňující informace k poptávce" value={poznamka} onChange={setPoznamka} width="100%" minHeight={120} />
                 </div>
 
                 <div style={WIDGET}>

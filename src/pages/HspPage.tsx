@@ -62,7 +62,15 @@ export default function HspPage() {
       onPageChange={setPage}
       totalCount={hspData.length}
     >
-      <DataTable cols={cols} rows={pageData as Record<string, unknown>[]} actions={['view', 'edit', 'delete']} />
+      <DataTable
+        cols={cols}
+        rows={pageData as Record<string, unknown>[]}
+        actions={['view', 'edit', 'delete']}
+        onRowClick={row => navigate(`/hsp/${row.id}/upravit`)}
+        onAction={(action, row) => {
+          if (action === 'view' || action === 'edit') navigate(`/hsp/${row.id}/upravit`)
+        }}
+      />
     </ListPageShell>
   )
 }

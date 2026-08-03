@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ListPageShell from '../components/shared/ListPageShell'
 import DataTable from '../components/shared/DataTable'
 import PageFilterBar from '../components/shared/PageFilterBar'
@@ -34,6 +35,7 @@ const cols = [
 ]
 
 export default function PobockyPage() {
+  const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [hsp, setHsp] = useState(new Set<string>())
@@ -77,7 +79,7 @@ export default function PobockyPage() {
         title="Pobočky"
         actions={[{
           label: 'Vytvořit pobočku', variant: 'primary', icon: 'plus',
-          onClick: () => { setSelected(undefined); setPanelMode('create') },
+          onClick: () => navigate('/pobocky/nova'),
         }]}
         filterBar={
           <PageFilterBar

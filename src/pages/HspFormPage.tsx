@@ -1,45 +1,21 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Fragment, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft, Building2, UserRound, FileText, Percent, Share2, Check,
-  ClipboardCheck, Star, CircleCheck, type LucideIcon,
+  ArrowLeft, Building2, UserRound, Check,
 } from 'lucide-react'
 import {
-  Alert, Button, IconButton, Input, Select, SummaryListItem, SwitchGroup,
-  Tag, Toggle, iconSize, typography,
+  Button, Divider, IconButton, Input, Select, SummaryListItem,
+  SwitchGroup, Tag, Toggle, TooltipIcon, typography,
 } from '@matusgallo/mysabds'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
-import { uzivateleData } from '../data/mockOstatni'
+import {
+  BANKY, EMPTY_SUBJEKT, OSOBY, SUBJEKT_DEFS, SUBJEKT_KEYS,
+  emptyHspForm, hspFormFromRow,
+  type HspForm, type OsobaOption, type Stav, type Subjekt, type SubjektKey, type TypOsoby,
+} from '../data/hspForm'
+import { hspData } from '../data/mockOstatni'
 
-// ── Data ──────────────────────────────────────────────────────────────────────
-
-const OSOBY = [...uzivateleData]
-  .sort((a, b) => `${a.prijmeni} ${a.jmeno}`.localeCompare(`${b.prijmeni} ${b.jmeno}`, 'cs'))
-  .map(u => ({
-    value: String(u.id),
-    label: `${u.titulPred ? `${u.titulPred} ` : ''}${u.jmeno} ${u.prijmeni}`,
-    sub: u.role,
-    initials: `${u.jmeno[0] ?? ''}${u.prijmeni[0] ?? ''}`,
-    email: u.firemnEmail,
-    telefon: u.telefon.replace(/^\+420\s*/, ''),
-  }))
-
-const OSOBA_OPTIONS = OSOBY.map(({ value, label, sub }) => ({ value, label, sub }))
-
-const BANKY = [
-  { value: '0100', label: '0100 - Komerční banka' },
-  { value: '0300', label: '0300 - ČSOB' },
-  { value: '0600', label: '0600 - MONETA Money Bank' },
-  { value: '0710', label: '0710 - Česká národní banka' },
-  { value: '0800', label: '0800 - Česká spořitelna' },
-  { value: '2010', label: '2010 - Fio banka' },
-  { value: '2250', label: '2250 - Banka CREDITAS' },
-  { value: '2700', label: '2700 - UniCredit Bank' },
-  { value: '3030', label: '3030 - Air Bank' },
-  { value: '5500', label: '5500 - Raiffeisenbank' },
-  { value: '6210', label: '6210 - mBank' },
-  { value: '6363', label: '6363 - Partners Banka' },
-]
+// ── Volby ────────────────────────────────────────────────────────────────────
 
 const STAV_OPTIONS = [
   { value: 'aktivni', label: 'Aktivní' },
@@ -51,50 +27,6 @@ const TYP_OSOBY_OPTIONS = [
   { value: 'fo', label: 'Fyzická osoba', icon: UserRound },
 ]
 
-// ── Model ─────────────────────────────────────────────────────────────────────
-
-type Stav = 'aktivni' | 'neaktivni'
-type TypOsoby = 'po' | 'fo'
-type SubjektKey = 'platce' | 'neplatce'
-
-interface Subjekt {
-  zapnuto: boolean
-  typOsoby: TypOsoby
-  obchodniNazev: string
-  jmeno: string
-  prijmeni: string
-  ic: string
-  dic: string
-  ulice: string
-  cisloPopisne: string
-  cisloOrientacni: string
-  mesto: string
-  psc: string
-  predcisli: string
-  cisloUctu: string
-  kodBanky: string
-}
-
-const EMPTY_SUBJEKT: Subjekt = {
-  zapnuto: false, typOsoby: 'po',
-  obchodniNazev: '', jmeno: '', prijmeni: '', ic: '', dic: '',
-  ulice: '', cisloPopisne: '', cisloOrientacni: '', mesto: '', psc: '',
-  predcisli: '', cisloUctu: '', kodBanky: '',
-}
-
-const SUBJEKT_DEFS: { key: SubjektKey; kod: string; nazev: string; popis: string; jePlatce: boolean }[] = [
-  {
-    key: 'platce', kod: 'DPH', nazev: 'Plátcovský subjekt',
-    popis: 'Firma registrovaná k DPH - fakturace včetně DPH', jePlatce: true,
-  },
-  {
-    key: 'neplatce', kod: 'BEZ', nazev: 'Neplátcovský subjekt',
-    popis: 'Firma neregistrovaná k DPH - fakturace bez DPH', jePlatce: false,
-  },
-]
-
-const SUBJEKT_KEYS = SUBJEKT_DEFS.map(d => d.key)
-
 // ── Layout helpers ────────────────────────────────────────────────────────────
 
 const CARD: React.CSSProperties = {
@@ -103,25 +35,22 @@ const CARD: React.CSSProperties = {
   borderRadius: 12,
 }
 
-function Card({ icon: Icon, title, description, badge, children }: {
-  icon: LucideIcon
+function Card({ title, description, tooltip, badge, children }: {
   title: string
   description: string
+  tooltip?: string
   badge?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
     <section style={CARD}>
-      <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 16px 12px' }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-          background: 'var(--t-bgMyDOCKTertiary)', color: 'var(--t-textMyDOCKPrimary)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Icon size={iconSize.md} />
-        </div>
+      <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <h2 style={{ ...typography.body16Semibold, margin: 0, color: 'var(--t-textPrimary)' }}>{title}</h2>
+          {/* Nadpis widgetu = subheadline18Semibold */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <h2 style={{ ...typography.subheadline18Semibold, margin: 0, color: 'var(--t-textPrimary)' }}>{title}</h2>
+            {tooltip && <TooltipIcon content={tooltip} placement="right" />}
+          </div>
           <p style={{ ...typography.body12Regular, margin: 0, color: 'var(--t-textSecondary)' }}>{description}</p>
         </div>
         {badge}
@@ -133,10 +62,10 @@ function Card({ icon: Icon, title, description, badge, children }: {
   )
 }
 
-/** Popisek bloku uvnitř karty - overline (11 px, verzálky). */
+/** Popisek bloku uvnitř karty. */
 function BlockLabel({ children }: { children: string }) {
   return (
-    <span style={{ ...typography.overline11, color: 'var(--t-textTertiary)' }}>{children}</span>
+    <span style={{ ...typography.body14Semibold, color: 'var(--t-textPrimary)' }}>{children}</span>
   )
 }
 
@@ -172,32 +101,106 @@ function FieldWithAction({ field, action }: { field: React.ReactNode; action: Re
   )
 }
 
-function Note({ children }: { children: string }) {
+/**
+ * Karta jako `CheckboxGroupItem` z DS (padding 16, radius 12), ale s přepínačem
+ * místo checkboxu. Po zapnutí se obsah (`children`) rozbalí uvnitř karty.
+ * Zapnutý stav nese přepínač a rozbalený obsah, rám zůstává neutrální.
+ */
+function ToggleCard({ lead, label, supportText, description, checked, onChange, children }: {
+  lead: string
+  label: string
+  supportText?: string
+  description: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+  children?: React.ReactNode
+}) {
+  const [hovered, setHovered] = useState(false)
+
+  // Karta nesmí mít `overflow: hidden` — ustřihla by rozbalený seznam Selectu.
+  // Spodní rohy si proto zaobluje sám rozbalený obsah.
   return (
     <div style={{
-      display: 'flex', gap: 8, alignItems: 'flex-start',
-      background: 'var(--bgSuccessTertiary)',
-      borderLeft: '2px solid var(--borderSuccess)',
-      borderRadius: 6, padding: '8px 12px', marginTop: 24,
+      borderRadius: 12, background: 'var(--t-bgPrimary)',
+      outline: `1px solid var(--t-border${hovered ? 'PrimaryHover' : 'Primary'})`,
+      outlineOffset: -0.5,
+      transition: 'outline-color .15s',
     }}>
-      <CircleCheck size={iconSize.sm} style={{ color: 'var(--textSuccessPrimary)', flexShrink: 0, marginTop: 1 }} />
-      <span style={{ ...typography.body12Regular, color: 'var(--t-textSecondary)' }}>{children}</span>
+      <div
+        className="toggle-card-head"
+        role="switch"
+        aria-checked={checked}
+        tabIndex={0}
+        onClick={() => onChange(!checked)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onChange(!checked)
+          }
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          padding: 16,
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+          cursor: 'pointer', userSelect: 'none',
+        }}
+      >
+        <div style={{
+          width: 57, height: 40, borderRadius: 6, flexShrink: 0,
+          background: 'var(--t-bgPrimary)',
+          boxShadow: 'inset 0 0 0 1px var(--t-borderPrimary)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          ...typography.body12Semibold, color: 'var(--t-textSecondary)',
+        }}>
+          {lead}
+        </div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ ...typography.body14Medium, color: 'var(--t-textPrimary)' }}>{label}</span>
+            {supportText && (
+              <span style={{ ...typography.body14Regular, color: 'var(--t-textSecondary)' }}>{supportText}</span>
+            )}
+          </div>
+          <div style={{ ...typography.body14Regular, color: 'var(--t-textSecondary)' }}>{description}</div>
+        </div>
+        <Toggle checked={checked} decorative />
+      </div>
+      {checked && (
+        <>
+          <Divider />
+          {children}
+        </>
+      )}
     </div>
   )
 }
 
-function SidebarCard({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: React.ReactNode }) {
+/**
+ * Řádek souhrnu s vlastní hodnotou - míry kopírují `SummaryListItem`
+ * (24 px, gap 12, popisek 14/400 textSecondary, hodnota vpravo). Potřeba tam,
+ * kde hodnota nese barvu: `SummaryListItem` vykresluje `kind: 'badges'`
+ * natvrdo jako `Tag variant="neutral"`.
+ */
+function SouhrnRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ width: '100%', minHeight: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
+      <span style={{
+        flex: '1 1 0', ...typography.body14Regular, color: 'var(--t-textSecondary)',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {label}
+      </span>
+      <div style={{ flex: '1 1 0', display: 'flex', justifyContent: 'flex-end' }}>{children}</div>
+    </div>
+  )
+}
+
+function SidebarCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={CARD}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 16px 8px' }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-          background: 'var(--t-bgMyDOCKTertiary)', color: 'var(--t-textMyDOCKPrimary)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Icon size={iconSize.md} />
-        </div>
-        <h2 style={{ ...typography.body16Semibold, margin: 0, color: 'var(--t-textPrimary)' }}>{title}</h2>
+        <h2 style={{ ...typography.subheadline18Semibold, margin: 0, color: 'var(--t-textPrimary)' }}>{title}</h2>
       </header>
       <div style={{ padding: '0 16px 12px' }}>
         {children}
@@ -206,49 +209,45 @@ function SidebarCard({ icon: Icon, title, children }: { icon: LucideIcon; title:
   )
 }
 
-/** Odrážka v kartě pravidel - text s tučně vyznačenými výrazy. */
-function Rule({ children }: { children: React.ReactNode }) {
-  return (
-    <li style={{ ...typography.body12Regular, color: 'var(--t-textSecondary)', marginBottom: 8 }}>
-      {children}
-    </li>
-  )
-}
-
-const B = ({ children }: { children: string }) => (
-  <strong style={{ fontWeight: 600, color: 'var(--t-textPrimary)' }}>{children}</strong>
-)
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function NoveHspPage() {
+export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const navigate = useNavigate()
+  const { id } = useParams()
 
-  const [nazev, setNazev] = useState('')
-  const [stav, setStav] = useState<Stav>('neaktivni')
-  const [osobaId, setOsobaId] = useState('')
-  const [email, setEmail] = useState('')
-  const [telefon, setTelefon] = useState('')
-  const [subjekty, setSubjekty] = useState<Record<SubjektKey, Subjekt>>({
-    platce: EMPTY_SUBJEKT,
-    neplatce: EMPTY_SUBJEKT,
-  })
-  const [provize, setProvize] = useState('100')
-  const [mydockId, setMydockId] = useState('')
-  const [mydockOvereno, setMydockOvereno] = useState('')
+  const isEdit = mode === 'edit'
+  const row = isEdit ? hspData.find(h => String(h.id) === id) : undefined
+  // Výchozí hodnoty se spočítají jednou — u editace z existujícího záznamu.
+  const [init] = useState<HspForm>(() => (row ? hspFormFromRow(row) : emptyHspForm()))
+
+  const [nazev, setNazev] = useState(init.nazev)
+  const [stav, setStav] = useState<Stav>(init.stav)
+  const [osobaId, setOsobaId] = useState(init.osoba?.value ?? '')
+  const [email, setEmail] = useState(init.email)
+  const [telefon, setTelefon] = useState(init.telefon)
+  const [subjekty, setSubjekty] = useState<Record<SubjektKey, Subjekt>>(init.subjekty)
+  const [provize, setProvize] = useState(init.provize)
+  const [mydockId, setMydockId] = useState(init.mydockId)
+  const [mydockOvereno, setMydockOvereno] = useState(init.mydockOvereno)
   const [showErrors, setShowErrors] = useState(false)
-  const [zahoditOpen, setZahoditOpen] = useState(false)
+  const [zavritOpen, setZavritOpen] = useState(false)
 
-  const osoba = OSOBY.find(o => o.value === osobaId)
+  // Starší HSP odkazují na lidi, které mock uživatelů nemá — takovou osobu
+  // přidáme do voleb, aby select ukázal skutečnou hodnotu záznamu.
+  const osobyOptions: OsobaOption[] = init.osoba && !OSOBY.some(o => o.value === init.osoba?.value)
+    ? [init.osoba, ...OSOBY]
+    : OSOBY
+
+  const osoba = osobyOptions.find(o => o.value === osobaId)
   const zapnuteKlice = SUBJEKT_KEYS.filter(k => subjekty[k].zapnuto)
 
   function setSubjekt(key: SubjektKey, patch: Partial<Subjekt>) {
     setSubjekty(prev => ({ ...prev, [key]: { ...prev[key], ...patch } }))
   }
 
-  function selectOsoba(id: string) {
-    setOsobaId(id)
-    const o = OSOBY.find(x => x.value === id)
+  function selectOsoba(value: string) {
+    setOsobaId(value)
+    const o = osobyOptions.find(x => x.value === value)
     if (o) {
       setEmail(o.email)
       setTelefon(o.telefon)
@@ -305,7 +304,7 @@ export default function NoveHspPage() {
 
   if (!provize.trim()) errors.provize = 'Zadejte podíl z provize.'
   else if (Number(provize) < 0 || Number(provize) > 100 || Number.isNaN(Number(provize))) {
-    errors.provize = 'Podíl zadejte mezi 0 a 100 %.'
+    errors.provize = 'Zadejte 0 až 100 %.'
   }
 
   if (!mydockId.trim()) errors.mydock = 'Zadejte ID záznamu v Mydocku.'
@@ -313,22 +312,28 @@ export default function NoveHspPage() {
 
   const err = (key: string) => (showErrors ? errors[key] : undefined)
 
-  const dirty = Boolean(
-    nazev || osobaId || email || telefon || mydockId ||
-    provize !== '100' || stav !== 'neaktivni' || zapnuteKlice.length > 0
-  )
+  // Rozpracovaný formulář = cokoli jiného, než s čím se stránka otevřela.
+  const dirty =
+    nazev !== init.nazev ||
+    stav !== init.stav ||
+    osobaId !== (init.osoba?.value ?? '') ||
+    email !== init.email ||
+    telefon !== init.telefon ||
+    provize !== init.provize ||
+    mydockId !== init.mydockId ||
+    JSON.stringify(subjekty) !== JSON.stringify(init.subjekty)
 
-  function vytvorit() {
+  function ulozit() {
     if (Object.keys(errors).length > 0) {
       setShowErrors(true)
       return
     }
-    // Prototyp bez API - HSP se po vytvoření neukládá, vracíme se na seznam.
+    // Prototyp bez API - změny se neukládají, vracíme se na seznam.
     navigate('/hsp')
   }
 
-  function zahodit() {
-    if (dirty) setZahoditOpen(true)
+  function zavrit() {
+    if (dirty) setZavritOpen(true)
     else navigate('/hsp')
   }
 
@@ -349,7 +354,11 @@ export default function NoveHspPage() {
     const set = (patch: Partial<Subjekt>) => setSubjekt(def.key, patch)
 
     return (
-      <div style={{ borderTop: '1px solid var(--t-borderPrimary)', padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{
+        background: 'var(--t-bgSecondary)', padding: 16,
+        borderRadius: '0 0 11px 11px',
+        display: 'flex', flexDirection: 'column', gap: 16,
+      }}>
         <Block label="Typ osoby" first>
           <div>
             <SwitchGroup
@@ -359,11 +368,6 @@ export default function NoveHspPage() {
               size="compact"
             />
           </div>
-          <span style={{ ...typography.body12Regular, color: 'var(--t-textSecondary)' }}>
-            {jePo
-              ? 'Firma zapsaná v obchodním registru (s.r.o., a.s., …).'
-              : 'Podnikatel bez obchodního názvu - uveďte jméno, příjmení a místo podnikání.'}
-          </span>
         </Block>
 
         <Block label="Identifikace subjektu">
@@ -377,7 +381,12 @@ export default function NoveHspPage() {
               width="100%"
             />
           ) : (
-            <Cols cols="1fr 1fr">
+            <Cols cols="110px minmax(0, 1fr) minmax(0, 1fr)">
+              <Input
+                label="Titul" placeholder="Např. Ing."
+                value={s.titul} onChange={v => set({ titul: v })}
+                width="100%"
+              />
               <Input
                 label="Jméno" required placeholder="Zadejte jméno"
                 value={s.jmeno} onChange={v => set({ jmeno: v })}
@@ -391,6 +400,15 @@ export default function NoveHspPage() {
             </Cols>
           )}
 
+          {!jePo && (
+            <Input
+              label="Dodatek k názvu" placeholder="Např. Reality Ondrák"
+              value={s.dodatek} onChange={v => set({ dodatek: v })}
+              helperText="Vyplňte, jen pokud fyzická osoba podniká pod odlišujícím dodatkem."
+              width="100%"
+            />
+          )}
+
           <Cols cols="1fr 1fr">
             <FieldWithAction
               field={
@@ -398,26 +416,26 @@ export default function NoveHspPage() {
                   label="IČ" required placeholder="12345678" numeric
                   value={s.ic} onChange={v => set({ ic: v })}
                   error={err(`${p}ic`)}
-                  helperText="Načtením z ARES se doplní název a adresa."
+                  helperText="Z ARES se doplní název a adresa."
                   width="100%"
                 />
               }
               action={<Button label="Načíst z ARES" variant="outlined" size="md" />}
             />
-            {def.jePlatce ? (
+            {/* Neplátce DPH nemá DIČ — místo zůstane prázdné. */}
+            {def.jePlatce && (
               <Input
                 label="DIČ" required placeholder="12345678" leadBadge="CZ"
                 value={s.dic} onChange={v => set({ dic: v })}
                 error={err(`${p}dic`)} width="100%"
               />
-            ) : (
-              <Note>Neplátce DPH nemá DIČ - pole se proto nezadává.</Note>
             )}
           </Cols>
         </Block>
 
         <Block label={jePo ? 'Sídlo' : 'Místo podnikání'}>
-          <Cols cols="1.4fr 1fr 1fr">
+          {/* Ulice bere zbytek místa, čísla jen tolik, kolik potřebuje popisek. */}
+          <Cols cols="minmax(0, 1fr) 110px 120px">
             <Input
               label="Ulice" required placeholder="Zadejte ulici"
               value={s.ulice} onChange={v => set({ ulice: v })}
@@ -434,23 +452,27 @@ export default function NoveHspPage() {
               width="100%"
             />
           </Cols>
-          <Cols cols="1.4fr 1fr 1fr">
-            <Input
-              label="Město" required placeholder="Zadejte město"
-              value={s.mesto} onChange={v => set({ mesto: v })}
-              error={err(`${p}mesto`)} width="100%"
-            />
+          {/* PSČ + město na vlastním řádku; město končí na stejné hraně jako
+              číslo popisné v řádku nad ním. */}
+          <Cols cols="100px minmax(0, 1fr) 120px">
             <Input
               label="PSČ" required placeholder="110 00"
               value={s.psc} onChange={v => set({ psc: v })}
               error={err(`${p}psc`)} width="100%"
+            />
+            <Input
+              label="Město" required placeholder="Zadejte město"
+              value={s.mesto} onChange={v => set({ mesto: v })}
+              error={err(`${p}mesto`)} width="100%"
             />
             <div />
           </Cols>
         </Block>
 
         <Block label="Bankovní účet pro výplatu">
-          <Cols cols="1fr 1.4fr 1fr">
+          {/* Sloupec s bankou je 240 px — rozbalený seznam kopíruje šířku pole,
+              takže se do něj vejde i delší název banky. */}
+          <Cols cols="120px minmax(0, 1fr) 240px">
             <Input
               label="Předčíslí účtu" placeholder="000000" numeric
               value={s.predcisli} onChange={v => set({ predcisli: v })}
@@ -478,49 +500,17 @@ export default function NoveHspPage() {
     const typLabel = s.typOsoby === 'po' ? 'Právnická osoba' : 'Fyzická osoba'
 
     return (
-      <div key={def.key} style={{
-        border: '1px solid var(--t-borderPrimary)',
-        borderRadius: 10,
-        background: s.zapnuto ? 'var(--t-bgPrimary)' : 'var(--t-bgSecondary)',
-      }}>
-        <div
-          role="switch"
-          aria-checked={s.zapnuto}
-          tabIndex={0}
-          onClick={() => toggleSubjekt(def.key, !s.zapnuto)}
-          onKeyDown={e => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              toggleSubjekt(def.key, !s.zapnuto)
-            }
-          }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12, padding: 12,
-            cursor: 'pointer', userSelect: 'none',
-          }}
-        >
-          <div style={{
-            width: 40, height: 28, borderRadius: 6, flexShrink: 0,
-            background: 'var(--t-bgPrimary)', border: '1px solid var(--t-borderPrimary)',
-            color: 'var(--t-textSecondary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            ...typography.body10Semibold,
-          }}>
-            {def.kod}
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ ...typography.body14Semibold, color: 'var(--t-textPrimary)' }}>{def.nazev}</div>
-            <div style={{ ...typography.body12Regular, color: 'var(--t-textSecondary)' }}>{def.popis}</div>
-          </div>
-          <Tag
-            label={s.zapnuto ? typLabel : 'Vypnuto'}
-            size="sm"
-            variant={s.zapnuto ? 'success' : 'neutral'}
-          />
-          <Toggle checked={s.zapnuto} decorative />
-        </div>
-        {s.zapnuto && subjektBody(def)}
-      </div>
+      <ToggleCard
+        key={def.key}
+        checked={s.zapnuto}
+        onChange={v => toggleSubjekt(def.key, v)}
+        lead={def.kod}
+        label={def.nazev}
+        supportText={s.zapnuto ? typLabel : undefined}
+        description={def.popis}
+      >
+        {subjektBody(def)}
+      </ToggleCard>
     )
   }
 
@@ -539,20 +529,25 @@ export default function NoveHspPage() {
   const souhrnRows: { label: string; value: React.ComponentProps<typeof SummaryListItem>['value'] }[] = [
     {
       label: 'Odpovědná osoba',
-      value: osoba
-        ? { kind: 'avatar', initials: osoba.initials, text: osoba.label }
-        : { kind: 'text', text: '–' },
+      value: { kind: 'text', text: osoba?.label ?? '–' },
     },
     { label: 'Plátce DPH', value: { kind: 'text', text: souhrnSubjekt('platce') } },
     { label: 'Neplátce DPH', value: { kind: 'text', text: souhrnSubjekt('neplatce') } },
     { label: 'Provize', value: { kind: 'text', text: provize ? `${provize} %` : '–' } },
-    { label: 'Stav', value: { kind: 'text', text: stav === 'aktivni' ? 'Aktivní' : 'Neaktivní' } },
-    { label: 'Mydock', value: { kind: 'text', text: mydockOvereno || '–' } },
   ]
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
   const pocetSubjektu = zapnuteKlice.length
+
+  // Kontrola až za hooky — jinak by se při přechodu mezi režimy rozešlo jejich pořadí.
+  if (isEdit && !row) {
+    return (
+      <div style={{ padding: 24, ...typography.body14Regular, color: 'var(--t-textSecondary)' }}>
+        HSP nenalezeno.
+      </div>
+    )
+  }
 
   return (
     <div style={{
@@ -563,52 +558,33 @@ export default function NoveHspPage() {
       {/* Header — stránka je fullscreen, bez topbaru a sidebaru; akce jsou v patičce */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 20,
-        background: 'var(--t-bgSecondary)', borderBottom: '1px solid var(--t-borderPrimary)',
+        background: 'var(--t-bgPrimary)', borderBottom: '1px solid var(--t-borderPrimary)',
       }}>
         <div style={{
           maxWidth: 1280, margin: '0 auto', padding: '16px 24px',
           display: 'flex', alignItems: 'flex-start', gap: 16,
         }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
-            <IconButton icon={ArrowLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={zahodit} />
-            <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <h1 style={{
-                ...typography.headline24, margin: 0, color: 'var(--t-textPrimary)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                Vytvořit HSP
-              </h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <Tag
-                  label={stav === 'aktivni' ? 'Aktivní' : 'Neaktivní'}
-                  size="sm"
-                  lead="indicator"
-                  variant={stav === 'aktivni' ? 'success' : 'danger'}
-                />
-                <Tag
-                  label={
-                    pocetSubjektu === 0
-                      ? 'Bez fakturačních údajů'
-                      : pocetSubjektu === 1 ? '1 fakturační subjekt' : '2 fakturační subjekty'
-                  }
-                  size="sm"
-                  variant={pocetSubjektu === 0 ? 'neutral' : 'success'}
-                />
-              </div>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <IconButton icon={ArrowLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={zavrit} />
+            <h1 style={{
+              ...typography.headline24, margin: 0, color: 'var(--t-textPrimary)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {isEdit ? 'Upravit HSP' : 'Vytvořit HSP'}
+            </h1>
           </div>
         </div>
       </div>
 
       {/* Body */}
       <div style={{ maxWidth: 1280, width: '100%', margin: '0 auto', padding: 24, flex: 1 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: 20, alignItems: 'flex-start' }}>
+        {/* Souhrn zabírá třetinu šířky, formulář dvě třetiny */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: 20, alignItems: 'flex-start' }}>
 
           {/* Formulář */}
           <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             <Card
-              icon={Building2}
               title="Základní údaje"
               description="Interní označení HSP a jeho aktuální stav"
             >
@@ -641,7 +617,6 @@ export default function NoveHspPage() {
             </Card>
 
             <Card
-              icon={UserRound}
               title="Odpovědná osoba"
               description="Kontaktní osoba pro smluvní a fakturační komunikaci"
             >
@@ -650,7 +625,7 @@ export default function NoveHspPage() {
                   label="Odpovědná osoba" required
                   placeholder="Vyberte osobu"
                   value={osobaId} onChange={selectOsoba}
-                  options={OSOBA_OPTIONS} searchable
+                  options={osobyOptions} searchable
                   error={err('osoba')} width="100%"
                 />
                 <Input
@@ -672,9 +647,9 @@ export default function NoveHspPage() {
             </Card>
 
             <Card
-              icon={FileText}
               title="Fakturační subjekty"
-              description="Nastavte plátcovské údaje, neplátcovské údaje, nebo obojí"
+              description="Zapněte ty subjekty, které HSP má - alespoň jeden je povinný"
+              tooltip="Nejde o přepínač. HSP může fakturovat pod plátcovským subjektem, pod neplátcovským, nebo pod oběma současně. Typ osoby (FO / PO) se volí zvlášť u každého subjektu."
               badge={
                 <Tag
                   label={`${pocetSubjektu} ze 2 nastaveno`}
@@ -683,12 +658,6 @@ export default function NoveHspPage() {
                 />
               }
             >
-              <Alert
-                variant="info"
-                rich
-                label="Nejde o přepínač"
-                description="HSP může fakturovat pod plátcovským subjektem, pod neplátcovským subjektem, nebo pod oběma současně. Zapněte ty, které HSP skutečně má - alespoň jeden je povinný. Typ osoby (FO / PO) se volí zvlášť u každého subjektu."
-              />
               {SUBJEKT_DEFS.map(subjektKarta)}
               {err('subjekty') && (
                 <span style={{ ...typography.body12Semibold, color: 'var(--t-textDangerPrimary)' }}>
@@ -698,29 +667,25 @@ export default function NoveHspPage() {
             </Card>
 
             <Card
-              icon={Percent}
               title="Provize"
-              description="Podíl HSP z provize realizované na jeho pobočkách"
+              description="Podíl HSP z provize realizované na jeho pobočkách - 100 % je celá provize"
             >
-              <div style={{ maxWidth: 280 }}>
-                <Input
-                  label="Provize" required suffix="%" numeric textAlign="left"
-                  placeholder="100"
-                  value={provize} onChange={setProvize}
-                  error={err('provize')}
-                  helperText="Výchozí hodnota 100 % znamená, že HSP obdrží celou provizi."
-                  width="100%"
-                />
-              </div>
+              {/* Maximum je 100 %, pole tedy stačí na tři číslice a procento. */}
+              <Input
+                label="Provize" required suffix="%" numeric textAlign="left"
+                placeholder="100"
+                value={provize} onChange={setProvize}
+                error={err('provize')}
+                width={140}
+              />
             </Card>
 
             <Card
-              icon={Share2}
               title="Napojení na Mydock"
               description="Párování HSP se záznamem v Mydocku"
               badge={
                 <Tag
-                  label={mydockOvereno ? `ID ${mydockOvereno}` : 'Nespárováno'}
+                  label={mydockOvereno ? 'Spárováno' : 'Nespárováno'}
                   size="sm"
                   variant={mydockOvereno ? 'success' : 'neutral'}
                 />
@@ -745,27 +710,39 @@ export default function NoveHspPage() {
           </div>
 
           {/* Souhrn + pravidla */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 115 }}>
-            <SidebarCard icon={ClipboardCheck} title="Souhrn nastavení">
-              <div>
-                {souhrnRows.map((row, i) => (
-                  <div key={row.label} style={{
-                    borderTop: i === 0 ? undefined : '1px dashed var(--t-borderPrimary)',
-                  }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 89 }}>
+            <SidebarCard title="Souhrn nastavení">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <SouhrnRow label="Stav">
+                  <Tag
+                    label={stav === 'aktivni' ? 'Aktivní' : 'Neaktivní'}
+                    size="sm"
+                    lead="indicator"
+                    variant={stav === 'aktivni' ? 'success' : 'danger'}
+                  />
+                </SouhrnRow>
+                {souhrnRows.map(row => (
+                  <Fragment key={row.label}>
+                    <div style={{ borderTop: '1px dashed var(--t-borderPrimary)' }} />
                     <SummaryListItem label={row.label} value={row.value} length="short" align="right" />
-                  </div>
+                  </Fragment>
                 ))}
+                <div style={{ borderTop: '1px dashed var(--t-borderPrimary)' }} />
+                <SouhrnRow label="Mydock">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Tag
+                      label={mydockOvereno ? 'Spárováno' : 'Nespárováno'}
+                      size="sm"
+                      variant={mydockOvereno ? 'success' : 'neutral'}
+                    />
+                    {mydockOvereno && (
+                      <span style={{ ...typography.body14Medium, color: 'var(--t-textPrimary)' }}>
+                        ID {mydockOvereno}
+                      </span>
+                    )}
+                  </div>
+                </SouhrnRow>
               </div>
-            </SidebarCard>
-
-            <SidebarCard icon={Star} title="Pravidla fakturace">
-              <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
-                <Rule>HSP musí mít <B>alespoň jeden</B> fakturační subjekt.</Rule>
-                <Rule>Může mít <B>oba</B> - plátcovský i neplátcovský - každý jako samostatná firma.</Rule>
-                <Rule><B>DIČ</B> se zadává pouze u plátce DPH.</Rule>
-                <Rule><B>Fyzická osoba</B> nemá obchodní název - uvádí jméno a příjmení a místo podnikání.</Rule>
-                <Rule><B>Právnická osoba</B> uvádí obchodní název a sídlo dle obchodního registru.</Rule>
-              </ul>
             </SidebarCard>
           </div>
         </div>
@@ -781,21 +758,21 @@ export default function NoveHspPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 16,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <Button label="Zahodit" variant="outlined" size="md" onClick={zahodit} />
-            <Button label="Vytvořit HSP" variant="primary" size="md" leadIcon={Check} onClick={vytvorit} />
+            <Button label="Zavřít" variant="outlined" size="md" onClick={zavrit} />
+            <Button label={isEdit ? 'Uložit změny' : 'Vytvořit HSP'} variant="primary" size="md" leadIcon={Check} onClick={ulozit} />
           </div>
         </div>
       </div>
 
-      {zahoditOpen && (
+      {zavritOpen && (
         <ConfirmDialog
-          title="Zahodit nové HSP?"
-          description="Vyplněné údaje se neuloží."
-          primaryLabel="Zahodit"
+          title={isEdit ? 'Zavřít bez uložení změn?' : 'Zavřít bez vytvoření HSP?'}
+          description={isEdit ? 'Provedené změny se neuloží.' : 'Vyplněné údaje se neuloží.'}
+          primaryLabel="Zavřít"
           secondaryLabel="Pokračovat v úpravách"
           destructive
           onPrimary={() => navigate('/hsp')}
-          onSecondary={() => setZahoditOpen(false)}
+          onSecondary={() => setZavritOpen(false)}
         />
       )}
     </div>

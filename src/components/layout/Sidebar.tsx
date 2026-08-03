@@ -53,7 +53,7 @@ const nav: NavNode[] = [
       { type: 'item', label: 'Zájem o výkup', path: '/obchod/zajem-o-vykup' },
       { type: 'item', label: 'Lead Hypo', path: '/obchod/lead-hypo' },
       { type: 'item', label: 'Lead', path: '/obchod/lead' },
-      { type: 'item', label: 'Příležitosti', path: '/obchod/prilezitosti' },
+      { type: 'item', label: 'Poptávky', path: '/obchod/poptavky' },
     ],
   },
   { type: 'item', label: 'Klienti', icon: Users, path: '/klienti' },

@@ -5,14 +5,14 @@ import { Avatar, Tag } from '@matusgallo/mysabds'
 import ListPageShell from '../../components/shared/ListPageShell'
 import DataTable from '../../components/shared/DataTable'
 import PageFilterBar from '../../components/shared/PageFilterBar'
-import PrilezitostPanel from '../../components/obchod/PrilezitostPanel'
+import PoptavkaPanel from '../../components/obchod/PoptavkaPanel'
 import { renderDatum } from '../../utils/tableRenders'
 import { renderAvatarName, initials, avatarColor } from '../../utils/renderAvatarName'
-import { prilezitostiData } from '../../data/mockObchod'
+import { poptavkyData } from '../../data/mockObchod'
 
 const PAGE_SIZE = 10
 
-function stavPrilezitostiVariant(stav: string) {
+function stavPoptavkyVariant(stav: string) {
   if (stav === 'Aktivní') return 'success' as const
   if (stav === 'Prohlídka') return 'info' as const
   return 'neutral' as const
@@ -53,28 +53,28 @@ const cols = [
     return <Tag label={typ} variant="neutral" size="sm" lead={Icon ? 'icon' : 'none'} icon={Icon ?? undefined} />
   }},
   { key: 'ucelKontaktu', label: 'Účel kontaktu', width: 150 },
-  { key: 'stavPrilezitosti', label: 'Stav příležitosti', width: 148, render: (r: Record<string, unknown>) => {
-    const stav = String(r.stavPrilezitosti ?? '')
+  { key: 'stavPoptavky', label: 'Stav poptávky', width: 148, render: (r: Record<string, unknown>) => {
+    const stav = String(r.stavPoptavky ?? '')
     if (!stav) return null
-    return <Tag label={stav} variant={stavPrilezitostiVariant(stav)} size="sm" />
+    return <Tag label={stav} variant={stavPoptavkyVariant(stav)} size="sm" />
   }},
   { key: 'stavProhlidky', label: 'Stav prohlídky', width: 150 },
   { key: 'zdroj', label: 'Zdroj', width: 160 },
 ]
 
-export default function PrilezitostiPage() {
+export default function PoptavkyPage() {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [panelOpen, setPanelOpen] = useState(false)
 
-  const pageData = prilezitostiData.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const pageData = poptavkyData.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <>
       <ListPageShell
-        title="Příležitosti"
-        actions={[{ label: 'Vytvořit příležitost', variant: 'primary', icon: 'plus', onClick: () => setPanelOpen(true) }]}
+        title="Poptávky"
+        actions={[{ label: 'Vytvořit poptávku', variant: 'primary', icon: 'plus', onClick: () => setPanelOpen(true) }]}
         filterBar={
           <PageFilterBar
             search={{ value: search, onChange: setSearch, placeholder: 'Hledat...' }}
@@ -90,11 +90,11 @@ export default function PrilezitostiPage() {
           cols={cols}
           rows={pageData as Record<string, unknown>[]}
           actions={[]}
-          onRowClick={(row) => navigate(`/obchod/prilezitosti/${row.id}`)}
+          onRowClick={(row) => navigate(`/obchod/poptavky/${row.id}`)}
         />
       </ListPageShell>
 
-      {panelOpen && <PrilezitostPanel onClose={() => setPanelOpen(false)} />}
+      {panelOpen && <PoptavkaPanel onClose={() => setPanelOpen(false)} />}
     </>
   )
 }
