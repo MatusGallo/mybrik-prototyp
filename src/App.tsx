@@ -19,11 +19,11 @@ import PoptavkaDetailPage from './pages/obchod/PoptavkaDetailPage'
 import KlientiPage from './pages/KlientiPage'
 import DokumentyPage from './pages/DokumentyPage'
 import PobockyPage from './pages/PobockyPage'
-import NovaPobockaPage from './pages/NovaPobockaPage'
+import PobockaFormPage from './pages/PobockaFormPage'
 import HspPage from './pages/HspPage'
 import HspFormPage from './pages/HspFormPage'
 import UzivatelePage from './pages/UzivatelePage'
-import NovyUzivatelPage from './pages/NovyUzivatelPage'
+import UzivatelFormPage from './pages/UzivatelFormPage'
 import RoleAPravaPage from './pages/RoleAPravaPage'
 import KalendarPage from './pages/KalendarPage'
 import VyuctovaniPage from './pages/vyuctovani/VyuctovaniPage'
@@ -36,8 +36,10 @@ export default function App() {
         {/* Fullscreen formuláře — bez topbaru a sidebaru, stejně jako vytvoření nabídky */}
         <Route path="/hsp/nove" element={<HspFormPage mode="create" />} />
         <Route path="/hsp/:id/upravit" element={<HspFormPage mode="edit" />} />
-        <Route path="/uzivatele/novy" element={<NovyUzivatelPage />} />
-        <Route path="/pobocky/nova" element={<NovaPobockaPage />} />
+        <Route path="/uzivatele/novy" element={<UzivatelFormPage mode="create" />} />
+        <Route path="/uzivatele/:id/upravit" element={<UzivatelFormPage mode="edit" />} />
+        <Route path="/pobocky/nova" element={<PobockaFormPage mode="create" />} />
+        <Route path="/pobocky/:id/upravit" element={<PobockaFormPage mode="edit" />} />
 
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/nastanka" replace />} />

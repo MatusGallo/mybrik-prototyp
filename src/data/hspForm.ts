@@ -57,10 +57,10 @@ export const EMPTY_SUBJEKT: Subjekt = {
 }
 
 export const SUBJEKT_DEFS: {
-  key: SubjektKey; kod: string; nazev: string; popis: string; jePlatce: boolean
+  key: SubjektKey; nazev: string; popis: string; jePlatce: boolean
 }[] = [
-  { key: 'platce', kod: 'DPH', nazev: 'Plátcovský subjekt', popis: 'Fakturace včetně DPH', jePlatce: true },
-  { key: 'neplatce', kod: 'BEZ', nazev: 'Neplátcovský subjekt', popis: 'Fakturace bez DPH', jePlatce: false },
+  { key: 'platce', nazev: 'Plátcovský subjekt', popis: 'Fakturace včetně DPH', jePlatce: true },
+  { key: 'neplatce', nazev: 'Neplátcovský subjekt', popis: 'Fakturace bez DPH', jePlatce: false },
 ]
 
 export const SUBJEKT_KEYS = SUBJEKT_DEFS.map(d => d.key)

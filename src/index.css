@@ -104,6 +104,54 @@
   outline-offset: -2px;
 }
 
+/* Posuvník (krytí watermarku) — design system slider nemá, tohle je náhrada.
+   Výplň před úchytem kreslí `background` nastavený inline podle hodnoty. */
+.mybrik-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.mybrik-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: transparent;
+}
+.mybrik-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: transparent;
+}
+.mybrik-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: var(--t-bgMyDOCKPrimary);
+  box-shadow: 0 1px 3px rgba(16, 26, 35, 0.3);
+  cursor: pointer;
+}
+.mybrik-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: var(--t-bgMyDOCKPrimary);
+  box-shadow: 0 1px 3px rgba(16, 26, 35, 0.3);
+  cursor: pointer;
+}
+.mybrik-slider:focus {
+  outline: none;
+}
+.mybrik-slider:focus-visible {
+  outline: 2px solid var(--t-borderSelected);
+  outline-offset: 4px;
+}
+
 /* Skryje scrollbar (Chrome/Safari/Firefox/IE) — použití: div.hide-scrollbar */
 .hide-scrollbar {
   scrollbar-width: none;
@@ -169,4 +217,10 @@ body {
 }
 .dist-segment-clickable:hover .dist-chevron {
   color: var(--t-textDanger);
+}
+
+/* TableCell je inline-flex — v inline kontextu pod ním zbývá místo na účaří.
+   U řádku s barevným pozadím (součty) to vypadalo jako pruh navíc pod tabulkou. */
+.table-row > div {
+  display: flex;
 }

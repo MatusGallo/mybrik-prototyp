@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Percent, Plus, Minus, Pencil, Trash2, FileText, CircleCheck, Coins, Receipt,
-  type LucideIcon,
+  Plus, Pencil, Trash2, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import {
-  Button, IconButton, Tag, Tooltip, TooltipIcon, TableCell, TableHeaderCell, Dialog,
-  typography, iconSize, type TagVariant,
+  Button, IconButton, TextButton, Tag, Tooltip, TooltipIcon, TableCell, TableHeaderCell, Dialog, Alert,
+  typography, type TagVariant,
 } from '@matusgallo/mysabds'
 import NovyNakladModal, { type NakladFormData } from './NovyNakladModal'
+import ZpracovaniPlatebModal, {
+  type PlatbaDraft, FORMA_OPT, UCEL_NA_PROVIZI, UCEL_Z_REZERVACE,
+} from './ZpracovaniPlatebModal'
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Vypořádání plateb — nový návrh finanční části nabídky.
@@ -36,31 +38,45 @@ const ZALOHA_SPLATKY = [
   { id: 2, label: 'Splátka 2', splatnost: '09.07.2026', castka: 50000 },
 ]
 
-const ZALOHA_UHRADY = [
+interface UhradaRow {
+  id: number
+  datum: string
+  forma: string
+  castka: number
+}
+
+const ZALOHA_UHRADY: UhradaRow[] = [
   { id: 1, datum: '02.07.2026', forma: 'Bankovní převod', castka: 50000 },
   { id: 2, datum: '09.07.2026', forma: 'Bankovní převod', castka: 50000 },
 ]
 
-const PROVIZE_ZDROJE: Array<{
+interface ZdrojProvize {
+  id: number
   nazev: string
   popis: string
   castka: number
-  stav: string
-  stavVariant: TagVariant
-}> = [
+  /** Účel, se kterým se ze řádku otevře zadání úhrady */
+  ucel: string
+  /** Stav řádku, dokud na něj nedošly peníze */
+  cekaLabel: string
+}
+
+const PROVIZE_ZDROJE: ZdrojProvize[] = [
   {
+    id: 1,
     nazev: 'Započtení rezervační zálohy',
     popis: 'po vypořádání zálohy',
     castka: 100000,
-    stav: 'K vypořádání',
-    stavVariant: 'neutral',
+    ucel: 'prevod-rp-na-provizi',
+    cekaLabel: 'K vypořádání',
   },
   {
+    id: 2,
     nazev: 'Doplatek z kupní ceny',
     popis: 'splatný při zobchodování zakázky',
     castka: 81500,
-    stav: 'Čeká',
-    stavVariant: 'neutral',
+    ucel: 'uhrada-nekryte-provize',
+    cekaLabel: 'Čeká',
   },
 ]
 
@@ -105,12 +121,9 @@ const ROZPAD_PODILY = [
   { jmeno: 'SAB servis s.r.o.', pozice: 'HSP', provize: 30000, nosiNaklady: false },
 ]
 
-const PROVIZE_UHRAZENO = 0
-
 // ── Odvozené součty ───────────────────────────────────────────────────────────
 
 const ZALOHA_PREDEPSANO = ZALOHA_SPLATKY.reduce((s, r) => s + r.castka, 0)
-const ZALOHA_UHRAZENO = ZALOHA_UHRADY.reduce((s, r) => s + r.castka, 0)
 
 // Náklady se dají editovat, proto se součty počítají ze živých řádků.
 function nakladySoucty(rows: NakladRow[]) {
@@ -132,6 +145,10 @@ function formatCena(cena: number) {
   return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(cena)
 }
 
+function formatDatum(d: Date) {
+  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`
+}
+
 function pctOf(part: number, whole: number) {
   return whole <= 0 ? 0 : Math.min(100, Math.round((part / whole) * 100))
 }
@@ -139,32 +156,16 @@ function pctOf(part: number, whole: number) {
 // ── Stavební prvky ────────────────────────────────────────────────────────────
 
 // Sklopení karty i podpanelu — jedno ovládání, ať je hierarchie kdekoli.
+// Chevron míří tam, kam obsah po kliknutí zmizí, resp. odkud se vysune.
 function CollapseToggle({ open, onToggle, title }: { open: boolean; onToggle: () => void; title: string }) {
   return (
     <IconButton
-      icon={open ? Minus : Plus}
-      variant="outlined"
-      size="sm"
+      icon={open ? ChevronUp : ChevronDown}
+      variant="ghost"
+      size="md"
       tooltip={open ? `Sbalit ${title}` : `Rozbalit ${title}`}
       onClick={onToggle}
     />
-  )
-}
-
-// Ikona kroku — barevný čtverec, aby se karty daly odlišit i periferním viděním.
-function StepIcon({ icon: Icon, tone }: { icon: LucideIcon; tone: 'brand' | 'info' | 'success' }) {
-  const map = {
-    brand: { bg: 'var(--bgMyDOCKTertiary)', fg: 'var(--textMyDOCKPrimary)' },
-    info: { bg: 'var(--bgInfoTertiary)', fg: 'var(--textInfoPrimary)' },
-    success: { bg: 'var(--bgSuccessTertiary)', fg: 'var(--textSuccessPrimary)' },
-  }[tone]
-  return (
-    <span style={{
-      width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-      background: map.bg, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    }}>
-      <Icon size={iconSize.md} style={{ color: map.fg }} />
-    </span>
   )
 }
 
@@ -176,21 +177,21 @@ type StatItem = {
   tag?: { label: string; variant: TagVariant }
 }
 
-// Čtyři klíčová čísla kroku v jednom pásu — stejné pořadí ve všech krocích,
-// takže se dají porovnávat pohledem dolů po stránce.
+// Čtyři klíčová čísla kroku, každé ve vlastním boxíku — stejné pořadí ve všech
+// krocích, takže se dají porovnávat pohledem dolů po stránce.
 function StatStrip({ items }: { items: StatItem[] }) {
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
-      border: '1px solid var(--borderPrimary)', borderRadius: 8, overflow: 'hidden',
+      gap: 12,
     }}>
-      {items.map((it, i) => (
+      {items.map(it => (
         <div key={it.label} style={{
           padding: '12px 14px', minWidth: 0,
           display: 'flex', flexDirection: 'column', gap: 4,
-          borderLeft: i === 0 ? 'none' : '1px solid var(--borderPrimary)',
+          border: '1px solid var(--borderPrimary)', borderRadius: 8,
         }}>
-          <span style={{ ...typography.overline11, color: 'var(--textTertiary)' }}>{it.label}</span>
+          <span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{it.label}</span>
           {it.tag ? (
             <span style={{ display: 'flex', alignItems: 'center', minHeight: 26 }}>
               <Tag label={it.tag.label} variant={it.tag.variant} size="sm" lead="indicator" />
@@ -209,14 +210,9 @@ function StatStrip({ items }: { items: StatItem[] }) {
   )
 }
 
-// Kolik zbývá — dominantní číslo vlevo, postup vpravo. Stejný vzorec jako
-// u salda rezervační zálohy, jen obecněji: každý krok má svůj zbytek.
-function RemainderRow({
-  label, amount, amountColor, caption, pct, tone,
-}: {
-  label: string
-  amount: string
-  amountColor: string
+// Postup úhrady — jen popisek, procento a pruh. Dominantní číslo „zbývá"
+// nesou boxíky nad ním, tady by se opakovalo.
+function ProgressRow({ caption, pct, tone }: {
   caption: React.ReactNode
   pct: number
   tone: 'success' | 'brand' | 'neutral'
@@ -227,40 +223,31 @@ function RemainderRow({
     neutral: 'var(--textTertiary)',
   }[tone]
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 150 }}>
-        <span style={{ ...typography.body12Medium, color: 'var(--textSecondary)' }}>{label}</span>
-        <span style={{ ...typography.headline28, color: amountColor }}>{amount}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+        <span style={{ ...typography.body12Regular, color: 'var(--textSecondary)' }}>{caption}</span>
+        <span style={{ ...typography.body12Semibold, color: 'var(--textPrimary)' }}>{pct} %</span>
       </div>
-      <div style={{ flex: 1, minWidth: 240, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
-          <span style={{ ...typography.body12Regular, color: 'var(--textSecondary)' }}>{caption}</span>
-          <span style={{ ...typography.body12Semibold, color: 'var(--textPrimary)' }}>{pct} %</span>
-        </div>
-        <div style={{
-          height: 8, borderRadius: 999, overflow: 'hidden',
-          background: 'var(--bgSecondary)', border: '1px solid var(--borderPrimary)',
-        }}>
-          <div style={{ width: `${pct}%`, height: '100%', background: barColor, transition: 'width 250ms ease' }} />
-        </div>
+      <div style={{
+        height: 8, borderRadius: 999, overflow: 'hidden',
+        background: 'var(--bgSecondary)', border: '1px solid var(--borderPrimary)',
+      }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: barColor, transition: 'width 250ms ease' }} />
       </div>
     </div>
   )
 }
 
-// Karta jednoho kroku vypořádání.
+// Karta jednoho kroku vypořádání. Sklápěcí přepínač je až na konci hlavičky —
+// vlevo začíná název, aby se karty daly čtením po levé hraně přeskakovat.
 function StepCard({
-  icon, tone, title, tooltip, status, hint, actions, summary, active, open, onToggle, children,
+  title, tooltip, status, actions, summary, open, onToggle, children,
 }: {
-  icon: LucideIcon
-  tone: 'brand' | 'info' | 'success'
   title: string
   tooltip: string
   status?: { label: string; variant: TagVariant }
-  hint?: string
   actions?: React.ReactNode
   summary?: React.ReactNode
-  active?: boolean
   open: boolean
   onToggle: () => void
   children: React.ReactNode
@@ -268,20 +255,21 @@ function StepCard({
   return (
     <section style={{
       background: 'var(--bgPrimary)',
-      border: `1px solid ${active ? 'var(--borderMyDOCK)' : 'var(--borderPrimary)'}`,
+      border: '1px solid var(--borderPrimary)',
       borderRadius: 12,
       padding: 16,
       display: 'flex', flexDirection: 'column', gap: open ? 16 : 0,
     }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <CollapseToggle open={open} onToggle={onToggle} title={title.toLowerCase()} />
-        <StepIcon icon={icon} tone={tone} />
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-          <span style={{ ...typography.body16Semibold, color: open ? 'var(--textPrimary)' : 'var(--textSecondary)' }}>
+          <span style={{ ...typography.subheadline18Semibold, color: 'var(--textPrimary)' }}>
             {title}
           </span>
           <TooltipIcon placement="top" content={tooltip} />
         </span>
+
+        {/* Stav patří k názvu — čte se jako „Rezervační záloha: vyřešeno" */}
+        {status && <Tag label={status.label} variant={status.variant} size="sm" lead="indicator" />}
 
         {!open && summary && (
           <>
@@ -290,14 +278,11 @@ function StepCard({
           </>
         )}
 
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          {status && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <Tag label={status.label} variant={status.variant} size="sm" lead="indicator" />
-              {hint && <span style={{ ...typography.body12Regular, color: 'var(--textSecondary)' }}>{hint}</span>}
-            </span>
-          )}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', columnGap: 8, rowGap: 8, flexWrap: 'wrap' }}>
           {actions}
+          {/* Svislá linka odděluje akce nad obsahem od ovládání karty samotné */}
+          {actions && <span style={{ width: 1, height: 20, background: 'var(--borderPrimary)', flexShrink: 0 }} />}
+          <CollapseToggle open={open} onToggle={onToggle} title={title.toLowerCase()} />
         </div>
       </header>
 
@@ -306,95 +291,33 @@ function StepCard({
   )
 }
 
-// Podpanel s detailem — tabulky a rozpisy, které se hodí zabalit.
+// Podpanel s detailem — hlavička se souhrnem a rozpis pod ní. Nesklápí se:
+// detail kroku je součást jeho obsahu, sklápí se až celá karta kroku.
 function SubPanel({
-  title, meta, tone = 'neutral', open, onToggle, padded = true, children,
+  title, meta, note, padded = true, children,
 }: {
   title: string
   meta?: React.ReactNode
-  tone?: 'neutral' | 'info'
-  open: boolean
-  onToggle: () => void
+  /** Sdělení mezi nadpisem a tabulkou — patří k celému rozpisu, ne k řádku */
+  note?: React.ReactNode
   padded?: boolean
   children: React.ReactNode
 }) {
   return (
-    <div style={{ border: '1px solid var(--borderPrimary)', borderRadius: 10, overflow: 'hidden' }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-        background: tone === 'info' ? 'var(--bgInfoTertiary)' : 'var(--bgSecondary)',
-      }}>
-        <CollapseToggle open={open} onToggle={onToggle} title={title.toLowerCase()} />
-        <span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{title}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* Nadpis nad tabulkou, ne pruh v jejím rámečku — tabulka má vlastní záhlaví */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+        <span style={{ ...typography.body16Semibold, color: 'var(--textPrimary)' }}>{title}</span>
         {meta && (
           <span style={{ marginLeft: 'auto', ...typography.body12Regular, color: 'var(--textSecondary)' }}>{meta}</span>
         )}
       </div>
-      {open && <div style={{ padding: padded ? 12 : 0 }}>{children}</div>}
-    </div>
-  )
-}
-
-type LedgerRow = { key: string; label: string; note?: string; castka: number }
-
-// Sloupec rozpisu — předpis vs. úhrady vedle sebe. Barva sloupce nese význam:
-// info = co má klient poslat, success = co už poslal.
-function LedgerColumn({
-  title, icon: Icon, tone, rows, totalLabel, total, divider,
-}: {
-  title: string
-  icon: LucideIcon
-  tone: 'info' | 'success'
-  rows: LedgerRow[]
-  totalLabel: string
-  total: number
-  divider?: boolean
-}) {
-  const map = {
-    info: { bg: 'var(--bgInfoTertiary)', fg: 'var(--textInfoPrimary)', dot: 'var(--textInfoPrimary)', total: 'var(--textPrimary)' },
-    success: { bg: 'var(--bgSuccessTertiary)', fg: 'var(--textSuccessPrimary)', dot: 'var(--textSuccessPrimary)', total: 'var(--textSuccessPrimary)' },
-  }[tone]
-
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column',
-      borderLeft: divider ? '1px solid var(--borderPrimary)' : 'none',
-      minWidth: 0,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px' }}>
-        <span style={{
-          width: 24, height: 24, borderRadius: 6, flexShrink: 0, background: map.bg,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Icon size={iconSize.xs} style={{ color: map.fg }} />
-        </span>
-        <span style={{ ...typography.overline11, color: 'var(--textSecondary)' }}>{title}</span>
-      </div>
-
-      <div style={{ padding: '0 14px' }}>
-        {rows.map(r => (
-          <div key={r.key} style={{
-            display: 'flex', alignItems: 'baseline', gap: 12, padding: '8px 0',
-            borderBottom: '1px dashed var(--borderPrimary)',
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: 999, background: map.dot, flexShrink: 0 }} />
-            <span style={{ ...typography.body14Regular, color: 'var(--textPrimary)', minWidth: 0, flex: 1 }}>
-              {r.label}
-              {r.note && <span style={{ color: 'var(--textSecondary)' }}> · {r.note}</span>}
-            </span>
-            <span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)', whiteSpace: 'nowrap' }}>
-              {formatCena(r.castka)}
-            </span>
-          </div>
-        ))}
-      </div>
-
+      {note}
       <div style={{
-        marginTop: 'auto', display: 'flex', alignItems: 'baseline', gap: 12,
-        padding: '12px 14px', background: map.bg,
+        border: '1px solid var(--borderPrimary)', borderRadius: 10, overflow: 'hidden',
+        padding: padded ? 12 : 0,
       }}>
-        <span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)', flex: 1 }}>{totalLabel}</span>
-        <span style={{ ...typography.body16Semibold, color: map.total, whiteSpace: 'nowrap' }}>{formatCena(total)}</span>
+        {children}
       </div>
     </div>
   )
@@ -425,56 +348,307 @@ function TableHead({ cols }: { cols: Col[] }) {
   )
 }
 
-function ZdrojeProvizeTable() {
-  const cols: Col[] = [
-    { label: 'Zdroj úhrady provize', flex: 1 },
-    { label: 'Částka', width: 160, align: 'right' },
-    { label: 'Stav', width: 150 },
-  ]
+// Předpis a úhrady v jedné tabulce: každá splátka drží na svém řádku i to, čím
+// byla pokrytá. Dva samostatné sloupce vedle sebe tuhle vazbu neukázaly —
+// nešlo z nich přečíst, která splátka ještě čeká na peníze.
+// Úhrady se rozpouštějí do splátek podle splatnosti (nejstarší nezaplacená první).
+function parujPredpisAUhrady(splatky: typeof ZALOHA_SPLATKY, uhrady: UhradaRow[]) {
+  const zbytky = uhrady.map(u => ({ ...u, zbytek: u.castka }))
+  const rows = splatky.map(s => {
+    let uhrazeno = 0
+    const zdroje: Array<{ datum: string; forma: string; castka: number }> = []
+    for (const u of zbytky) {
+      const chybi = s.castka - uhrazeno
+      if (chybi <= 0) break
+      if (u.zbytek <= 0) continue
+      const pouzito = Math.min(chybi, u.zbytek)
+      u.zbytek -= pouzito
+      uhrazeno += pouzito
+      zdroje.push({ datum: u.datum, forma: u.forma, castka: pouzito })
+    }
+    return { ...s, uhrazeno, zdroje }
+  })
+  const nadPredpis = zbytky.reduce((sum, u) => sum + Math.max(0, u.zbytek), 0)
+  return { rows, nadPredpis }
+}
+
+// Řádek tabulky — linka patří řádku, ne buňkám. Kdyby ji kreslila každá buňka
+// zvlášť, u různě vysokých buněk by se čára lámala do schodů.
+function Row({ children, tone = 'data', last }: {
+  children: React.ReactNode
+  tone?: 'data' | 'total'
+  /** Poslední řádek tabulky nekreslí linku — ta by visela na okraji panelu. */
+  last?: boolean
+}) {
   return (
-    <div>
+    <div
+      className="table-row"
+      style={{
+        display: 'flex', alignItems: 'stretch',
+        background: tone === 'total' ? 'var(--bgSecondary)' : 'transparent',
+        borderBottom: tone === 'total' || last ? 'none' : '1px solid var(--borderPrimary)',
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function PredpisTable({
+  uhrady, onZadatUhradu,
+}: {
+  uhrady: UhradaRow[]
+  onZadatUhradu: (zbyva: number) => void
+}) {
+  const { rows, nadPredpis } = parujPredpisAUhrady(ZALOHA_SPLATKY, uhrady)
+
+  // Jediný pružný sloupec je úhrada — zbytek má pevnou šířku, aby čísla stála
+  // hned vedle svého popisku a nevznikla mezi nimi prázdná plocha.
+  const W = { splatka: 110, splatnost: 120, penize: 130, stav: 120, akce: 150 }
+  const cols: Col[] = [
+    { label: 'Splátka', width: W.splatka },
+    { label: 'Splatnost', width: W.splatnost },
+    { label: 'Předepsáno', width: W.penize, align: 'right' },
+    { label: 'Uhrazeno', width: W.penize, align: 'right' },
+    { label: 'Úhrada', flex: 1 },
+    { label: 'Stav', width: W.stav },
+    { label: '', width: W.akce },
+  ]
+
+  function stav(predepsano: number, uhrazeno: number) {
+    if (uhrazeno >= predepsano) return { label: 'Uhrazeno', variant: 'success' as TagVariant }
+    if (uhrazeno > 0) return { label: 'Částečně', variant: 'warning' as TagVariant }
+    return { label: 'Čeká', variant: 'neutral' as TagVariant }
+  }
+
+  // Jeden zdroj se vypíše celý, víc zdrojů se zkrátí na první + počet zbylých,
+  // ať řádek zůstane jednořádkový a tabulka čitelná.
+  function zdrojLabel(zdroje: Array<{ datum: string; forma: string; castka: number }>) {
+    if (zdroje.length === 0) return '—'
+    const first = `${zdroje[0].datum} · ${zdroje[0].forma}`
+    return zdroje.length === 1 ? first : `${first} + ${zdroje.length - 1} další`
+  }
+
+  const cell = { size: 'dense' as const, width: '100%', hovered: false, borderBottom: false }
+  const posledni = nadPredpis <= 0
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
       <TableHead cols={cols} />
-      {PROVIZE_ZDROJE.map(z => (
-        <div key={z.nazev} style={{ display: 'flex' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+
+      {rows.map((r, i) => {
+        const st = stav(r.castka, r.uhrazeno)
+        return (
+          <Row key={r.id} last={posledni && i === rows.length - 1}>
+            <div style={{ width: W.splatka, flexShrink: 0 }}>
+              <TableCell {...cell} label={r.label} />
+            </div>
+            <div style={{ width: W.splatnost, flexShrink: 0 }}>
+              <TableCell {...cell} label={r.splatnost} />
+            </div>
+            <div style={{ width: W.penize, flexShrink: 0 }}>
+              <TableCell {...cell} align="right" label={formatCena(r.castka)} />
+            </div>
+            <div style={{ width: W.penize, flexShrink: 0 }}>
+              <TableCell
+                {...cell} align="right"
+                content={
+                  <span style={{
+                    ...typography.body14Semibold,
+                    color: r.uhrazeno > 0 ? 'var(--textSuccessPrimary)' : 'var(--textSecondary)',
+                  }}>
+                    {formatCena(r.uhrazeno)}
+                  </span>
+                }
+              />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <TableCell {...cell} label={zdrojLabel(r.zdroje)} />
+            </div>
+            <div style={{ width: W.stav, flexShrink: 0 }}>
+              <TableCell {...cell} content={<Tag label={st.label} variant={st.variant} size="sm" lead="indicator" />} />
+            </div>
+            <div style={{ width: W.akce, flexShrink: 0 }}>
+              <TableCell
+                {...cell}
+                content={
+                  r.uhrazeno >= r.castka ? null : (
+                    <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <TextButton
+                        label="Zadat úhradu"
+                        variant="brand"
+                        size="sm"
+                        leadIcon={Plus}
+                        onClick={() => onZadatUhradu(r.castka - r.uhrazeno)}
+                      />
+                    </span>
+                  )
+                }
+              />
+            </div>
+          </Row>
+        )
+      })}
+
+      {/* Peníze nad rámec předpisu — jinak by se v tabulce ztratily */}
+      {nadPredpis > 0 && (
+        <Row last>
+          <div style={{ width: W.splatka + W.splatnost, flexShrink: 0 }}>
+            <TableCell {...cell} label="Nad předpis" />
+          </div>
+          <div style={{ width: W.penize, flexShrink: 0 }}>
+            <TableCell {...cell} align="right" label="—" />
+          </div>
+          <div style={{ width: W.penize, flexShrink: 0 }}>
             <TableCell
-              size="dense" width="100%" hovered={false} borderBottom
+              {...cell} align="right"
               content={
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                  <span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{z.nazev}</span>
-                  <span style={{ ...typography.body12Regular, color: 'var(--textSecondary)' }}>{z.popis}</span>
+                <span style={{ ...typography.body14Semibold, color: 'var(--textSuccessPrimary)' }}>
+                  {formatCena(nadPredpis)}
                 </span>
               }
             />
           </div>
-          <div style={{ width: 160, flexShrink: 0 }}>
-            <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(z.castka)} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <TableCell {...cell} label="přijato víc, než je předepsané" />
           </div>
-          <div style={{ width: 150, flexShrink: 0 }}>
-            <TableCell
-              size="dense" width="100%" hovered={false} borderBottom
-              content={<Tag label={z.stav} variant={z.stavVariant} size="sm" lead="indicator" />}
-            />
+          <div style={{ width: W.stav, flexShrink: 0 }}>
+            <TableCell {...cell} content={<Tag label="K vypořádání" variant="neutral" size="sm" lead="indicator" />} />
           </div>
-        </div>
-      ))}
-      <div style={{ display: 'flex', background: 'var(--bgSecondary)' }}>
+          <div style={{ width: W.akce, flexShrink: 0 }}>
+            <TableCell {...cell} label="" />
+          </div>
+        </Row>
+      )}
+    </div>
+  )
+}
+
+// Zdroje úhrady provize. Uhrazená provize se rozpouští do zdrojů v jejich
+// pořadí, takže je z řádku vidět, co už doteklo a co ještě čeká — a rovnou
+// odsud se dá úhrada zadat, bez skoku na tlačítko v hlavičce karty.
+function ZdrojeProvizeTable({
+  provizeUhrazeno, onZadatUhradu,
+}: {
+  provizeUhrazeno: number
+  onZadatUhradu: (z: ZdrojProvize, zbyva: number) => void
+}) {
+  const W = { penize: 130, stav: 130, akce: 150 }
+  const cols: Col[] = [
+    { label: 'Zdroj', flex: 1 },
+    { label: 'Částka', width: W.penize, align: 'right' },
+    { label: 'Uhrazeno', width: W.penize, align: 'right' },
+    { label: 'Stav', width: W.stav },
+    { label: '', width: W.akce },
+  ]
+
+  let zbytek = provizeUhrazeno
+  const rows = PROVIZE_ZDROJE.map(z => {
+    const uhrazeno = Math.min(z.castka, Math.max(0, zbytek))
+    zbytek -= uhrazeno
+    return { ...z, uhrazeno, zbyva: z.castka - uhrazeno }
+  })
+
+  const cell = { size: 'dense' as const, width: '100%', hovered: false, borderBottom: false }
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <TableHead cols={cols} />
+
+      {rows.map(z => {
+        const plne = z.zbyva <= 0
+        const stav: { label: string; variant: TagVariant } = plne
+          ? { label: 'Uhrazeno', variant: 'success' }
+          : z.uhrazeno > 0
+            ? { label: 'Částečně', variant: 'warning' }
+            : { label: z.cekaLabel, variant: 'neutral' }
+        return (
+          <Row key={z.id}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <TableCell
+                {...cell}
+                content={
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                    <span style={{ ...typography.body14Medium, color: 'var(--textPrimary)' }}>{z.nazev}</span>
+                    <span style={{ ...typography.body12Regular, color: 'var(--textSecondary)' }}>{z.popis}</span>
+                  </span>
+                }
+              />
+            </div>
+            <div style={{ width: W.penize, flexShrink: 0 }}>
+              <TableCell {...cell} align="right" label={formatCena(z.castka)} />
+            </div>
+            <div style={{ width: W.penize, flexShrink: 0 }}>
+              <TableCell
+                {...cell} align="right"
+                content={
+                  <span style={{
+                    ...typography.body14Semibold,
+                    color: z.uhrazeno > 0 ? 'var(--textSuccessPrimary)' : 'var(--textSecondary)',
+                  }}>
+                    {formatCena(z.uhrazeno)}
+                  </span>
+                }
+              />
+            </div>
+            <div style={{ width: W.stav, flexShrink: 0 }}>
+              <TableCell {...cell} content={<Tag label={stav.label} variant={stav.variant} size="sm" lead="indicator" />} />
+            </div>
+            <div style={{ width: W.akce, flexShrink: 0 }}>
+              <TableCell
+                {...cell}
+                content={
+                  plne ? null : (
+                    <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <TextButton
+                        label="Zadat úhradu"
+                        variant="brand"
+                        size="sm"
+                        leadIcon={Plus}
+                        onClick={() => onZadatUhradu(z, z.zbyva)}
+                      />
+                    </span>
+                  )
+                }
+              />
+            </div>
+          </Row>
+        )
+      })}
+
+      <Row tone="total">
         <div style={{ flex: 1, minWidth: 0 }}>
           <TableCell
-            size="dense" width="100%" hovered={false} borderBottom={false}
+            {...cell}
             content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>Provize celkem s DPH</span>}
           />
         </div>
-        <div style={{ width: 160, flexShrink: 0 }}>
+        <div style={{ width: W.penize, flexShrink: 0 }}>
           <TableCell
-            size="dense" width="100%" hovered={false} borderBottom={false} align="right"
+            {...cell} align="right"
             content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(PROVIZE.sDph)}</span>}
           />
         </div>
-        <div style={{ width: 150, flexShrink: 0 }}>
-          <TableCell size="dense" width="100%" hovered={false} borderBottom={false} label="" />
+        <div style={{ width: W.penize, flexShrink: 0 }}>
+          <TableCell
+            {...cell} align="right"
+            content={
+              <span style={{
+                ...typography.body14Semibold,
+                color: provizeUhrazeno > 0 ? 'var(--textSuccessPrimary)' : 'var(--textSecondary)',
+              }}>
+                {formatCena(provizeUhrazeno)}
+              </span>
+            }
+          />
         </div>
-      </div>
+        <div style={{ width: W.stav, flexShrink: 0 }}>
+          <TableCell {...cell} label="" />
+        </div>
+        <div style={{ width: W.akce, flexShrink: 0 }}>
+          <TableCell {...cell} label="" />
+        </div>
+      </Row>
     </div>
   )
 }
@@ -502,13 +676,13 @@ function NakladyTable({
       {rows.map(r => {
         const dph = r.sDph - r.bezDph
         return (
-          <div key={r.id} style={{ display: 'flex' }}>
+          <Row key={r.id}>
             <div style={{ width: 110, flexShrink: 0 }}>
-              <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.datum} />
+              <TableCell size="dense" width="100%" hovered={false} label={r.datum} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <TableCell
-                size="dense" width="100%" hovered={false} borderBottom
+                size="dense" width="100%" hovered={false}
                 content={
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                     <span style={{ ...typography.body14Medium, color: 'var(--textPrimary)' }}>{r.nazev}</span>
@@ -518,20 +692,20 @@ function NakladyTable({
               />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.kategorie} />
+              <TableCell size="dense" width="100%" hovered={false} label={r.kategorie} />
             </div>
             <div style={{ width: 130, flexShrink: 0 }}>
-              <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.bezDph)} />
+              <TableCell size="dense" width="100%" hovered={false} align="right" label={formatCena(r.bezDph)} />
             </div>
             <div style={{ width: 110, flexShrink: 0 }}>
-              <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={dph === 0 ? '—' : formatCena(dph)} />
+              <TableCell size="dense" width="100%" hovered={false} align="right" label={dph === 0 ? '—' : formatCena(dph)} />
             </div>
             <div style={{ width: 130, flexShrink: 0 }}>
-              <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.sDph)} />
+              <TableCell size="dense" width="100%" hovered={false} align="right" label={formatCena(r.sDph)} />
             </div>
             <div style={{ width: 92, flexShrink: 0 }}>
               <TableCell
-                size="dense" width="100%" hovered={false} borderBottom
+                size="dense" width="100%" hovered={false}
                 content={
                   <span style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                     <IconButton icon={Pencil} variant="ghost" size="md" tooltip="Upravit náklad" onClick={() => onEdit(r)} />
@@ -542,41 +716,41 @@ function NakladyTable({
                 }
               />
             </div>
-          </div>
+          </Row>
         )
       })}
-      <div style={{ display: 'flex', background: 'var(--bgSecondary)' }}>
+      <Row tone="total">
         <div style={{ width: 110, flexShrink: 0 }}>
-          <TableCell size="dense" width="100%" hovered={false} borderBottom={false} label="" />
+          <TableCell size="dense" width="100%" hovered={false} label="" />
         </div>
         <div style={{ flex: 2, minWidth: 0 }}>
           <TableCell
-            size="dense" width="100%" hovered={false} borderBottom={false} align="right"
+            size="dense" width="100%" hovered={false} align="right"
             content={<span style={{ ...typography.body12Medium, color: 'var(--textSecondary)' }}>Náklady celkem:</span>}
           />
         </div>
         <div style={{ width: 130, flexShrink: 0 }}>
           <TableCell
-            size="dense" width="100%" hovered={false} borderBottom={false} align="right"
+            size="dense" width="100%" hovered={false} align="right"
             content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(soucty.bezDph)}</span>}
           />
         </div>
         <div style={{ width: 110, flexShrink: 0 }}>
           <TableCell
-            size="dense" width="100%" hovered={false} borderBottom={false} align="right"
+            size="dense" width="100%" hovered={false} align="right"
             content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(soucty.dph)}</span>}
           />
         </div>
         <div style={{ width: 130, flexShrink: 0 }}>
           <TableCell
-            size="dense" width="100%" hovered={false} borderBottom={false} align="right"
+            size="dense" width="100%" hovered={false} align="right"
             content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(soucty.sDph)}</span>}
           />
         </div>
         <div style={{ width: 92, flexShrink: 0 }}>
-          <TableCell size="dense" width="100%" hovered={false} borderBottom={false} label="" />
+          <TableCell size="dense" width="100%" hovered={false} label="" />
         </div>
-      </div>
+      </Row>
     </div>
   )
 }
@@ -596,59 +770,59 @@ function RozpadTable({ nakladyBezDph }: { nakladyBezDph: number }) {
     <div>
       <TableHead cols={cols} />
       {rows.map(r => (
-        <div key={r.jmeno} style={{ display: 'flex' }}>
+        <Row key={r.jmeno}>
           <div style={{ flex: 3, minWidth: 0 }}>
-            <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.jmeno} />
+            <TableCell size="dense" width="100%" hovered={false} label={r.jmeno} />
           </div>
           <div style={{ flex: 2, minWidth: 0 }}>
-            <TableCell size="dense" width="100%" hovered={false} borderBottom label={r.pozice} />
+            <TableCell size="dense" width="100%" hovered={false} label={r.pozice} />
           </div>
           <div style={{ flex: 2, minWidth: 0 }}>
-            <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.provize)} />
+            <TableCell size="dense" width="100%" hovered={false} align="right" label={formatCena(r.provize)} />
           </div>
           <div style={{ flex: 2, minWidth: 0 }}>
-            <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={r.naklady === 0 ? '—' : formatCena(r.naklady)} />
+            <TableCell size="dense" width="100%" hovered={false} align="right" label={r.naklady === 0 ? '—' : formatCena(r.naklady)} />
           </div>
           <div style={{ flex: 2, minWidth: 0 }}>
-            <TableCell size="dense" width="100%" hovered={false} borderBottom align="right" label={formatCena(r.kVyplate)} />
+            <TableCell size="dense" width="100%" hovered={false} align="right" label={formatCena(r.kVyplate)} />
           </div>
           <div style={{ width: 140, flexShrink: 0 }}>
             <TableCell
-              size="dense" width="100%" hovered={false} borderBottom
+              size="dense" width="100%" hovered={false}
               content={<Tag label="K fakturaci" variant="warning" size="sm" lead="indicator" />}
             />
           </div>
-        </div>
+        </Row>
       ))}
-      <div style={{ display: 'flex', background: 'var(--bgSecondary)' }}>
+      <Row tone="total">
         <div style={{ flex: 5, minWidth: 0 }}>
           <TableCell
-            size="dense" width="100%" hovered={false} borderBottom={false} align="right"
+            size="dense" width="100%" hovered={false} align="right"
             content={<span style={{ ...typography.body12Medium, color: 'var(--textSecondary)' }}>K výplatě celkem:</span>}
           />
         </div>
         <div style={{ flex: 2, minWidth: 0 }}>
           <TableCell
-            size="dense" width="100%" hovered={false} borderBottom={false} align="right"
+            size="dense" width="100%" hovered={false} align="right"
             content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(PROVIZE.bezDph)}</span>}
           />
         </div>
         <div style={{ flex: 2, minWidth: 0 }}>
           <TableCell
-            size="dense" width="100%" hovered={false} borderBottom={false} align="right"
+            size="dense" width="100%" hovered={false} align="right"
             content={<span style={{ ...typography.body14Semibold, color: 'var(--textPrimary)' }}>{formatCena(nakladyBezDph)}</span>}
           />
         </div>
         <div style={{ flex: 2, minWidth: 0 }}>
           <TableCell
-            size="dense" width="100%" hovered={false} borderBottom={false} align="right"
+            size="dense" width="100%" hovered={false} align="right"
             content={<span style={{ ...typography.body14Semibold, color: 'var(--textSuccessPrimary)' }}>{formatCena(kVyplateCelkem)}</span>}
           />
         </div>
         <div style={{ width: 140, flexShrink: 0 }}>
-          <TableCell size="dense" width="100%" hovered={false} borderBottom={false} label="" />
+          <TableCell size="dense" width="100%" hovered={false} label="" />
         </div>
-      </div>
+      </Row>
     </div>
   )
 }
@@ -661,7 +835,6 @@ function ProvizeHero() {
       background: 'var(--bgPrimary)', border: '1px solid var(--borderPrimary)', borderRadius: 12,
       padding: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
     }}>
-      <StepIcon icon={Percent} tone="brand" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
         <span style={{ ...typography.body16Semibold, color: 'var(--textPrimary)' }}>Provize zakázky</span>
         <span style={{ ...typography.body12Regular, color: 'var(--textSecondary)' }}>
@@ -697,22 +870,26 @@ export default function VyporadaniPlateb() {
   const [openProvize, setOpenProvize] = useState(true)
   const [openVyuctovani, setOpenVyuctovani] = useState(true)
 
-  const [openPredpis, setOpenPredpis] = useState(true)
-  const [openZdroje, setOpenZdroje] = useState(true)
-  const [openNaklady, setOpenNaklady] = useState(false)
-  const [openRozpad, setOpenRozpad] = useState(false)
-
   const [naklady, setNaklady] = useState<NakladRow[]>(NAKLADY)
   const [novyNakladOpen, setNovyNakladOpen] = useState(false)
   const [editNaklad, setEditNaklad] = useState<NakladRow | null>(null)
   const [deleteNaklad, setDeleteNaklad] = useState<NakladRow | null>(null)
 
-  const zalohaZbyva = Math.max(0, ZALOHA_PREDEPSANO - ZALOHA_UHRAZENO)
-  const zalohaPct = pctOf(ZALOHA_UHRAZENO, ZALOHA_PREDEPSANO)
-  const zalohaUhrazena = zalohaZbyva === 0
+  // Platby, které uživatel zpracoval v okně Zpracování plateb, posouvají čísla
+  // ve všech třech krocích — proto sedí ve stavu, ne v konstantách.
+  const [uhrady, setUhrady] = useState<UhradaRow[]>(ZALOHA_UHRADY)
+  const [rezervaceVyporadano, setRezervaceVyporadano] = useState(0)
+  const [provizeUhrazeno, setProvizeUhrazeno] = useState(0)
+  const [platbyModal, setPlatbyModal] = useState<{ ucel: string; castka?: string } | null>(null)
 
-  const provizeZbyva = PROVIZE.sDph - PROVIZE_UHRAZENO
-  const provizePct = pctOf(PROVIZE_UHRAZENO, PROVIZE.sDph)
+  const zalohaUhrazeno = uhrady.reduce((s, u) => s + u.castka, 0)
+  const zalohaZbyva = Math.max(0, ZALOHA_PREDEPSANO - zalohaUhrazeno)
+  const zalohaPct = pctOf(zalohaUhrazeno, ZALOHA_PREDEPSANO)
+  const zalohaUhrazena = zalohaZbyva === 0
+  const penizeVRezervaci = zalohaUhrazeno - rezervaceVyporadano
+
+  const provizeZbyva = PROVIZE.sDph - provizeUhrazeno
+  const provizePct = pctOf(provizeUhrazeno, PROVIZE.sDph)
 
   const soucty = nakladySoucty(naklady)
   const kVyplate = PROVIZE.bezDph - soucty.bezDph
@@ -723,191 +900,213 @@ export default function VyporadaniPlateb() {
     setDeleteNaklad(null)
   }
 
+  // Zpracované platby se rozdělí podle účelu: co doteče na provizi, co ubere
+  // z peněz v rezervaci a co přibude jako další úhrada rezervačního poplatku.
+  function handleZpracovatPlatby(platby: PlatbaDraft[]) {
+    let naProvizi = 0
+    let zRezervace = 0
+    const noveUhrady: UhradaRow[] = []
+    let nextId = Math.max(0, ...uhrady.map(u => u.id))
+
+    for (const p of platby) {
+      const castka = Number(p.castka.replace(/\s/g, '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0
+      if (castka <= 0) continue
+      if (UCEL_NA_PROVIZI.includes(p.ucel)) naProvizi += castka
+      if (UCEL_Z_REZERVACE.includes(p.ucel)) zRezervace += castka
+      if (p.ucel === 'rezervacni-poplatek') {
+        nextId += 1
+        noveUhrady.push({
+          id: nextId,
+          datum: p.splatnost ? formatDatum(p.splatnost) : '—',
+          forma: FORMA_OPT.find(f => f.value === p.forma)?.label ?? 'Převodem',
+          castka,
+        })
+      }
+    }
+
+    if (noveUhrady.length > 0) setUhrady(rows => [...rows, ...noveUhrady])
+    if (naProvizi > 0) setProvizeUhrazeno(v => v + naProvizi)
+    if (zRezervace > 0) setRezervaceVyporadano(v => v + zRezervace)
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    // Karta provize je samostatné sdělení nad sekcí — 24px k ní, 16px mezi kartami kroků
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <ProvizeHero />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <span style={{ ...typography.subheadline18Semibold, color: 'var(--textPrimary)' }}>Vypořádání plateb</span>
-        <div style={{ marginLeft: 'auto' }}>
-          <Button label="Nový náklad" variant="outlined" size="md" leadIcon={Plus} onClick={() => setNovyNakladOpen(true)} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ ...typography.headline20, color: 'var(--textPrimary)' }}>Vypořádání plateb</span>
+          <div style={{ marginLeft: 'auto' }}>
+            <Button label="Nový náklad" variant="outlined" size="md" leadIcon={Plus} onClick={() => setNovyNakladOpen(true)} />
+          </div>
         </div>
+
+        {/* ── Krok 1 — rezervační záloha ─────────────────────────────────────── */}
+        <StepCard
+          title="Rezervační záloha"
+          tooltip="Rezervační zálohu může klient uhradit ve více splátkách. Po vypořádání se započítá do provize za zprostředkování."
+          status={{ label: zalohaUhrazena ? 'Vyřešeno' : 'V řešení', variant: zalohaUhrazena ? 'success' : 'brand' }}
+          summary={<>uhrazeno <strong style={{ color: 'var(--textSuccessPrimary)' }}>{formatCena(zalohaUhrazeno)}</strong> · {zalohaPct} %</>}
+          open={openZaloha}
+          onToggle={() => setOpenZaloha(o => !o)}
+          actions={
+            <Button
+              label="Vypořádat rezervační zálohu" variant="primary" size="md"
+              onClick={() => setPlatbyModal({
+                ucel: 'prevod-rp-na-provizi',
+                castka: penizeVRezervaci > 0 ? String(penizeVRezervaci) : undefined,
+              })}
+            />
+          }
+        >
+          <StatStrip
+            items={[
+              { label: 'Předepsáno', value: formatCena(ZALOHA_PREDEPSANO) },
+              { label: 'Uhrazeno', value: formatCena(zalohaUhrazeno), valueColor: 'var(--textSuccessPrimary)' },
+              {
+                label: 'Stav úhrady',
+                value: '',
+                tag: { label: zalohaUhrazena ? 'Plně uhrazena' : 'Částečně uhrazena', variant: zalohaUhrazena ? 'success' : 'warning' },
+                // Kolik ještě chybí, se v této kartě nikde jinde neukáže — bez grafu
+                // to nese poznámka u stavu úhrady.
+                note: zalohaUhrazena ? undefined : `zbývá doplatit ${formatCena(zalohaZbyva)}`,
+              },
+              {
+                label: 'Peníze v rezervaci',
+                value: `${penizeVRezervaci > 0 ? '+ ' : ''}${formatCena(penizeVRezervaci)}`,
+                valueColor: penizeVRezervaci > 0 ? 'var(--textSuccessPrimary)' : 'var(--textSecondary)',
+                note: penizeVRezervaci > 0 ? 'k vypořádání' : 'vypořádáno',
+              },
+            ]}
+          />
+
+          <SubPanel
+            title="Předpis a úhrady"
+            meta={`${ZALOHA_SPLATKY.length} splátky předepsané · ${uhrady.length} úhrady`}
+            padded={false}
+          >
+            <PredpisTable
+              uhrady={uhrady}
+              onZadatUhradu={zbyva => setPlatbyModal({
+                ucel: 'rezervacni-poplatek',
+                castka: zbyva > 0 ? String(zbyva) : undefined,
+              })}
+            />
+          </SubPanel>
+        </StepCard>
+
+        {/* ── Krok 2 — provize za zprostředkování ────────────────────────────── */}
+        <StepCard
+          title="Provize za zprostředkování"
+          tooltip="Provize se hradí ze dvou zdrojů: započtením rezervační zálohy a doplatkem z kupní ceny při zobchodování zakázky."
+          status={{ label: provizeZbyva === 0 ? 'Vyřešeno' : 'V řešení', variant: provizeZbyva === 0 ? 'success' : 'brand' }}
+          summary={<>uhrazeno <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(provizeUhrazeno)}</strong> · {provizePct} %</>}
+          open={openProvize}
+          onToggle={() => setOpenProvize(o => !o)}
+        >
+          <StatStrip
+            items={[
+              { label: 'Výše provize', value: formatCena(PROVIZE.sDph), note: 's DPH' },
+              { label: 'Uhrazeno', value: formatCena(provizeUhrazeno), valueColor: provizeUhrazeno > 0 ? 'var(--textSuccessPrimary)' : undefined },
+              {
+                label: 'Stav úhrady',
+                value: '',
+                tag: provizeZbyva === 0
+                  ? { label: 'Plně uhrazena', variant: 'success' }
+                  : provizeUhrazeno > 0
+                    ? { label: 'Částečně uhrazena', variant: 'warning' }
+                    : { label: 'Neuhrazeno', variant: 'neutral' },
+              },
+              { label: 'Peníze na provizi', value: formatCena(provizeUhrazeno), note: 'k vypořádání' },
+            ]}
+          />
+
+          <ProgressRow
+            caption={<>Uhrazeno <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(provizeUhrazeno)}</strong> z {formatCena(PROVIZE.sDph)}</>}
+            pct={provizePct}
+            tone="brand"
+          />
+
+          <SubPanel
+            title="Zdroj úhrady provize"
+            meta={`${PROVIZE_ZDROJE.length} zdroje · celkem ${formatCena(PROVIZE.sDph)}`}
+            padded={false}
+          >
+            <ZdrojeProvizeTable
+              provizeUhrazeno={provizeUhrazeno}
+              onZadatUhradu={(z, zbyva) => setPlatbyModal({
+                ucel: z.ucel,
+                castka: zbyva > 0 ? String(zbyva) : undefined,
+              })}
+            />
+          </SubPanel>
+        </StepCard>
+
+        {/* ── Krok 3 — vyúčtování zakázky ────────────────────────────────────── */}
+        <StepCard
+          title="Vyúčtování zakázky"
+          tooltip="Vyúčtování rozdělí provizi do struktury a odečte náklady. Otevře se, až bude nastavení provize dokončené."
+          status={{ label: 'Čeká', variant: 'neutral' }}
+          summary={<>nevyfakturováno · náklady <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(soucty.sDph)}</strong></>}
+          open={openVyuctovani}
+          onToggle={() => setOpenVyuctovani(o => !o)}
+          actions={
+            <Tooltip content="Nejprve dokončete nastavení provize." placement="top">
+              <span>
+                <Button label="Vyúčtovat zakázku" variant="outlined" size="md" disabled />
+              </span>
+            </Tooltip>
+          }
+        >
+          <StatStrip
+            items={[
+              { label: 'Provize', value: formatCena(PROVIZE.bezDph), note: `bez DPH · ${formatCena(PROVIZE.sDph)} s DPH` },
+              { label: 'Náklady', value: `− ${formatCena(soucty.bezDph)}`, valueColor: 'var(--textDangerPrimary)', note: `bez DPH · ${formatCena(soucty.sDph)} s DPH` },
+              { label: 'Výplaty', value: formatCena(kVyplate), valueColor: 'var(--textSuccessPrimary)', note: 'bez DPH · DPH dle příjemce' },
+              { label: 'DPH - odvod', value: formatCena(dphOdvod), note: `výstup ${formatCena(PROVIZE.dph)} - vstup ${formatCena(soucty.dph)}` },
+            ]}
+          />
+
+          <SubPanel
+            title="Náklady na zakázku"
+            meta={`${naklady.length} položky · ${formatCena(soucty.sDph)}`}
+            padded={false}
+          >
+            <NakladyTable rows={naklady} onEdit={setEditNaklad} onDelete={setDeleteNaklad} />
+          </SubPanel>
+
+          <SubPanel
+            title="Rozpad provize do struktury"
+            meta={<>k výplatě <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(kVyplate)}</strong></>}
+            padded={false}
+            note={
+              <Alert
+                variant="warning"
+                label="Dokud není zakázka ve stavu Zobchodováno, jsou uvedené údaje pouze orientační."
+              />
+            }
+          >
+            <RozpadTable nakladyBezDph={soucty.bezDph} />
+          </SubPanel>
+        </StepCard>
       </div>
 
-      {/* ── Krok 1 — rezervační záloha ─────────────────────────────────────── */}
-      <StepCard
-        icon={Coins}
-        tone="success"
-        title="Rezervační záloha"
-        tooltip="Rezervační zálohu může klient uhradit ve více splátkách. Po vypořádání se započítá do provize za zprostředkování."
-        status={{ label: zalohaUhrazena ? 'Vyřešeno' : 'V řešení', variant: zalohaUhrazena ? 'success' : 'brand' }}
-        hint={zalohaUhrazena ? 'Pokračujte do provize' : undefined}
-        summary={<>uhrazeno <strong style={{ color: 'var(--textSuccessPrimary)' }}>{formatCena(ZALOHA_UHRAZENO)}</strong> · {zalohaPct} %</>}
-        open={openZaloha}
-        onToggle={() => setOpenZaloha(o => !o)}
-        actions={
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Button label="Zadat úhradu" variant="outlined" size="md" leadIcon={Plus} />
-            <Button label="Vypořádat rezervační zálohu" variant="primary" size="md" />
-          </span>
-        }
-      >
-        <StatStrip
-          items={[
-            { label: 'Předepsáno', value: formatCena(ZALOHA_PREDEPSANO) },
-            { label: 'Uhrazeno', value: formatCena(ZALOHA_UHRAZENO), valueColor: 'var(--textSuccessPrimary)' },
-            { label: 'Stav úhrady', value: '', tag: { label: zalohaUhrazena ? 'Plně uhrazena' : 'Částečně uhrazena', variant: zalohaUhrazena ? 'success' : 'warning' } },
-            {
-              label: 'Peníze v rezervaci',
-              value: `+ ${formatCena(ZALOHA_UHRAZENO)}`,
-              valueColor: 'var(--textSuccessPrimary)',
-              note: 'k vypořádání',
-            },
-          ]}
+      {platbyModal && (
+        <ZpracovaniPlatebModal
+          onClose={() => setPlatbyModal(null)}
+          onSave={handleZpracovatPlatby}
+          defaultUcel={platbyModal.ucel}
+          defaultCastka={platbyModal.castka}
+          souhrn={{
+            rezervaceSlozeno: zalohaUhrazeno,
+            rezervaceVyporadano,
+            provizeCelkem: PROVIZE.sDph,
+            provizeUhrazeno,
+            poplatekVCene: false,
+          }}
         />
-
-        <RemainderRow
-          label="Zbývá doplatit"
-          amount={formatCena(zalohaZbyva)}
-          amountColor={zalohaUhrazena ? 'var(--textSuccessPrimary)' : 'var(--textMyDOCKPrimary)'}
-          caption={<>Uhrazeno <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(ZALOHA_UHRAZENO)}</strong> z {formatCena(ZALOHA_PREDEPSANO)}</>}
-          pct={zalohaPct}
-          tone={zalohaUhrazena ? 'success' : 'brand'}
-        />
-
-        <SubPanel
-          title="Předpis a úhrady"
-          tone="info"
-          meta={`${ZALOHA_SPLATKY.length} splátky předepsané · ${ZALOHA_UHRADY.length} úhrady`}
-          open={openPredpis}
-          onToggle={() => setOpenPredpis(o => !o)}
-          padded={false}
-        >
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}>
-            <LedgerColumn
-              title="Předpis"
-              icon={FileText}
-              tone="info"
-              rows={ZALOHA_SPLATKY.map(s => ({
-                key: `s${s.id}`, label: s.label, note: `splatnost ${s.splatnost}`, castka: s.castka,
-              }))}
-              totalLabel="Předepsáno"
-              total={ZALOHA_PREDEPSANO}
-            />
-            <LedgerColumn
-              title="Úhrady"
-              icon={CircleCheck}
-              tone="success"
-              divider
-              rows={ZALOHA_UHRADY.map(u => ({
-                key: `u${u.id}`, label: u.datum, note: u.forma, castka: u.castka,
-              }))}
-              totalLabel="Uhrazeno"
-              total={ZALOHA_UHRAZENO}
-            />
-          </div>
-        </SubPanel>
-      </StepCard>
-
-      {/* ── Krok 2 — provize za zprostředkování ────────────────────────────── */}
-      <StepCard
-        icon={Percent}
-        tone="brand"
-        title="Provize za zprostředkování"
-        tooltip="Provize se hradí ze dvou zdrojů: započtením rezervační zálohy a doplatkem z kupní ceny při zobchodování zakázky."
-        status={{ label: 'V řešení', variant: 'brand' }}
-        summary={<>uhrazeno <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(PROVIZE_UHRAZENO)}</strong> · {provizePct} %</>}
-        active
-        open={openProvize}
-        onToggle={() => setOpenProvize(o => !o)}
-        actions={<Button label="Zadat úhradu" variant="outlined" size="md" leadIcon={Plus} />}
-      >
-        <StatStrip
-          items={[
-            { label: 'Výše provize', value: formatCena(PROVIZE.sDph), note: 's DPH' },
-            { label: 'Uhrazeno', value: formatCena(PROVIZE_UHRAZENO) },
-            { label: 'Stav úhrady', value: '', tag: { label: 'Neuhrazeno', variant: 'neutral' } },
-            { label: 'Peníze na provizi', value: formatCena(PROVIZE_UHRAZENO), note: 'k vypořádání' },
-          ]}
-        />
-
-        <RemainderRow
-          label="Zbývá doplatit"
-          amount={formatCena(-provizeZbyva)}
-          amountColor="var(--textMyDOCKPrimary)"
-          caption={<>Uhrazeno <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(PROVIZE_UHRAZENO)}</strong> z {formatCena(PROVIZE.sDph)}</>}
-          pct={provizePct}
-          tone="brand"
-        />
-
-        <SubPanel
-          title="Zdroj úhrady provize"
-          tone="info"
-          meta={`${PROVIZE_ZDROJE.length} zdroje · celkem ${formatCena(PROVIZE.sDph)}`}
-          open={openZdroje}
-          onToggle={() => setOpenZdroje(o => !o)}
-          padded={false}
-        >
-          <ZdrojeProvizeTable />
-        </SubPanel>
-      </StepCard>
-
-      {/* ── Krok 3 — vyúčtování zakázky ────────────────────────────────────── */}
-      <StepCard
-        icon={Receipt}
-        tone="info"
-        title="Vyúčtování zakázky"
-        tooltip="Vyúčtování rozdělí provizi do struktury a odečte náklady. Otevře se, až bude nastavení provize dokončené."
-        status={{ label: 'Čeká', variant: 'neutral' }}
-        summary={<>nevyfakturováno · náklady <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(soucty.sDph)}</strong></>}
-        open={openVyuctovani}
-        onToggle={() => setOpenVyuctovani(o => !o)}
-        actions={
-          <Tooltip content="Nejprve dokončete nastavení provize." placement="top">
-            <span>
-              <Button label="Vyúčtovat zakázku" variant="outlined" size="md" disabled />
-            </span>
-          </Tooltip>
-        }
-      >
-        <StatStrip
-          items={[
-            { label: 'Provize', value: formatCena(PROVIZE.bezDph), note: `bez DPH · ${formatCena(PROVIZE.sDph)} s DPH` },
-            { label: 'Náklady', value: `− ${formatCena(soucty.bezDph)}`, valueColor: 'var(--textDangerPrimary)', note: `bez DPH · ${formatCena(soucty.sDph)} s DPH` },
-            { label: 'Výplaty', value: formatCena(kVyplate), valueColor: 'var(--textSuccessPrimary)', note: 'bez DPH · DPH dle příjemce' },
-            { label: 'DPH - odvod', value: formatCena(dphOdvod), note: `výstup ${formatCena(PROVIZE.dph)} - vstup ${formatCena(soucty.dph)}` },
-          ]}
-        />
-
-        <RemainderRow
-          label="Stav zakázky"
-          amount={formatCena(-soucty.bezDph)}
-          amountColor="var(--textMyDOCKPrimary)"
-          caption="Vyrovnání zakázky · po úhradě provize a výplatě všech podílů skončí na 0 Kč"
-          pct={0}
-          tone="neutral"
-        />
-
-        <SubPanel
-          title="Náklady na zakázku"
-          meta={`${naklady.length} položky · ${formatCena(soucty.sDph)}`}
-          open={openNaklady}
-          onToggle={() => setOpenNaklady(o => !o)}
-          padded={false}
-        >
-          <NakladyTable rows={naklady} onEdit={setEditNaklad} onDelete={setDeleteNaklad} />
-        </SubPanel>
-
-        <SubPanel
-          title="Rozpad provize do struktury"
-          meta={<>k výplatě <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(kVyplate)}</strong></>}
-          open={openRozpad}
-          onToggle={() => setOpenRozpad(o => !o)}
-          padded={false}
-        >
-          <RozpadTable nakladyBezDph={soucty.bezDph} />
-        </SubPanel>
-      </StepCard>
+      )}
 
       {novyNakladOpen && <NovyNakladModal onClose={() => setNovyNakladOpen(false)} />}
 

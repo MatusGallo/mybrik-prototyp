@@ -5,8 +5,7 @@ import ConfirmDialog from '../components/shared/ConfirmDialog'
 import ListPageShell from '../components/shared/ListPageShell'
 import DataTable, { type ColDef } from '../components/shared/DataTable'
 import PageFilterBar from '../components/shared/PageFilterBar'
-import UzivatelPanel from '../components/uzivatele/UzivatelPanel'
-import type { UzivatelPanelMode, UzivatelData } from '../components/uzivatele/UzivatelPanel'
+import type { UzivatelData } from '../components/uzivatele/UzivatelPanel'
 import { uzivateleData } from '../data/mockOstatni'
 import { renderAvatarJmenoPodtitul } from '../utils/renderAvatarName'
 
@@ -43,8 +42,6 @@ export default function UzivatelePage() {
   const [pobocka, setPobocka] = useState(new Set<string>())
   const [hsp, setHsp] = useState(new Set<string>())
   const [stav, setStav] = useState(new Set<string>())
-  const [panelMode, setPanelMode] = useState<UzivatelPanelMode | null>(null)
-  const [selected, setSelected] = useState<UzivatelData | undefined>()
   const [deleteTarget, setDeleteTarget] = useState<UzivatelData | null>(null)
   const [deactivateTarget, setDeactivateTarget] = useState<UzivatelData | null>(null)
 
@@ -53,14 +50,9 @@ export default function UzivatelePage() {
     setPage(1)
   }
 
-  function openDetail(row: Record<string, unknown>) {
-    setSelected(row as unknown as UzivatelData)
-    setPanelMode('detail')
-  }
-
-  function openEdit(u?: UzivatelData) {
-    setSelected(u)
-    setPanelMode('edit')
+  /** Detail i úprava jedou na stejné fullscreen obrazovce, jako u HSP a poboček. */
+  function openEdit(id: number) {
+    navigate(`/uzivatele/${id}/upravit`)
   }
 
   const q = search.trim().toLowerCase()
@@ -112,23 +104,14 @@ export default function UzivatelePage() {
           rows={pageData as unknown as Record<string, unknown>[]}
           actions={['edit', 'deactivate', 'delete']}
           emptyVariant={hasFilters ? 'search' : 'default'}
-          onRowClick={openDetail}
+          onRowClick={row => openEdit(Number(row.id))}
           onAction={(action, row) => {
-            if (action === 'edit') openEdit(row as unknown as UzivatelData)
+            if (action === 'edit') openEdit(Number(row.id))
             if (action === 'deactivate') setDeactivateTarget(row as unknown as UzivatelData)
             if (action === 'delete') setDeleteTarget(row as unknown as UzivatelData)
           }}
         />
       </ListPageShell>
-
-      {panelMode && (
-        <UzivatelPanel
-          mode={panelMode}
-          uzivatel={selected}
-          onClose={() => setPanelMode(null)}
-          onEdit={() => openEdit(selected)}
-        />
-      )}
 
       {deactivateTarget && (
         <ConfirmDialog

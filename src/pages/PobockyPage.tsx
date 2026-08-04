@@ -5,8 +5,6 @@ import DataTable from '../components/shared/DataTable'
 import PageFilterBar from '../components/shared/PageFilterBar'
 import { Dialog, Tag } from '@matusgallo/mysabds'
 import { Trash, Ban } from 'lucide-react'
-import PobockaPanel from '../components/pobocky/PobockaPanel'
-import type { PobockaPanelMode, PobockaData } from '../components/pobocky/PobockaPanel'
 import { pobockyData } from '../data/mockOstatni'
 import { renderNazevPodtitul } from '../utils/tableRenders'
 
@@ -41,8 +39,6 @@ export default function PobockyPage() {
   const [hsp, setHsp] = useState(new Set<string>())
   const [osoba, setOsoba] = useState(new Set<string>())
   const [stav, setStav] = useState(new Set<string>())
-  const [panelMode, setPanelMode] = useState<PobockaPanelMode | null>(null)
-  const [selected, setSelected] = useState<PobockaData | undefined>()
   const [deleteTarget, setDeleteTarget] = useState<Record<string, unknown> | null>(null)
   const [deactivateTarget, setDeactivateTarget] = useState<Record<string, unknown> | null>(null)
 
@@ -63,14 +59,9 @@ export default function PobockyPage() {
   const pageData = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
 
-  function openDetail(row: Record<string, unknown>) {
-    setSelected(row as unknown as PobockaData)
-    setPanelMode('detail')
-  }
-
-  function openEdit(pobocka?: PobockaData) {
-    setSelected(pobocka)
-    setPanelMode('edit')
+  /** Detail i úprava jedou na stejné fullscreen obrazovce, jako u HSP. */
+  function openEdit(id: number) {
+    navigate(`/pobocky/${id}/upravit`)
   }
 
   return (
@@ -106,23 +97,14 @@ export default function PobockyPage() {
           rows={pageData as unknown as Record<string, unknown>[]}
           actions={['edit', 'deactivate', 'delete']}
           emptyVariant={hasFilters ? 'search' : 'default'}
-          onRowClick={openDetail}
+          onRowClick={row => openEdit(Number(row.id))}
           onAction={(action, row) => {
-            if (action === 'edit') openEdit(row as unknown as PobockaData)
+            if (action === 'edit') openEdit(Number(row.id))
             if (action === 'deactivate') setDeactivateTarget(row)
             if (action === 'delete') setDeleteTarget(row)
           }}
         />
       </ListPageShell>
-
-      {panelMode && (
-        <PobockaPanel
-          mode={panelMode}
-          pobocka={selected}
-          onClose={() => setPanelMode(null)}
-          onEdit={() => openEdit(selected)}
-        />
-      )}
 
       {deactivateTarget && (
         <div style={{

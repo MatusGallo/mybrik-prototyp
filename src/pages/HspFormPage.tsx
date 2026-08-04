@@ -4,7 +4,7 @@ import {
   ArrowLeft, Building2, UserRound,
 } from 'lucide-react'
 import {
-  Button, Divider, IconButton, Input, Select, SummaryListItem,
+  Button, Divider, IconButton, Input, Select,
   SwitchGroup, Tag, Toggle, TooltipIcon, typography,
 } from '@matusgallo/mysabds'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
@@ -23,8 +23,8 @@ const STAV_OPTIONS = [
 ]
 
 const TYP_OSOBY_OPTIONS = [
-  { value: 'po', label: 'Právnická osoba', icon: Building2 },
   { value: 'fo', label: 'Fyzická osoba', icon: UserRound },
+  { value: 'po', label: 'Právnická osoba', icon: Building2 },
 ]
 
 // ── Layout helpers ────────────────────────────────────────────────────────────
@@ -106,8 +106,7 @@ function FieldWithAction({ field, action }: { field: React.ReactNode; action: Re
  * místo checkboxu. Po zapnutí se obsah (`children`) rozbalí uvnitř karty.
  * Zapnutý stav nese přepínač a rozbalený obsah, rám zůstává neutrální.
  */
-function ToggleCard({ lead, label, supportText, description, checked, onChange, children }: {
-  lead: string
+function ToggleCard({ label, supportText, description, checked, onChange, children }: {
   label: string
   supportText?: string
   description: string
@@ -146,15 +145,6 @@ function ToggleCard({ lead, label, supportText, description, checked, onChange, 
           cursor: 'pointer', userSelect: 'none',
         }}
       >
-        <div style={{
-          width: 57, height: 40, borderRadius: 6, flexShrink: 0,
-          background: 'var(--t-bgPrimary)',
-          boxShadow: 'inset 0 0 0 1px var(--t-borderPrimary)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          ...typography.body12Semibold, color: 'var(--t-textSecondary)',
-        }}>
-          {lead}
-        </div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ ...typography.body14Medium, color: 'var(--t-textPrimary)' }}>{label}</span>
@@ -186,7 +176,7 @@ function SouhrnRow({ label, children }: { label: string; children: React.ReactNo
   return (
     <div style={{ width: '100%', minHeight: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
       <span style={{
-        flex: '1 1 0', ...typography.body14Regular, color: 'var(--t-textSecondary)',
+        flex: '0 1 auto', ...typography.body14Regular, color: 'var(--t-textSecondary)',
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>
         {label}
@@ -196,13 +186,22 @@ function SouhrnRow({ label, children }: { label: string; children: React.ReactNo
   )
 }
 
+/** Textová hodnota souhrnu - delší text láme řádky doprava, ne doleva. */
+function SouhrnHodnota({ text }: { text: string }) {
+  return (
+    <span style={{ ...typography.body14Medium, color: 'var(--t-textPrimary)', textAlign: 'right' }}>
+      {text}
+    </span>
+  )
+}
+
 function SidebarCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={CARD}>
-      <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 16px 8px' }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16 }}>
         <h2 style={{ ...typography.subheadline18Semibold, margin: 0, color: 'var(--t-textPrimary)' }}>{title}</h2>
       </header>
-      <div style={{ padding: '0 16px 12px' }}>
+      <div style={{ padding: '0 16px 16px' }}>
         {children}
       </div>
     </section>
@@ -504,7 +503,6 @@ export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
         key={def.key}
         checked={s.zapnuto}
         onChange={v => toggleSubjekt(def.key, v)}
-        lead={def.kod}
         label={def.nazev}
         supportText={s.zapnuto ? typLabel : undefined}
         description={def.popis}
@@ -526,14 +524,11 @@ export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
     return `${typ} - ${nazevSubjektu || 'bez názvu'}`
   }
 
-  const souhrnRows: { label: string; value: React.ComponentProps<typeof SummaryListItem>['value'] }[] = [
-    {
-      label: 'Odpovědná osoba',
-      value: { kind: 'text', text: osoba?.label ?? '–' },
-    },
-    { label: 'Plátce DPH', value: { kind: 'text', text: souhrnSubjekt('platce') } },
-    { label: 'Neplátce DPH', value: { kind: 'text', text: souhrnSubjekt('neplatce') } },
-    { label: 'Provize', value: { kind: 'text', text: provize ? `${provize} %` : '–' } },
+  const souhrnRows: { label: string; text: string }[] = [
+    { label: 'Odpovědná osoba', text: osoba?.label ?? '–' },
+    { label: 'Plátce DPH', text: souhrnSubjekt('platce') },
+    { label: 'Neplátce DPH', text: souhrnSubjekt('neplatce') },
+    { label: 'Provize', text: provize ? `${provize} %` : '–' },
   ]
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -708,7 +703,7 @@ export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
 
           {/* Souhrn + pravidla */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 89 }}>
-            <SidebarCard title="Souhrn nastavení">
+            <SidebarCard title="Souhrn">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <SouhrnRow label="Stav">
                   <Tag
@@ -721,7 +716,9 @@ export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
                 {souhrnRows.map(row => (
                   <Fragment key={row.label}>
                     <div style={{ borderTop: '1px dashed var(--t-borderPrimary)' }} />
-                    <SummaryListItem label={row.label} value={row.value} length="short" align="right" />
+                    <SouhrnRow label={row.label}>
+                      <SouhrnHodnota text={row.text} />
+                    </SouhrnRow>
                   </Fragment>
                 ))}
                 <div style={{ borderTop: '1px dashed var(--t-borderPrimary)' }} />
