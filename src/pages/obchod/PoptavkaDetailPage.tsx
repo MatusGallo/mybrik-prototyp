@@ -1,16 +1,19 @@
 import { useState, useEffect, useRef, type CSSProperties } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, ArrowRight, ArrowUpRight, Phone, Mail, Smartphone,
+  ArrowLeft, ArrowRight, ArrowUpRight, Phone, Mail, Smartphone, MessageSquare,
   Calendar, CalendarClock, CheckSquare, Clock, MapPin, User, Pencil,
-  StickyNote, RefreshCw, Send, CircleDollarSign, ChevronDown, ChevronUp,
+  StickyNote, RefreshCw, Send, CircleDollarSign, ChevronDown, ChevronUp, Globe,
+  Maximize2, KeyRound, CircleDot,
   type LucideIcon,
 } from 'lucide-react'
 import {
-  Avatar, Tag, IconButton, TextButton, Button, Alert, PillTabGroup, Checkbox,
-  Menu, MenuItem, MenuHeading,
+  Avatar, Tag, IconButton, TextButton, Button, Alert, PillTabGroup,
+  Menu, MenuItem, MenuHeading, SummaryListItem, TooltipIcon, typography,
 } from '@matusgallo/mysabds'
 import { poptavkyData } from '../../data/mockObchod'
+import { nabidkyData } from '../../data/mockData'
+import PoptavkaPanel from '../../components/obchod/PoptavkaPanel'
 import NovyUkolModal from '../../components/obchod/NovyUkolModal'
 import ZapsatKomunikaceModal from '../../components/obchod/ZapsatKomunikaceModal'
 import NovyProhlidkaModal from '../../components/obchod/NovyProhlidkaModal'
@@ -22,25 +25,42 @@ import InterniPoznamkaModal from '../../components/nabidky/InterniPoznamkaModal'
 // Seznam poptávek (mockObchod) nese jen tabulková pole. Detail k nim dokresluje to,
 // co makléř na obrazovce potřebuje — zprávu klienta, nemovitost a agendu.
 
-const DETAIL = {
-  zprava: `Dobrý den pane Dvorský,
+// Text zprávy k referenčnímu záznamu. Ostatní poptávky dostanou obecné znění, aby
+// podpis i zmíněná nemovitost vždy odpovídaly záznamu, na kterém uživatel stojí.
+const ZPRAVY: Record<string, string> = {
+  P332: `Dobrý den pane Dvorský,
 
-mám zájem o prohlídku pozemku ve Vráži u Berouna. Chtěl bych se zeptat, zda je na pozemku přípojka vody a elektřiny a jestli je možné stavět bez dalších omezení. Hodila by se mi prohlídka příští týden ve všední den odpoledne, nejlépe ve čtvrtek.
+našel jsem váš inzerát na stavební pozemek ve Vráži u Berouna a moc mě zaujal. S manželkou hledáme parcelu na stavbu rodinného domu už skoro rok a tahle lokalita by nám vyhovovala nejvíc - oba pracujeme v Berouně a děti by mohly zůstat ve stejné škole.
 
-Děkuji, Milan Kuzica`,
-  doruceno: '4. 9. 2025, 08:33',
-  kanal: 'Webový formulář (Sreality)',
-  posledniKontakt: '10. 9. 2025 (před 14 dny)',
-  hypotekaDotaz: true,
+Rád bych se zeptal na několik věcí. Je na pozemku přípojka vody a elektřiny, případně jak daleko jsou hlavní řady? Řeší se tam kanalizace, nebo se počítá s jímkou či domovní čističkou? A je podle územního plánu možné stavět bez dalších omezení, hlavně co se týče výšky domu a zastavěnosti parcely?
+
+Zajímalo by mě taky, jak je to s přístupovou cestou - je v majetku obce, nebo jde o soukromý pozemek? A neváže se k parcele předkupní právo nebo zástava?
+
+Financování máme předjednané, hypotéku řešíme přes svou banku a část ceny pokryjeme z prodeje současného bytu. Pokud by se pozemek ukázal jako vhodný, jsme schopni jednat rychle.
+
+Hodila by se mi prohlídka příští týden ve všední den odpoledne, nejlépe ve čtvrtek. Kdyby vám to nevyhovovalo, dejte prosím vědět jiný termín, přizpůsobím se.
+
+Děkuji za odpověď a přeji hezký den,
+Milan Kuzica`,
 }
 
-const NABIDKA = {
+function zpravaKlienta(id: string, klient: string, nabidka: string) {
+  return ZPRAVY[id] ?? `Dobrý den,
+
+mám zájem o nemovitost ${nabidka}. Můžete mi prosím poslat víc informací a nabídnout termín prohlídky? Nejlépe ve všední den odpoledne.
+
+Děkuji, ${klient}`
+}
+
+// Nemovitost — parametry, které seznam poptávek nenese. Reálná adresa, cena a stav
+// se doplní z nabídky, pokud pro dané ID existuje.
+const NABIDKA_FALLBACK = {
   foto: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&h=300&fit=crop&auto=format&q=80',
   adresa: 'Vráž u Berouna, Beroun, Středočeský kraj, 267 11',
   cena: 2_690_000,
+  stav: 'Aktivní',
   plocha: '812 m²',
   vlastnictvi: 'Osobní',
-  stav: 'Aktivní',
   poptavek: 3,
 }
 
@@ -167,6 +187,31 @@ function formatCena(cena: number) {
   return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(cena)
 }
 
+/** '04.09.2025 08:33' → '4. 9. 2025 · 08:33' */
+function formatDatumCas(hodnota: string) {
+  const [datum, cas] = hodnota.split(' ')
+  const [den, mesic, rok] = (datum ?? '').split('.')
+  if (!den || !mesic || !rok) return hodnota
+  const vypis = `${Number(den)}. ${Number(mesic)}. ${rok}`
+  return cas ? `${vypis} · ${cas}` : vypis
+}
+
+/** '10.09.2025 16:41' → '10. 9. 2025 (před 14 dny)' */
+function formatPosledniKontakt(hodnota: string) {
+  const [datum] = hodnota.split(' ')
+  const [den, mesic, rok] = (datum ?? '').split('.')
+  if (!den || !mesic || !rok) return hodnota
+  const vypis = `${Number(den)}. ${Number(mesic)}. ${rok}`
+
+  const tehdy = new Date(Number(rok), Number(mesic) - 1, Number(den))
+  const dnes = new Date()
+  dnes.setHours(0, 0, 0, 0)
+  const dny = Math.round((dnes.getTime() - tehdy.getTime()) / 86_400_000)
+  if (dny < 0) return vypis
+  const kdy = dny === 0 ? 'dnes' : dny === 1 ? 'včera' : `před ${dny} dny`
+  return `${vypis} (${kdy})`
+}
+
 // ── Styly ───────────────────────────────────────────────────────────────────────
 
 const CARD: CSSProperties = {
@@ -175,8 +220,9 @@ const CARD: CSSProperties = {
   borderRadius: 12,
 }
 
+// Nadpis karty i panelu — subheadline18Semibold, ne headline20.
 const WIDGET_TITLE: CSSProperties = {
-  fontSize: 18, fontWeight: 600, lineHeight: '26px', color: 'var(--t-textPrimary)',
+  ...typography.subheadline18Semibold, color: 'var(--t-textPrimary)',
 }
 
 const GROUP_LABEL: CSSProperties = {
@@ -196,54 +242,85 @@ const GROUP_TONE: Record<AgendaGroup, { bg: string; border: string }> = {
   historie:     { bg: 'var(--t-bgPrimary)',    border: 'var(--t-borderPrimary)' },
 }
 
+// Barva ikony i textu „Přesunuto“ se řídí variantou štítku daného řádku — v rámci
+// řádku tak drží jedna barva (ikona, badge i přesunuto), viz TagVariant.
+const VARIANT_COLOR: Record<TagVariant, string> = {
+  neutral: 'var(--t-textSecondary)',
+  outline: 'var(--t-textSecondary)',
+  invert:  'var(--t-textPrimary)',
+  brand:   'var(--t-textMyDOCKPrimary)',
+  info:    '#2563EB',
+  success: '#16A34A',
+  warning: '#B45309',
+  danger:  '#DC2626',
+}
+
+const VARIANT_TINT: Record<TagVariant, string> = {
+  neutral: 'var(--t-bgSecondary)',
+  outline: 'var(--t-bgSecondary)',
+  invert:  'var(--t-bgSecondary)',
+  brand:   'var(--t-bgMyDOCKTertiary)',
+  info:    'rgba(37,99,235,0.10)',
+  success: 'rgba(22,163,74,0.10)',
+  warning: 'rgba(245,158,11,0.12)',
+  danger:  'rgba(220,38,38,0.08)',
+}
+
 // ── Sub-komponenty ──────────────────────────────────────────────────────────────
 
-function Widget({ title, action, children }: {
+function Widget({ title, action, meta, children }: {
   title: string
   action?: React.ReactNode
+  /** Doplňující údaje pod nadpisem — např. kdy a odkud zpráva přišla. */
+  meta?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
     <div style={{ ...CARD, display: 'flex', flexDirection: 'column' }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-        padding: '16px 16px 0',
-      }}>
-        <span style={{ ...WIDGET_TITLE, minWidth: 0 }}>{title}</span>
-        {action}
+      <div style={{ padding: '16px 16px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <span style={{ ...WIDGET_TITLE, minWidth: 0 }}>{title}</span>
+          {action}
+        </div>
+        {meta && <div style={{ marginTop: 6 }}>{meta}</div>}
       </div>
       <div style={{ padding: 16 }}>{children}</div>
     </div>
   )
 }
 
-// Buňka faktu v hero kartě — popisek nad hodnotou, oddělená svislou linkou.
-function HeroFact({ label, value, action, first }: {
-  label: string; value: string; action?: React.ReactNode; first?: boolean
+// Fakt v hero kartě — vlastní zaoblený box, popisek nad hodnotou.
+// Řádkový fakt v hlavičce — ikona + popisek + hodnota, volitelně proklik nebo akce.
+function FactLine({ icon: Icon, label, value, href, action }: {
+  icon: LucideIcon; label: string; value: string; href?: string; action?: React.ReactNode
 }) {
+  // Bez `flex: 1` hodnota neroztahuje řádek, takže akce sedí hned za ní.
+  const valueStyle: CSSProperties = {
+    fontSize: 13, fontWeight: 600, lineHeight: '18px', color: 'var(--t-textPrimary)',
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
+  }
   return (
-    <div style={{
-      flex: 1, minWidth: 160, padding: '10px 16px',
-      borderLeft: first ? undefined : '1px solid var(--t-borderPrimary)',
-    }}>
-      <div style={META_TEXT}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-        <span title={value} style={{
-          fontSize: 14, fontWeight: 600, lineHeight: '20px', color: 'var(--t-textPrimary)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {value}
-        </span>
-        {action}
-      </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, padding: '6px 0' }}>
+      <Icon size={15} style={{ color: 'var(--t-textSecondary)', flexShrink: 0 }} />
+      <span style={{ fontSize: 13, lineHeight: '18px', color: 'var(--t-textSecondary)', flexShrink: 0, width: 116 }}>
+        {label}
+      </span>
+      {href
+        ? <a href={href} title={value} style={{ ...valueStyle, textDecoration: 'none' }}>{value}</a>
+        : <span title={value} style={valueStyle}>{value}</span>}
+      {action && <span style={{ flexShrink: 0 }}>{action}</span>}
     </div>
   )
 }
 
-// Kompaktní fakt u nemovitosti — „Plocha 812 m²“ na jednom řádku.
-function InlineFact({ label, value }: { label: string; value: string }) {
+// Kompaktní fakt u nemovitosti — ikona + „Plocha 812 m²“ na jednom řádku.
+function InlineFact({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
-    <span style={{ fontSize: 13, lineHeight: '18px', color: 'var(--t-textSecondary)', whiteSpace: 'nowrap' }}>
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      fontSize: 13, lineHeight: '18px', color: 'var(--t-textSecondary)', whiteSpace: 'nowrap',
+    }}>
+      <Icon size={13} style={{ flexShrink: 0 }} />
       {label}{' '}
       <span style={{ fontWeight: 600, color: 'var(--t-textPrimary)' }}>{value}</span>
     </span>
@@ -257,37 +334,46 @@ function AgendaRow({ item, onVysledek }: { item: AgendaItem; onVysledek: () => v
   const prosle = zruseno || hotovo
   const Icon = item.icon
 
+  // Jednotná barva řádku podle štítku — ikona i „Přesunuto“ ji sdílejí. Uzavřené
+  // (zrušené/hotové) záznamy jsou ztlumené bez ohledu na variantu.
+  const accent = prosle
+    ? 'var(--t-textTertiary)'
+    : item.tag ? VARIANT_COLOR[item.tag.variant] : 'var(--t-textSecondary)'
+  const accentTint = prosle
+    ? 'var(--t-bgTertiary)'
+    : item.tag ? VARIANT_TINT[item.tag.variant] : 'var(--t-bgSecondary)'
+  // „Přesunuto“ nese užitečnou informaci i u uzavřených záznamů — nesmí zmizet do
+  // tertiary jako ikona, drží čitelnou sekundární barvu.
+  const movedColor = prosle ? 'var(--t-textSecondary)' : accent
+
   return (
     <div style={{
       display: 'flex', gap: 12, padding: 12,
       background: tone.bg, border: `1px solid ${tone.border}`, borderRadius: 10,
     }}>
-      {/* Levý indikátor — úkol se zavírá odškrtnutím, ostatní nesou ikonu typu */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexShrink: 0, paddingTop: 1 }}>
-        {item.kind === 'ukol' && <Checkbox checked={hotovo} />}
-        <div style={{
-          width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: prosle ? 'var(--t-bgTertiary)'
-            : item.kind === 'schuzka' ? 'rgba(37,99,235,0.10)'
-            : item.kind === 'ukol' ? 'var(--t-bgMyDOCKTertiary)'
-            : 'var(--t-bgSecondary)',
-        }}>
-          {item.kind === 'ukol'
-            ? <CheckSquare size={15} style={{ color: prosle ? 'var(--t-textTertiary)' : 'var(--t-textMyDOCKPrimary)' }} />
-            : Icon && <Icon size={15} style={{ color: prosle ? 'var(--t-textTertiary)' : item.kind === 'schuzka' ? '#2563EB' : 'var(--t-textSecondary)' }} />}
-        </div>
+      {/* Levý indikátor — ikona typu záznamu */}
+      <div style={{
+        width: 32, height: 32, borderRadius: 999, flexShrink: 0, marginTop: 1,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: accentTint,
+      }}>
+        {item.kind === 'ukol'
+          ? <CheckSquare size={16} style={{ color: accent }} />
+          : Icon && <Icon size={16} style={{ color: accent }} />}
       </div>
 
       {/* Obsah */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{
-          fontSize: 14, fontWeight: 600, lineHeight: '20px',
-          color: prosle ? 'var(--t-textTertiary)' : 'var(--t-textPrimary)',
-          textDecoration: prosle ? 'line-through' : undefined,
-        }}>
-          {item.nazev}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 14, fontWeight: 600, lineHeight: '20px',
+            color: prosle ? 'var(--t-textTertiary)' : 'var(--t-textPrimary)',
+            textDecoration: prosle ? 'line-through' : undefined,
+          }}>
+            {item.nazev}
+          </span>
+          {item.tag && <Tag label={item.tag.label} variant={item.tag.variant} size="sm" />}
+        </div>
 
         {(item.misto || item.resitel || item.meta || item.presunutoZ) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -303,7 +389,7 @@ function AgendaRow({ item, onVysledek }: { item: AgendaItem; onVysledek: () => v
             )}
             {item.meta && <span style={META_TEXT}>{item.meta}</span>}
             {item.presunutoZ && (
-              <span style={{ fontSize: 12, fontWeight: 600, lineHeight: '16px', color: 'var(--t-textMyDOCKPrimary)' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, lineHeight: '16px', color: movedColor }}>
                 Přesunuto z {item.presunutoZ}
               </span>
             )}
@@ -327,7 +413,7 @@ function AgendaRow({ item, onVysledek }: { item: AgendaItem; onVysledek: () => v
         {item.presunutoNa && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
-            fontSize: 13, fontWeight: 600, lineHeight: '18px', color: 'var(--t-textMyDOCKPrimary)',
+            fontSize: 13, fontWeight: 600, lineHeight: '18px', color: movedColor,
           }}>
             <ArrowRight size={14} style={{ flexShrink: 0 }} />
             Přesunuto na {item.presunutoNa}
@@ -336,7 +422,13 @@ function AgendaRow({ item, onVysledek }: { item: AgendaItem; onVysledek: () => v
 
         {item.akce && (
           <div style={{ marginTop: 2, alignSelf: 'flex-start' }}>
-            <Button label={item.akce} variant="primary" size="md" leadIcon={CheckSquare} onClick={onVysledek} />
+            <Button label={item.akce} variant="outlined" size="md" leadIcon={CheckSquare} onClick={onVysledek} />
+          </div>
+        )}
+
+        {item.kind === 'ukol' && !hotovo && (
+          <div style={{ marginTop: 2, alignSelf: 'flex-start' }}>
+            <Button label="Vyřešit" variant="outlined" size="md" leadIcon={CheckSquare} onClick={onVysledek} />
           </div>
         )}
       </div>
@@ -361,8 +453,61 @@ function AgendaRow({ item, onVysledek }: { item: AgendaItem; onVysledek: () => v
             {item.cas}
           </span>
         )}
-        {item.tag && <Tag label={item.tag.label} variant={item.tag.variant} size="sm" />}
       </div>
+    </div>
+  )
+}
+
+// Zpráva klienta v zaobleném boxu. Dlouhá zpráva se sbalí, aby nezatlačila zbytek
+// obrazovky — mez se měří z reálné výšky textu, ne z počtu znaků.
+const ZPRAVA_MAX = 160
+
+function ZpravaKlienta({ text }: { text: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [expanded, setExpanded] = useState(false)
+  const [dlouha, setDlouha] = useState(false)
+
+  useEffect(() => {
+    if (ref.current) setDlouha(ref.current.scrollHeight > ZPRAVA_MAX + 8)
+  }, [text])
+
+  const sbalena = dlouha && !expanded
+
+  return (
+    <div>
+      <div style={{ position: 'relative', background: 'var(--t-bgSecondary)', borderRadius: 8, padding: '12px 16px' }}>
+        <div
+          ref={ref}
+          style={{
+            fontSize: 14, lineHeight: '22px', color: 'var(--t-textPrimary)', whiteSpace: 'pre-wrap',
+            maxHeight: sbalena ? ZPRAVA_MAX : undefined,
+            overflow: 'hidden',
+          }}
+        >
+          {text}
+        </div>
+        {sbalena && (
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute', left: 0, right: 0, bottom: 0, height: 48,
+              borderRadius: '0 0 8px 8px', pointerEvents: 'none',
+              background: 'linear-gradient(to bottom, transparent, var(--t-bgSecondary))',
+            }}
+          />
+        )}
+      </div>
+      {dlouha && (
+        <div style={{ marginTop: 8 }}>
+          <TextButton
+            label={expanded ? 'Zobrazit méně' : 'Zobrazit celou zprávu'}
+            variant="brand"
+            size="sm"
+            leadIcon={expanded ? ChevronUp : ChevronDown}
+            onClick={() => setExpanded(v => !v)}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -415,24 +560,17 @@ export default function PoptavkaDetailPage() {
 
   const [agendaFilter, setAgendaFilter] = useState('vse')
   const [historieOpen, setHistorieOpen] = useState(false)
-  const historieRef = useRef<HTMLDivElement>(null)
   const [hypotekaOdpoved, setHypotekaOdpoved] = useState<'ano' | 'ne' | null>(null)
   const [ukolOpen, setUkolOpen] = useState(false)
   const [komunikaceOpen, setKomunikaceOpen] = useState(false)
   const [schuzkaOpen, setSchuzkaOpen] = useState(false)
   const [predatOpen, setPredatOpen] = useState(false)
+  const [upravitOpen, setUpravitOpen] = useState(false)
   const [vysledekOpen, setVysledekOpen] = useState(false)
   const [poznamkaOpen, setPoznamkaOpen] = useState(false)
   const [poznamka, setPoznamka] = useState('')
   const [stavMenuOpen, setStavMenuOpen] = useState(false)
   const [stav, setStav] = useState('Domluvená prohlídka')
-
-  // Po rozbalení historie odscrolluj na konec — nejnovější záznam má zůstat u dneška.
-  useEffect(() => {
-    if (historieOpen && historieRef.current) {
-      historieRef.current.scrollTop = historieRef.current.scrollHeight
-    }
-  }, [historieOpen])
 
   const p = poptavkyData.find(r => r.id === id)
   if (!p) {
@@ -440,6 +578,15 @@ export default function PoptavkaDetailPage() {
   }
 
   const [klientJmeno, klientEmail, klientTelefon] = p.klient.split('\n')
+
+  // Nemovitost z nabídky, když pro ID existuje; jinak parametry z fallbacku.
+  const nabidka = nabidkyData.find(n => n.id === p.idNabidky)
+  const nemovitost = {
+    ...NABIDKA_FALLBACK,
+    adresa: nabidka?.adresa ?? NABIDKA_FALLBACK.adresa,
+    cena: nabidka?.cena ?? NABIDKA_FALLBACK.cena,
+    stav: nabidka?.stavNabidky ?? NABIDKA_FALLBACK.stav,
+  }
 
   const viditelne = AGENDA.filter(a => agendaFilter === 'vse'
     || (agendaFilter === 'ukoly' && a.kind === 'ukol')
@@ -459,7 +606,7 @@ export default function PoptavkaDetailPage() {
         {/* Hlavička — bílý pás přes celou šířku, stejně jako v detailu nabídky */}
         <div style={{ background: 'var(--t-bgPrimary)', borderBottom: '1px solid var(--t-borderPrimary)' }}>
           <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0, padding: '24px 0 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0, padding: '24px 0' }}>
               <div style={{ marginTop: 2 }}>
                 <IconButton icon={ArrowLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={() => navigate('/obchod/poptavky')} />
               </div>
@@ -479,38 +626,46 @@ export default function PoptavkaDetailPage() {
 
               {/* Klient — hero karta */}
               <div style={CARD}>
-                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    <Avatar initials={getInitials(klientJmeno)} size="lg" color="dark" />
-                    <span style={{ fontSize: 20, fontWeight: 700, lineHeight: '28px', color: 'var(--t-textPrimary)' }}>
-                      {klientJmeno}
-                    </span>
-                    <Tag label={p.stavPoptavky} variant={stavVariant(p.stavPoptavky)} size="sm" lead="indicator" />
-                    <Tag label={p.id} variant="neutral" size="sm" />
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <Button label={klientTelefon} variant="outlined" size="md" leadIcon={Phone} />
-                    <Button label={klientEmail} variant="outlined" size="md" leadIcon={Mail} />
-                    <Button label="SMS" variant="outlined" size="md" leadIcon={Smartphone} />
-                  </div>
-                </div>
+                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                {/* Fakta o poptávce */}
-                <div style={{ display: 'flex', borderTop: '1px solid var(--t-borderPrimary)', flexWrap: 'wrap' }}>
-                  <HeroFact
-                    first
-                    label="Makléř"
-                    value={p.makler}
-                    action={<TextButton label="Předat" variant="brand" size="sm" leadIcon={RefreshCw} onClick={() => setPredatOpen(true)} />}
-                  />
-                  <HeroFact label="Zdroj poptávky" value={p.zdroj} />
-                  <HeroFact label="Přišla" value={p.datumVytvoreni} />
-                  <HeroFact label="Poslední kontakt" value={DETAIL.posledniKontakt} />
+                  {/* Identita + kontakt */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+                    <Avatar initials={getInitials(klientJmeno)} size="lg" color="dark" />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+                      <span style={{ fontSize: 20, fontWeight: 700, lineHeight: '26px', color: 'var(--t-textPrimary)' }}>
+                        {klientJmeno}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <Tag label={stav} variant={stavVariant(stav)} size="sm" lead="indicator" />
+                        <Tag label={p.id} variant="neutral" size="sm" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid var(--t-borderPrimary)' }} />
+
+                  {/* Fakta o poptávce — kompaktní řádky ve dvou sloupcích */}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    columnGap: 32, rowGap: 0,
+                  }}>
+                    <FactLine
+                      icon={User}
+                      label="Makléř"
+                      value={p.makler}
+                      action={<TextButton label="Předat" variant="brand" size="sm" leadIcon={RefreshCw} onClick={() => setPredatOpen(true)} />}
+                    />
+                    <FactLine icon={Globe} label="Zdroj poptávky" value={p.zdroj} />
+                    <FactLine icon={Phone} label="Telefon" value={klientTelefon} href={`tel:${klientTelefon.replace(/\s/g, '')}`} />
+                    <FactLine icon={Mail} label="E-mail" value={klientEmail} href={`mailto:${klientEmail}`} />
+                    <FactLine icon={CalendarClock} label="Přišla" value={formatDatumCas(p.datumVytvoreni)} />
+                    <FactLine icon={Clock} label="Poslední kontakt" value={formatPosledniKontakt(p.datumPosledniZmeny)} />
+                  </div>
                 </div>
               </div>
 
               {/* Zájem o hypotéku — dotaz zmizí po odpovědi */}
-              {DETAIL.hypotekaDotaz && hypotekaOdpoved === null && (
+              {hypotekaOdpoved === null && (
                 <Alert
                   variant="warning"
                   rich
@@ -535,25 +690,20 @@ export default function PoptavkaDetailPage() {
               <Widget
                 title="Zpráva od klienta"
                 action={<TextButton label="Odpovědět" variant="brand" onClick={() => setKomunikaceOpen(true)} />}
+                meta={
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    <span style={{ ...META_TEXT, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={13} style={{ flexShrink: 0 }} />
+                      Doručeno: <span style={{ fontWeight: 600, color: 'var(--t-textPrimary)' }}>{formatDatumCas(p.datumVytvoreni)}</span>
+                    </span>
+                    <span style={{ ...META_TEXT, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Globe size={13} style={{ flexShrink: 0 }} />
+                      Kanál: <span style={{ fontWeight: 600, color: 'var(--t-textPrimary)' }}>{p.typKontaktu} ({p.zdroj})</span>
+                    </span>
+                  </div>
+                }
               >
-                <div style={{
-                  background: 'var(--t-bgSecondary)',
-                  borderLeft: '3px solid #E05524',
-                  borderRadius: '0 8px 8px 0',
-                  padding: '12px 16px',
-                  fontSize: 14, lineHeight: '22px', color: 'var(--t-textPrimary)',
-                  whiteSpace: 'pre-wrap',
-                }}>
-                  {DETAIL.zprava}
-                </div>
-                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 12 }}>
-                  <span style={META_TEXT}>
-                    Doručeno: <span style={{ fontWeight: 600, color: 'var(--t-textPrimary)' }}>{DETAIL.doruceno}</span>
-                  </span>
-                  <span style={META_TEXT}>
-                    Kanál: <span style={{ fontWeight: 600, color: 'var(--t-textPrimary)' }}>{DETAIL.kanal}</span>
-                  </span>
-                </div>
+                <ZpravaKlienta text={zpravaKlienta(p.id, klientJmeno, p.nazevNabidky)} />
               </Widget>
 
               {/* Nemovitost, na kterou poptávka reaguje */}
@@ -563,7 +713,7 @@ export default function PoptavkaDetailPage() {
               >
                 <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                   <img
-                    src={NABIDKA.foto}
+                    src={nemovitost.foto}
                     alt=""
                     style={{ width: 148, height: 100, objectFit: 'cover', borderRadius: 8, flexShrink: 0, background: 'var(--t-bgTertiary)' }}
                   />
@@ -585,15 +735,18 @@ export default function PoptavkaDetailPage() {
                         onClick={() => navigate(`/nabidky/${p.idNabidky}`)}
                       />
                     </div>
-                    <span style={META_TEXT}>{NABIDKA.adresa}</span>
+                    <span style={{ ...META_TEXT, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <MapPin size={13} style={{ flexShrink: 0 }} />
+                      {nemovitost.adresa}
+                    </span>
                     <span style={{ fontSize: 20, fontWeight: 700, lineHeight: '28px', color: 'var(--t-textPrimary)', letterSpacing: '-0.3px' }}>
-                      {formatCena(NABIDKA.cena)}
+                      {formatCena(nemovitost.cena)}
                     </span>
                     <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 2 }}>
-                      <InlineFact label="Plocha" value={NABIDKA.plocha} />
-                      <InlineFact label="Vlastnictví" value={NABIDKA.vlastnictvi} />
-                      <InlineFact label="Stav" value={NABIDKA.stav} />
-                      <InlineFact label="Poptávek" value={String(NABIDKA.poptavek)} />
+                      <InlineFact icon={Maximize2} label="Plocha" value={nemovitost.plocha} />
+                      <InlineFact icon={KeyRound} label="Vlastnictví" value={nemovitost.vlastnictvi} />
+                      <InlineFact icon={CircleDot} label="Stav" value={nemovitost.stav} />
+                      <InlineFact icon={MessageSquare} label="Poptávek" value={String(nemovitost.poptavek)} />
                     </div>
                   </div>
                 </div>
@@ -601,8 +754,12 @@ export default function PoptavkaDetailPage() {
 
               {/* Agenda a komunikace */}
               <div style={{ ...CARD, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '16px 16px 0' }}>
+                <div style={{ padding: '16px 16px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={WIDGET_TITLE}>Agenda a komunikace</span>
+                  <TooltipIcon
+                    content="Úkoly se uzavírají odškrtnutím. U schůzky se vždy zadává výsledek (proběhla, neproběhla, zrušena nebo přesunuta), který se uloží do historie."
+                    placement="right"
+                  />
                 </div>
 
                 {/* Filtr typu záznamu */}
@@ -640,20 +797,9 @@ export default function PoptavkaDetailPage() {
                               onClick={() => setHistorieOpen(v => !v)}
                             />
                           </div>
-                          {historieOpen && (
-                            <div
-                              ref={historieRef}
-                              style={{
-                                maxHeight: 320, overflowY: 'auto',
-                                display: 'flex', flexDirection: 'column', gap: 8,
-                                paddingRight: 4,
-                              }}
-                            >
-                              {historieStarsi.map(item => (
-                                <AgendaRow key={item.id} item={item} onVysledek={() => setVysledekOpen(true)} />
-                              ))}
-                            </div>
-                          )}
+                          {historieOpen && historieStarsi.map(item => (
+                            <AgendaRow key={item.id} item={item} onVysledek={() => setVysledekOpen(true)} />
+                          ))}
                         </>
                       )}
 
@@ -687,30 +833,21 @@ export default function PoptavkaDetailPage() {
                   )}
                 </div>
 
-                {/* Zakládání agendy + vysvětlení, proč se schůzka nezavírá odškrtnutím */}
-                <div style={{ borderTop: '1px solid var(--t-borderPrimary)', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <Button label="Zapsat komunikaci" variant="primary" size="md" leadIcon={Pencil} onClick={() => setKomunikaceOpen(true)} />
-                    <Button label="Naplánovat schůzku" variant="outlined" size="md" leadIcon={Calendar} onClick={() => setSchuzkaOpen(true)} />
-                    <Button label="Nový úkol" variant="outlined" size="md" leadIcon={CheckSquare} onClick={() => setUkolOpen(true)} />
-                  </div>
-                  <p style={{ margin: 0, ...META_TEXT }}>
-                    Úkoly se uzavírají odškrtnutím. U schůzky se vždy zadává výsledek (proběhla, neproběhla, zrušena
-                    nebo přesunuta), který se uloží do historie.
-                  </p>
-                </div>
               </div>
             </div>
 
             {/* ── Pravý panel ─────────────────────────────────────────── */}
-            <div style={{ ...CARD, padding: 16, position: 'sticky', top: 72, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ position: 'sticky', top: 72, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* Stav a akce */}
+            <div style={{ ...CARD, padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
               {/* Stav poptávky */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={GROUP_LABEL}>Stav poptávky</span>
-                  <div style={{ position: 'relative' }}>
-                    <TextButton label="Změnit stav" variant="brand" size="sm" leadIcon={RefreshCw} onClick={() => setStavMenuOpen(v => !v)} />
+                  <span style={{ ...WIDGET_TITLE, minWidth: 0 }}>Stav poptávky</span>
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <TextButton label="Změnit" variant="brand" size="sm" leadIcon={RefreshCw} onClick={() => setStavMenuOpen(v => !v)} />
                     {stavMenuOpen && (
                       <>
                         <div onClick={() => setStavMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
@@ -756,37 +893,21 @@ export default function PoptavkaDetailPage() {
                 {
                   title: 'Správa',
                   actions: [
-                    { icon: RefreshCw, label: 'Předat makléři', onClick: () => setPredatOpen(true) },
+                    { icon: Pencil, label: 'Upravit poptávku', onClick: () => setUpravitOpen(true) },
                     { icon: StickyNote, label: 'Interní poznámka', onClick: () => setPoznamkaOpen(true) },
                   ],
                 },
               ].map(group => (
                 <div key={group.title} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ ...GROUP_LABEL, padding: '0 2px', marginBottom: 4 }}>{group.title}</span>
+                  <span style={{
+                    fontSize: 16, fontWeight: 700, lineHeight: '24px',
+                    color: 'var(--t-textPrimary)', padding: '0 2px', marginBottom: 4,
+                  }}>{group.title}</span>
                   {group.actions.map(a => (
                     <RailAction key={a.label} icon={a.icon} label={a.label} onClick={a.onClick} />
                   ))}
                 </div>
               ))}
-
-              {/* Propojené záznamy */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--t-borderPrimary)', paddingTop: 16 }}>
-                <span style={GROUP_LABEL}>Propojené záznamy</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <span style={META_TEXT}>Nabídka</span>
-                    <TextButton label={String(p.idNabidky)} variant="brand" size="sm" tailIcon={ArrowUpRight} onClick={() => navigate(`/nabidky/${p.idNabidky}`)} />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <span style={META_TEXT}>Lead</span>
-                    <TextButton label={p.idLeadu} variant="brand" size="sm" tailIcon={ArrowUpRight} onClick={() => navigate('/obchod/lead')} />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <span style={META_TEXT}>Pobočka</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t-textPrimary)' }}>{p.pobocka}</span>
-                  </div>
-                </div>
-              </div>
 
               {/* Interní poznámka */}
               {poznamka.trim() && (
@@ -805,6 +926,34 @@ export default function PoptavkaDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* Souhrn — propojené záznamy jako rekapitulace, oddělená karta pod akcemi */}
+            <div style={{ ...CARD, padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={WIDGET_TITLE}>Propojené záznamy</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <SummaryListItem
+                  label="Nabídka"
+                  length="short"
+                  align="right"
+                  value={{ kind: 'action', label: String(p.idNabidky), onClick: () => navigate(`/nabidky/${p.idNabidky}`) }}
+                />
+                <div style={{ borderTop: '1px dashed var(--t-borderPrimary)' }} />
+                <SummaryListItem
+                  label="Lead"
+                  length="short"
+                  align="right"
+                  value={{ kind: 'action', label: p.idLeadu, onClick: () => navigate('/obchod/lead') }}
+                />
+                <div style={{ borderTop: '1px dashed var(--t-borderPrimary)' }} />
+                <SummaryListItem
+                  label="Pobočka"
+                  length="short"
+                  align="right"
+                  value={{ kind: 'text', text: p.pobocka }}
+                />
+              </div>
+            </div>
+            </div>
           </div>
         </div>
       </div>
@@ -813,6 +962,20 @@ export default function PoptavkaDetailPage() {
       {schuzkaOpen && <NovyProhlidkaModal onClose={() => setSchuzkaOpen(false)} />}
       {ukolOpen && <NovyUkolModal defaultResitel={p.makler} onClose={() => setUkolOpen(false)} />}
       {predatOpen && <ZmenitMaklereModal currentMakler={p.makler} onClose={() => setPredatOpen(false)} />}
+      {upravitOpen && (
+        <PoptavkaPanel
+          nabidka={nabidka}
+          initial={{
+            telefon: klientTelefon,
+            email: klientEmail,
+            jmeno: klientJmeno.split(' ')[0],
+            prijmeni: klientJmeno.split(' ').slice(1).join(' '),
+            pobocka: p.pobocka,
+            makler: p.makler,
+          }}
+          onClose={() => setUpravitOpen(false)}
+        />
+      )}
       {vysledekOpen && <ZapsatVysledekModal onClose={() => setVysledekOpen(false)} />}
       {poznamkaOpen && (
         <InterniPoznamkaModal

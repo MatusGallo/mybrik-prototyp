@@ -29,7 +29,7 @@ const cols = [
   { key: 'cenaOd', label: 'Cena od', width: 140, align: 'right' as const, format: (v: unknown) => fmtCena(v as number) },
   { key: 'cenaDo', label: 'Cena do', width: 140, align: 'right' as const, format: (v: unknown) => fmtCena(v as number) },
   { key: 'klientu', label: 'Klientů', width: 80 },
-  { key: 'prilezitosti', label: 'Příležitostí', width: 100 },
+  { key: 'prilezitosti', label: 'Poptávek', width: 100 },
   { key: 'spoluprace', label: 'Spolupráce', width: 100 },
   { key: 'datumVytvoreni', label: 'Vytvořeno', width: 110, render: renderDatum('datumVytvoreni') },
 ]

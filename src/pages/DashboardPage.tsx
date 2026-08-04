@@ -29,7 +29,7 @@ const performanceData = [
 const kpiCards = [
   { label: 'Nabídky', value: '198', icon: Home, delta: 12, link: '/nabidky' },
   { label: 'Klienti', value: '2 625', icon: Users, delta: 8, link: '/klienti' },
-  { label: 'Příležitosti', value: '1 186', icon: TrendingUp, delta: -3, link: '/obchod/poptavky' },
+  { label: 'Poptávky', value: '1 186', icon: TrendingUp, delta: -3, link: '/obchod/poptavky' },
   { label: 'Poptávky', value: '128', icon: MessageCircle, delta: 24, link: '/obchod/lead' },
 ]
 
@@ -326,10 +326,10 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* Aktivní příležitosti */}
+          {/* Aktivní poptávky */}
           <div style={WIDGET}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={WIDGET_HEADING}>Aktivní příležitosti</span>
+              <span style={WIDGET_HEADING}>Aktivní poptávky</span>
               <TextButton label="Zobrazit vše" variant="brand" tailIcon={ArrowRight} onClick={() => navigate('/obchod/poptavky')} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

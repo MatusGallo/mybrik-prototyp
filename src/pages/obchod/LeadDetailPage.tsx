@@ -9,7 +9,7 @@ import NovyKlientLeadPanel from '../../components/obchod/NovyKlientLeadPanel'
 
 const TABS = [
   { value: 'klienti',      label: 'Klienti' },
-  { value: 'prilezitosti', label: 'Příležitosti' },
+  { value: 'prilezitosti', label: 'Poptávky' },
   { value: 'pary',         label: 'Páry' },
 ]
 
@@ -163,7 +163,7 @@ export default function LeadDetailPage() {
                     { key: 'makler', label: 'Makléř', width: 200, render: r => <AvatarText name={String(r.makler)} /> },
                     { key: 'vytvoren', label: 'Vytvořen', width: 170 },
                     { key: 'posledniAktivita', label: 'Poslední aktivita', width: 170 },
-                    { key: 'prilezitosti', label: 'Příležitostí', width: 110, align: 'right' },
+                    { key: 'prilezitosti', label: 'Poptávek', width: 110, align: 'right' },
                     { key: 'platnostDo', label: 'Platnost do', width: 160 },
                     { key: 'stav', label: 'Stav', width: 130, render: r => <StavBadge stav={String(r.stav)} /> },
                   ]}
@@ -176,11 +176,11 @@ export default function LeadDetailPage() {
               </SectionCard>
             )}
 
-            {/* Příležitosti */}
+            {/* Poptávky */}
             {tab === 'prilezitosti' && (
               <SectionCard title={undefined}>
                 {prilezitostiZleadu.length === 0 ? (
-                  <div style={{ padding: 32, textAlign: 'center', color: 'var(--t-textSecondary)' }}>K tomuto leadu zatím nejsou žádné příležitosti.</div>
+                  <div style={{ padding: 32, textAlign: 'center', color: 'var(--t-textSecondary)' }}>K tomuto leadu zatím nejsou žádné poptávky.</div>
                 ) : (
                   <SimpleTable
                     cols={[
@@ -244,7 +244,7 @@ export default function LeadDetailPage() {
 
             <SideSection title="Propojené záznamy">
               <SidebarRow label="Klientů" value={lead.klientu} />
-              <SidebarRow label="Příležitostí" value={String(lead.prilezitosti)} />
+              <SidebarRow label="Poptávek" value={String(lead.prilezitosti)} />
               <SidebarRow label="Spolupráce" value={lead.spoluprace} />
             </SideSection>
           </div>

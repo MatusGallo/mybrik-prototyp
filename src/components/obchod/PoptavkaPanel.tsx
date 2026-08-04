@@ -132,21 +132,37 @@ function PropertyRow({ row, idx, onSelect, isLast, showAction }: {
 
 // ── Panel ──────────────────────────────────────────────────────────────────────
 
-interface Props {
-  onClose: () => void
+/** Výchozí hodnoty pro úpravu existující poptávky. */
+export interface PoptavkaInitial {
+  telefon?: string
+  email?: string
+  jmeno?: string
+  prijmeni?: string
+  pobocka?: string
+  makler?: string
 }
 
-export default function PoptavkaPanel({ onClose }: Props) {
+interface Props {
+  onClose: () => void
+  /** Předvybraná nemovitost - poptávka zakládaná z detailu nabídky. */
+  nabidka?: Nabidka
+  /** S výchozími hodnotami panel poptávku upravuje, bez nich zakládá novou. */
+  initial?: PoptavkaInitial
+}
+
+export default function PoptavkaPanel({ onClose, nabidka, initial }: Props) {
+  const jeUprava = !!initial
+
   const [showDiscard, setShowDiscard] = useState(false)
   const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState<Nabidka | null>(null)
+  const [selected, setSelected] = useState<Nabidka | null>(nabidka ?? null)
   const [isChanging, setIsChanging] = useState(false)
   const [klientModalOpen, setKlientModalOpen] = useState(false)
 
-  const [telefon, setTelefon] = useState('+420')
-  const [email, setEmail] = useState('')
-  const [jmeno, setJmeno] = useState('')
-  const [prijmeni, setPrijmeni] = useState('')
+  const [telefon, setTelefon] = useState(initial?.telefon || '+420')
+  const [email, setEmail] = useState(initial?.email ?? '')
+  const [jmeno, setJmeno] = useState(initial?.jmeno ?? '')
+  const [prijmeni, setPrijmeni] = useState(initial?.prijmeni ?? '')
   const [nazevSpolecnosti, setNazevSpolecnosti] = useState('')
   const [icSpolecnosti, setIcSpolecnosti] = useState('')
   const [pozice, setPozice] = useState('')
@@ -154,8 +170,14 @@ export default function PoptavkaPanel({ onClose }: Props) {
   const [zdroj, setZdroj] = useState('')
   const [typKomunikace, setTypKomunikace] = useState('Telefon')
   const [poznamka, setPoznamka] = useState('')
-  const [pobocka, setPobocka] = useState(POBOCKY_OPT[0]?.value ?? '')
-  const [makler, setMakler] = useState(MAKLERI_OPT[0]?.value ?? '')
+  // Pobočku a makléře předvyplníme jen tehdy, když hodnota ze záznamu existuje
+  // v nabídce možností - jinak by Select zůstal prázdný.
+  const [pobocka, setPobocka] = useState(
+    POBOCKY_OPT.some(o => o.value === initial?.pobocka) ? initial!.pobocka! : POBOCKY_OPT[0]?.value ?? ''
+  )
+  const [makler, setMakler] = useState(
+    MAKLERI_OPT.some(o => o.value === initial?.makler) ? initial!.makler! : MAKLERI_OPT[0]?.value ?? ''
+  )
 
   const step1Done = selected !== null
 
@@ -199,12 +221,17 @@ export default function PoptavkaPanel({ onClose }: Props) {
           footer={{
             actions: [
               { label: 'Zrušit', variant: 'outlined', onClick: handleClose },
-              { label: 'Vytvořit poptávku', variant: 'primary', disabled: !step1Done, onClick: onClose },
+              {
+                label: jeUprava ? 'Uložit změny' : 'Vytvořit poptávku',
+                variant: 'primary', disabled: !step1Done, onClick: onClose,
+              },
             ],
           }}
         >
           <div style={{ position: 'sticky', top: 0, zIndex: 1, padding: 24, background: 'var(--t-bgSecondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-            <span style={{ fontSize: 24, fontWeight: 600, lineHeight: '32px', color: 'var(--t-textPrimary)', fontFamily: 'Inter' }}>Vytvořit poptávku</span>
+            <span style={{ fontSize: 24, fontWeight: 600, lineHeight: '32px', color: 'var(--t-textPrimary)', fontFamily: 'Inter' }}>
+              {jeUprava ? 'Upravit poptávku' : 'Vytvořit poptávku'}
+            </span>
             <IconButton icon={X} variant="ghost" size="md" onClick={handleClose} />
           </div>
           <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>

@@ -31,6 +31,10 @@ import AutomatickeStatistikyModal, {
 import EmptyState from '../../components/shared/EmptyState'
 import NovaNabidkaForm from '../../components/nabidky/NovaNabidkaForm'
 import { nabidkaToFormData } from '../../components/nabidky/nabidkaToFormData'
+import PoptavkyNabidky, {
+  type PoptavkySubTab, NABIDKA_PARY, NABIDKA_POPTAVKY, POPTAVKA_POSLEDNI,
+} from '../../components/nabidky/PoptavkyNabidky'
+import PoptavkaPanel from '../../components/obchod/PoptavkaPanel'
 
 interface OstatniTokRow {
   id: number
@@ -474,7 +478,7 @@ function QuickActionRow({ icon: Icon, label, onClick }: { icon: LucideIcon; labe
       style={{
         width: '100%',
         display: 'flex', alignItems: 'center', gap: 12,
-        padding: '8px 10px',
+        padding: '6px 8px',
         background: hovered ? 'var(--t-bgHover)' : 'transparent',
         border: 'none',
         borderRadius: 8,
@@ -484,15 +488,11 @@ function QuickActionRow({ icon: Icon, label, onClick }: { icon: LucideIcon; labe
       }}
     >
       <div style={{
-        width: 34, height: 34, borderRadius: 999, flexShrink: 0,
-        background: hovered ? 'var(--t-textMyDOCKPrimary)' : 'var(--t-bgMyDOCKTertiary)',
+        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+        background: 'var(--t-bgMyDOCKTertiary)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'background 150ms ease',
       }}>
-        <Icon size={17} style={{
-          color: hovered ? '#fff' : 'var(--t-textMyDOCKPrimary)',
-          transition: 'color 150ms ease',
-        }} />
+        <Icon size={16} style={{ color: 'var(--t-textMyDOCKPrimary)' }} />
       </div>
       <span style={{
         flex: 1, minWidth: 0,
@@ -811,16 +811,26 @@ function WidgetNaklady({ onNaklad }: { onNaklad: () => void }) {
   )
 }
 
-function WidgetPrilezitosti({ onTab }: { onTab: (t: string) => void }) {
+// Poptávky navázané na nabídku — souhrn ze stejných dat jako záložka „Poptávky“.
+function WidgetPoptavky({ onClick }: { onClick: () => void }) {
+  const aktivni = NABIDKA_POPTAVKY.filter(p => p.stavPoptavky === 'Aktivní').length
+  const posledni = POPTAVKA_POSLEDNI
+  const posledniKlient = posledni ? posledni.klient.split('\n')[0] : ''
   return (
-    <DashboardWidget icon={Users} title="Příležitosti" onClick={() => onTab('exporty')}>
+    <DashboardWidget icon={Users} title="Poptávky" onClick={onClick}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: 'var(--t-textPrimary)' }}>3</span>
-        <span style={{ fontSize: 13, color: 'var(--t-textSecondary)' }}>aktivní</span>
+        <span style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: 'var(--t-textPrimary)' }}>{aktivni}</span>
+        <span style={{ fontSize: 13, color: 'var(--t-textSecondary)' }}>
+          aktivní {NABIDKA_POPTAVKY.length > aktivni ? `z ${NABIDKA_POPTAVKY.length}` : ''}
+        </span>
       </div>
-      <div style={{ marginTop: 4, fontSize: 13, color: 'var(--t-textSecondary)' }}>
-        Poslední: <span style={{ color: 'var(--t-textPrimary)', fontWeight: 500 }}>Jan Novák — 22.10.2026</span>
-      </div>
+      {posledni && (
+        <div style={{ marginTop: 4, fontSize: 13, color: 'var(--t-textSecondary)' }}>
+          Poslední: <span style={{ color: 'var(--t-textPrimary)', fontWeight: 500 }}>
+            {posledniKlient} - {posledni.datumPosledniZmeny.split(' ')[0]}
+          </span>
+        </div>
+      )}
     </DashboardWidget>
   )
 }
@@ -866,11 +876,12 @@ function WidgetAgenda({ onTab }: { onTab: (t: string) => void }) {
 
 function WidgetPary({ onClick }: { onClick: () => void }) {
   // Rozložení párů podle stavu: akční „Nezpracováno" červeně, odeslané zeleně,
-  // zamítnuté neutrálně šedě.
+  // zamítnuté neutrálně šedě. Počty jdou ze stejných dat jako záložka „Poptávky".
+  const pocet = (stav: string) => NABIDKA_PARY.filter(p => p.stav === stav).length
   const segments: Segment[] = [
-    { label: 'Nezpracováno', count: 2, color: '#DC2626' },
-    { label: 'Odesláno',     count: 5, color: '#16A34A' },
-    { label: 'Zamítnuto',    count: 1, color: 'var(--t-textSecondary)' },
+    { label: 'Nezpracováno', count: pocet('Nezpracováno'), color: '#DC2626' },
+    { label: 'Odesláno',     count: pocet('Odesláno'),     color: '#16A34A' },
+    { label: 'Zamítnuto',    count: pocet('Zamítnuto'),    color: 'var(--t-textSecondary)' },
   ]
   return (
     <DashboardWidget icon={TrendingUp} title="Nejnovější páry" onClick={onClick}>
@@ -916,17 +927,17 @@ function QuickActionsColumn({ onEdit, onHypo, onNaklad, onDownloadPhotos, onPozn
       position: 'sticky', top, alignSelf: 'flex-start',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <span style={{ fontSize: 18, fontWeight: 600, lineHeight: '26px', color: 'var(--t-textPrimary)' }}>
+        <span style={{ ...typography.subheadline18Semibold, color: 'var(--t-textPrimary)' }}>
           Akce na nabídce
         </span>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {[
           {
             title: 'Správa',
             actions: [
               { icon: RefreshCw, label: 'Změnit stav',    onClick: () => {} },
-              { icon: Pencil,    label: 'Editace nabídky', onClick: onEdit },
+              { icon: Pencil,    label: 'Upravit nabídku', onClick: onEdit },
               { icon: Coins,     label: 'Zadat náklad',    onClick: onNaklad },
               ...(showPoznamka ? [{ icon: StickyNote, label: 'Přidat interní poznámku', onClick: onPoznamka }] : []),
             ],
@@ -949,9 +960,9 @@ function QuickActionsColumn({ onEdit, onHypo, onNaklad, onDownloadPhotos, onPozn
         ].map(group => (
           <div key={group.title} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{
-              fontSize: 11, fontWeight: 600, lineHeight: '12px', letterSpacing: '0.11px',
-              textTransform: 'uppercase', color: 'var(--t-textTertiary)',
-              padding: '0 2px', marginBottom: 2,
+              fontSize: 16, fontWeight: 700, lineHeight: '24px',
+              color: 'var(--t-textPrimary)',
+              padding: '0 2px', marginBottom: 4,
             }}>
               {group.title}
             </span>
@@ -1131,6 +1142,7 @@ function KlientRow({
 
 const TABS = [
   { value: 'zakladni', label: 'Základní informace' },
+  { value: 'poptavky', label: 'Poptávky' },
   { value: 'exporty', label: 'Exporty' },
   { value: 'finance', label: 'Finance' },
   { value: 'ostatni', label: 'Ostatní finanční toky' },
@@ -1145,6 +1157,8 @@ export default function NabidkaDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [tab, setTab] = useState('zakladni')
+  const [poptavkySubTab, setPoptavkySubTab] = useState<PoptavkySubTab>('poptavky')
+  const [novaPoptavkaOpen, setNovaPoptavkaOpen] = useState(false)
   const [exportPortal, setExportPortal] = useState<string | null>(null)
   const [exportServers, setExportServers] = useState<ExportServer[]>(EXPORT_SERVERS_INITIAL)
   const [statsFrom, setStatsFrom] = useState(STATS_DEFAULT_FROM)
@@ -1200,6 +1214,12 @@ export default function NabidkaDetailPage() {
       setScrollHistoryPending(false)
     }
   }, [scrollHistoryPending, tab])
+
+  // Kotva ze souhrnných widgetů na záložku „Poptávky“ - s předvybraným pohledem.
+  function goToPoptavky(sub: PoptavkySubTab) {
+    setPoptavkySubTab(sub)
+    setTab('poptavky')
+  }
 
   // Kotva na chybu v exportu: přepni na Exporty, vyfiltruj jen chyby a odscrolluj k logu.
   function goToExportError() {
@@ -1508,9 +1528,9 @@ export default function NabidkaDetailPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <WidgetExporty onTab={setTab} onError={goToExportError} />
 
-                  <WidgetPrilezitosti onTab={setTab} />
+                  <WidgetPoptavky onClick={() => goToPoptavky('poptavky')} />
 
-                  <WidgetPary onClick={() => navigate('/obchod/lead')} />
+                  <WidgetPary onClick={() => goToPoptavky('pary')} />
 
                   <WidgetPodpisy onTab={setTab} />
 
@@ -1550,6 +1570,15 @@ export default function NabidkaDetailPage() {
           </div>
           )}
 
+
+          {/* ── Poptávky ───────────────────────────────────────────────── */}
+          {tab === 'poptavky' && (
+            <PoptavkyNabidky
+              subTab={poptavkySubTab}
+              onSubTabChange={setPoptavkySubTab}
+              onNovaPoptavka={() => setNovaPoptavkaOpen(true)}
+            />
+          )}
 
           {/* ── Exporty ────────────────────────────────────────────────── */}
           {tab === 'exporty' && (
@@ -2375,6 +2404,9 @@ export default function NabidkaDetailPage() {
 
       {/* Nahrát dokumenty modal */}
       {nahratOpen && <NahratDokumentyModal onClose={() => setNahratOpen(false)} defaultKategorie={dokSelected ?? undefined} />}
+
+      {/* Vytvořit poptávku - nemovitost je předvybraná z detailu nabídky */}
+      {novaPoptavkaOpen && <PoptavkaPanel nabidka={n} onClose={() => setNovaPoptavkaOpen(false)} />}
 
       {/* Smazat tok confirm dialog */}
       {tokDelete && createPortal(
