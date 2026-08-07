@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { IconButton, Button, Input, TextArea } from '@matusgallo/mysabds'
 import { klientiData } from '../../data/mockOstatni'
+import TelefonInput from './TelefonInput'
+import { VYCHOZI_PREDVOLBA, maCisloTelefonu } from '../../data/telefonPredvolby'
 
 const klienti = klientiData.filter(k => k.jmeno || k.prijmeni)
 
@@ -13,7 +15,7 @@ interface Props {
 
 export default function OdeslatSmsDialog({ onClose, onSend }: Props) {
   const [prijemceQuery, setPrijemceQuery] = useState('')
-  const [telefon, setTelefon] = useState('')
+  const [telefon, setTelefon] = useState(VYCHOZI_PREDVOLBA)
   const [zprava, setZprava] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [errors, setErrors] = useState({ telefon: false, zprava: false })
@@ -27,12 +29,12 @@ export default function OdeslatSmsDialog({ onClose, onSend }: Props) {
 
   function selectKlient(k: typeof klienti[0]) {
     setPrijemceQuery(`${k.jmeno} ${k.prijmeni}`.trim())
-    setTelefon(k.telefon ?? '')
+    setTelefon(k.telefon ?? VYCHOZI_PREDVOLBA)
     setDropdownOpen(false)
   }
 
   function handleSend() {
-    const err = { telefon: !telefon.trim(), zprava: !zprava.trim() }
+    const err = { telefon: !maCisloTelefonu(telefon), zprava: !zprava.trim() }
     setErrors(err)
     if (err.telefon || err.zprava) return
     onSend?.(telefon, zprava)
@@ -129,14 +131,12 @@ export default function OdeslatSmsDialog({ onClose, onSend }: Props) {
           </div>
 
           {/* Telefonní číslo — auto-fill, povinné */}
-          <Input
+          <TelefonInput
             label="Telefonní číslo"
-            placeholder="+420"
             value={telefon}
             onChange={v => { setTelefon(v); setErrors(e => ({ ...e, telefon: false })) }}
-            error={errors.telefon ? 'Telefonní číslo je povinné' : undefined}
+            error={errors.telefon ? 'Zadejte telefonní číslo.' : undefined}
             required
-            width="100%"
           />
 
           {/* Zpráva — povinná */}

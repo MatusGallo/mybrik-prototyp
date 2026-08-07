@@ -7,7 +7,9 @@ import {
   typography,
 } from '@matusgallo/mysabds'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
+import TelefonInput from '../components/shared/TelefonInput'
 import { pobockyData, roleData, uzivateleData } from '../data/mockOstatni'
+import { chybaTelefonu } from '../data/telefonPredvolby'
 import {
   EMPTY_SUBJEKT, EMPTY_UCET,
   emptyUzivatelForm, uzivatelFormFromRow,
@@ -61,7 +63,6 @@ const TYP_OSOBY_OPTIONS = [
   { value: 'po', label: 'Právnická osoba', icon: Building2 },
 ]
 
-const PREDVOLBY = ['+420', '+421', '+43', '+48', '+49']
 
 const NOTIFIKACE_ZDROJE = [
   { key: 'sreality', label: 'Sreality.cz', popis: 'Nové poptávky z portálu Sreality.cz' },
@@ -701,8 +702,8 @@ export default function UzivatelFormPage({ mode }: { mode: 'create' | 'edit' }) 
   if (!prijmeni.trim()) errors.prijmeni = 'Zadejte příjmení.'
   if (!osobniEmail.trim()) errors.osobniEmail = 'Zadejte osobní e-mail.'
   else if (!jeEmail(osobniEmail)) errors.osobniEmail = 'Zadejte e-mail ve formátu jmeno@email.cz.'
-  if (!telefon.trim()) errors.telefon = 'Zadejte telefonní číslo.'
-  else if (digits(telefon).length !== 9) errors.telefon = 'Telefonní číslo má 9 číslic.'
+  const chybaTel = chybaTelefonu(predvolba, telefon)
+  if (chybaTel) errors.telefon = chybaTel
   if (!datumNarozeni) errors.datumNarozeni = 'Vyberte datum narození.'
   if (!rodneCislo.trim()) errors.rodneCislo = 'Zadejte rodné číslo.'
   else if (digits(rodneCislo).length < 9) errors.rodneCislo = 'Rodné číslo má 9 nebo 10 číslic.'
@@ -1112,16 +1113,11 @@ export default function UzivatelFormPage({ mode }: { mode: 'create' | 'edit' }) 
                     label="Osobní e-mail" required type="email" placeholder="jmeno@email.cz"
                     value={osobniEmail} onChange={setOsobniEmail} error={err('osobniEmail')} width="100%"
                   />
-                  <Input
-                    label="Telefon" required placeholder="777 123 456"
+                  <TelefonInput
+                    required
                     value={telefon} onChange={setTelefon}
-                    leadSelect={{
-                      value: predvolba,
-                      options: PREDVOLBY,
-                      onChange: setPredvolba,
-                      ariaLabel: 'Předvolba státu',
-                    }}
-                    error={err('telefon')} width="100%"
+                    predvolba={predvolba} onPredvolbaChange={setPredvolba}
+                    error={err('telefon')}
                   />
                 </Cols>
                 <Cols cols="minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)">

@@ -12,10 +12,10 @@ import NabidkaNemovitostiPage from './pages/obchod/NabidkaNemovitostiPage'
 import NabidkaNemovitostiDetailPage from './pages/obchod/NabidkaNemovitostiDetailPage'
 import ZajemOVykupPage from './pages/obchod/ZajemOVykupPage'
 import LeadHypoPage from './pages/obchod/LeadHypoPage'
-import LeadPage from './pages/obchod/LeadPage'
-import LeadDetailPage from './pages/obchod/LeadDetailPage'
 import PoptavkyPage from './pages/obchod/PoptavkyPage'
 import PoptavkaDetailPage from './pages/obchod/PoptavkaDetailPage'
+import PrilezitostiPage from './pages/obchod/PrilezitostiPage'
+import PrilezitostDetailPage from './pages/obchod/PrilezitostDetailPage'
 import KlientiPage from './pages/KlientiPage'
 import DokumentyPage from './pages/DokumentyPage'
 import PobockyPage from './pages/PobockyPage'
@@ -58,10 +58,10 @@ export default function App() {
           <Route path="/obchod/nabidka-nemovitosti/:id" element={<NabidkaNemovitostiDetailPage />} />
           <Route path="/obchod/zajem-o-vykup" element={<ZajemOVykupPage />} />
           <Route path="/obchod/lead-hypo" element={<LeadHypoPage />} />
-          <Route path="/obchod/lead" element={<LeadPage />} />
-          <Route path="/obchod/lead/:id" element={<LeadDetailPage />} />
           <Route path="/obchod/poptavky" element={<PoptavkyPage />} />
           <Route path="/obchod/poptavky/:id" element={<PoptavkaDetailPage />} />
+          <Route path="/obchod/prilezitosti" element={<PrilezitostiPage />} />
+          <Route path="/obchod/prilezitosti/:id" element={<PrilezitostDetailPage />} />
 
           <Route path="/klienti" element={<KlientiPage />} />
           <Route path="/dokumenty" element={<DokumentyPage />} />

@@ -226,13 +226,10 @@ export default function VyuctovaniPage() {
         <DataTable cols={cols} rows={rows} actions={['view', 'edit', 'delete']} />
       </div>
 
-      {/* Pagination — only when there are records */}
-      {rows.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+      {/* Pagination — až když se záznamy nevejdou na jednu stránku */}
+      {totalPages > 1 && (
+        <div style={{ marginTop: 16 }}>
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-          <span style={{ fontSize: 13, color: 'var(--t-textSecondary)' }}>
-            Zobrazuji {(page - 1) * 10 + 1} do {Math.min(page * 10, rows.length)} celkem z {rows.length} záznamů
-          </span>
         </div>
       )}
     </div>

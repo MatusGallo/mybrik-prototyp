@@ -3,9 +3,11 @@ import { createPortal } from 'react-dom'
 import { Check, AlertTriangle, Search as SearchIcon, Home, Building, MapPin, Building2, Warehouse, Upload, Trash2, Plus, Calculator, X, type LucideIcon } from 'lucide-react'
 import { Button, TextButton, Input, Select, TextArea, CheckboxItem, Tag, IconButton } from '@matusgallo/mysabds'
 import SelectSearch from '../shared/SelectSearch'
+import TelefonInput from '../shared/TelefonInput'
 import KlientSearchModal from '../klienti/KlientSearchModal'
 import type { KlientData } from '../klienti/KlientPanel'
 import { uzivateleData } from '../../data/mockOstatni'
+import { VYCHOZI_PREDVOLBA, maCisloTelefonu } from '../../data/telefonPredvolby'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -182,7 +184,7 @@ interface DalsiVlastnik {
 }
 
 const EMPTY_VLASTNIK: DalsiVlastnik = {
-  telefon: '+420', email: '', jmeno: '', prijmeni: '',
+  telefon: VYCHOZI_PREDVOLBA, email: '', jmeno: '', prijmeni: '',
   titulPred: '', titulZa: '', ulice: '', cp: '', co: '', mesto: '', psc: '',
 }
 
@@ -365,7 +367,7 @@ const INIT: FormData = {
   vyhlaska: '148-2007',
   ukEnNarocnosti: '',
   nizkoenergeticky: false,
-  telefon: '+420',
+  telefon: VYCHOZI_PREDVOLBA,
   email: '',
   jmeno: '',
   prijmeni: '',
@@ -681,7 +683,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
       }
       case 2: {
         const errs: string[] = []
-        if (f.telefon.trim().length <= 4) errs.push('telefon')
+        if (!maCisloTelefonu(f.telefon)) errs.push('telefon')
         if (!f.jmeno.trim()) errs.push('jmeno')
         if (!f.prijmeni.trim()) errs.push('prijmeni')
         return errs
@@ -784,7 +786,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
 
   function summary3() {
     const name = [form.jmeno, form.prijmeni].filter(Boolean).join(' ')
-    const tel = form.telefon !== '+420' ? form.telefon : ''
+    const tel = maCisloTelefonu(form.telefon) ? form.telefon : ''
     return [name, tel].filter(Boolean)
   }
 
@@ -1200,7 +1202,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={G2}>
-            <Input label="Telefon *" value={form.telefon} onChange={v => setField('telefon', v)} placeholder="+420 123 456 789" width="100%" error={has2('telefon') ? 'Tento údaj je povinný.' : undefined} />
+            <TelefonInput label="Telefon *" value={form.telefon} onChange={v => setField('telefon', v)} error={has2('telefon') ? 'Tento údaj je povinný.' : undefined} />
             <Input label="E-mail" value={form.email} onChange={v => setField('email', v)} placeholder="jmeno@email.cz" width="100%" />
           </div>
 
@@ -1245,7 +1247,7 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={G2}>
-              <Input label="Telefon *" value={v.telefon} onChange={val => updateVlastnik(idx, 'telefon', val)} placeholder="+420 123 456 789" width="100%" />
+              <TelefonInput label="Telefon *" value={v.telefon} onChange={val => updateVlastnik(idx, 'telefon', val)} />
               <Input label="E-mail" value={v.email} onChange={val => updateVlastnik(idx, 'email', val)} placeholder="jmeno@email.cz" width="100%" />
             </div>
             <FieldGroup title="Základní údaje">

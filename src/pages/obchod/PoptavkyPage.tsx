@@ -1,65 +1,37 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Phone, Mail } from 'lucide-react'
-import { Avatar, Tag } from '@matusgallo/mysabds'
+import { Tag } from '@matusgallo/mysabds'
 import ListPageShell from '../../components/shared/ListPageShell'
 import DataTable from '../../components/shared/DataTable'
 import PageFilterBar from '../../components/shared/PageFilterBar'
-import PoptavkaPanel from '../../components/obchod/PoptavkaPanel'
-import { renderDatum } from '../../utils/tableRenders'
-import { renderAvatarName, initials, avatarColor } from '../../utils/renderAvatarName'
+import NovaPoptavkaPanel from '../../components/obchod/NovaPoptavkaPanel'
 import { poptavkyData } from '../../data/mockObchod'
+import { renderDatum } from '../../utils/tableRenders'
 
 const PAGE_SIZE = 10
-
-function stavPoptavkyVariant(stav: string) {
-  if (stav === 'Aktivní') return 'success' as const
-  if (stav === 'Prohlídka') return 'info' as const
-  return 'neutral' as const
-}
+const fmtCena = (v: number) => new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(v)
 
 const cols = [
-  { key: 'id', label: 'ID', width: 60 },
-  { key: 'idLeadu', label: 'ID leadu', width: 80 },
-  { key: 'idNabidky', label: 'ID nabídky', width: 90 },
-  { key: 'nazevNabidky', label: 'Název nabídky', width: 240, flex: true },
+  { key: 'id', label: 'ID', width: 50 },
+  { key: 'typNemovitosti', label: 'Typ nemovitosti', width: 140, flex: true, render: (r: Record<string, unknown>) => {
+    const v = String(r.typNemovitosti ?? '')
+    if (!v) return null
+    return <Tag label={v} variant="outline" size="sm" />
+  }},
+  { key: 'typPoptavky', label: 'Typ poptávky', width: 120, render: (r: Record<string, unknown>) => {
+    const v = String(r.typPoptavky ?? '')
+    if (!v) return null
+    return <Tag label={v} variant="outline" size="sm" />
+  }},
+  { key: 'podtyp', label: 'Podtyp', width: 90 },
+  { key: 'plochaOd', label: 'Užitná plocha od', width: 130, align: 'right' as const },
+  { key: 'plochaDo', label: 'Užitná plocha do', width: 130, align: 'right' as const },
+  { key: 'cenaOd', label: 'Cena od', width: 140, align: 'right' as const, format: (v: unknown) => fmtCena(v as number) },
+  { key: 'cenaDo', label: 'Cena do', width: 140, align: 'right' as const, format: (v: unknown) => fmtCena(v as number) },
+  { key: 'klientu', label: 'Klientů', width: 80 },
+  { key: 'prilezitosti', label: 'Příležitostí', width: 100 },
+  { key: 'spoluprace', label: 'Spolupráce', width: 100 },
   { key: 'datumVytvoreni', label: 'Vytvořeno', width: 110, render: renderDatum('datumVytvoreni') },
-  { key: 'datumPosledniZmeny', label: 'Upraveno', width: 110, render: renderDatum('datumPosledniZmeny') },
-  { key: 'makler', label: 'Makléř', width: 220, render: renderAvatarName('makler') },
-  { key: 'pobocka', label: 'Pobočka', width: 160 },
-  { key: 'franchiza', label: 'Franchíza', width: 130 },
-  { key: 'klient', label: 'Klient', width: 260, render: (r: Record<string, unknown>) => {
-    const [name, email, phone] = String(r.klient ?? '').split('\n')
-    if (!name) return <span style={{ color: 'var(--t-textPrimary)', fontSize: 14 }}>–</span>
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden', width: '100%' }}>
-        <Avatar size="sm" initials={initials(name)} color={avatarColor(name)} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, overflow: 'hidden', minWidth: 0 }}>
-          <span style={{ fontSize: 14, color: 'var(--t-textPrimary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-          {(phone || email) && (
-            <span style={{ fontSize: 12, color: 'var(--t-textSecondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {[phone, email].filter(Boolean).join(' · ')}
-            </span>
-          )}
-        </div>
-      </div>
-    )
-  }},
-  { key: 'typNabidky', label: 'Typ nabídky', width: 100 },
-  { key: 'typKontaktu', label: 'Typ kontaktu', width: 120, render: (r: Record<string, unknown>) => {
-    const typ = String(r.typKontaktu ?? '')
-    const Icon = typ === 'Telefon' ? Phone : typ === 'E-mail' ? Mail : null
-    if (!typ) return null
-    return <Tag label={typ} variant="neutral" size="sm" lead={Icon ? 'icon' : 'none'} icon={Icon ?? undefined} />
-  }},
-  { key: 'ucelKontaktu', label: 'Účel kontaktu', width: 150 },
-  { key: 'stavPoptavky', label: 'Stav poptávky', width: 148, render: (r: Record<string, unknown>) => {
-    const stav = String(r.stavPoptavky ?? '')
-    if (!stav) return null
-    return <Tag label={stav} variant={stavPoptavkyVariant(stav)} size="sm" />
-  }},
-  { key: 'stavProhlidky', label: 'Stav prohlídky', width: 150 },
-  { key: 'zdroj', label: 'Zdroj', width: 160 },
 ]
 
 export default function PoptavkyPage() {
@@ -82,9 +54,9 @@ export default function PoptavkyPage() {
           />
         }
         page={page}
-        totalPages={Math.ceil(1186 / PAGE_SIZE)}
+        totalPages={Math.ceil(619 / PAGE_SIZE)}
         onPageChange={setPage}
-        totalCount={1186}
+        totalCount={619}
       >
         <DataTable
           cols={cols}
@@ -94,7 +66,7 @@ export default function PoptavkyPage() {
         />
       </ListPageShell>
 
-      {panelOpen && <PoptavkaPanel onClose={() => setPanelOpen(false)} />}
+      {panelOpen && <NovaPoptavkaPanel onClose={() => setPanelOpen(false)} />}
     </>
   )
 }

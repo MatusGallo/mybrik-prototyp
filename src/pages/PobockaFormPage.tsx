@@ -6,8 +6,10 @@ import {
   Tag, Toggle, ToggleItem, TooltipIcon, iconSize, typography,
 } from '@matusgallo/mysabds'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
+import TelefonInput from '../components/shared/TelefonInput'
 import { BarvaPicker, BarvaVzorek, normalizovatHex } from '../components/shared/BarvaPicker'
 import { hspData, pobockyData } from '../data/mockOstatni'
+import { chybaTelefonu } from '../data/telefonPredvolby'
 import {
   MUSTKY, VYCHOZI_KRYTI,
   emptyPobockaForm, pobockaFormFromRow,
@@ -506,6 +508,7 @@ export default function PobockaFormPage({ mode }: { mode: 'create' | 'edit' }) {
 
   // Základní údaje
   const [nazev, setNazev] = useState(init.nazev)
+  const [predvolba, setPredvolba] = useState(init.predvolba)
   const [telefon, setTelefon] = useState(init.telefon)
   const [email, setEmail] = useState(init.email)
   const [hsp, setHsp] = useState(init.hsp)
@@ -594,11 +597,10 @@ export default function PobockaFormPage({ mode }: { mode: 'create' | 'edit' }) {
   // ── Validace ────────────────────────────────────────────────────────────────
 
   const errors: Record<string, string> = {}
-  const digits = (v: string) => v.replace(/\D/g, '')
 
   if (!nazev.trim()) errors.nazev = 'Zadejte název pobočky.'
-  if (!telefon.trim()) errors.telefon = 'Zadejte telefonní číslo.'
-  else if (digits(telefon).length !== 9) errors.telefon = 'Telefonní číslo má 9 číslic.'
+  const chybaTel = chybaTelefonu(predvolba, telefon)
+  if (chybaTel) errors.telefon = chybaTel
   if (!email.trim()) errors.email = 'Zadejte e-mail.'
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) errors.email = 'Zadejte e-mail ve formátu pobocka@firma.cz.'
   if (!hsp) errors.hsp = 'Vyberte HSP.'
@@ -627,6 +629,7 @@ export default function PobockaFormPage({ mode }: { mode: 'create' | 'edit' }) {
   // Rozpracovaný formulář = cokoli jiného, než s čím se stránka otevřela.
   const dirty =
     nazev !== init.nazev ||
+    predvolba !== init.predvolba ||
     telefon !== init.telefon ||
     email !== init.email ||
     hsp !== init.hsp ||
@@ -785,11 +788,11 @@ export default function PobockaFormPage({ mode }: { mode: 'create' | 'edit' }) {
                 width="100%"
               />
               <Cols cols="1fr 1fr">
-                <Input
-                  label="Telefon" required leadBadge="+420"
-                  placeholder="777 123 456"
+                <TelefonInput
+                  required
                   value={telefon} onChange={setTelefon}
-                  error={err('telefon')} width="100%"
+                  predvolba={predvolba} onPredvolbaChange={setPredvolba}
+                  error={err('telefon')}
                 />
                 <Input
                   label="E-mail" required type="email"

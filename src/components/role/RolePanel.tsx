@@ -48,7 +48,7 @@ export const PERM_MODULES: PermModule[] = [
           { key: 'nb_ost_vyt', label: 'Vytvořit' }, { key: 'nb_ost_edi', label: 'Editovat' },
           { key: 'nb_ost_dup', label: 'Duplikace' }, { key: 'nb_ost_sma', label: 'Smazat' },
           { key: 'nb_ost_exp', label: 'Exportovat' }, { key: 'nb_ost_his', label: 'Historie' },
-          { key: 'nb_ost_fil', label: 'Filtrování' }, { key: 'nb_ost_lea', label: 'Lead' },
+          { key: 'nb_ost_fil', label: 'Filtrování' }, { key: 'nb_ost_lea', label: 'Poptávky' },
           { key: 'nb_ost_cem', label: 'Cemap' },
         ],
       },
@@ -153,7 +153,7 @@ export const PERM_MODULES: PermModule[] = [
     groups: [{ items: [{ key: 'nk_glob', label: 'Možnost nastavovat globálně náklady' }] }],
   },
   {
-    id: 'lead', title: 'Lead',
+    id: 'poptavky', title: 'Poptávky',
     groups: [
       { title: 'Zobrazení podle struktury', description: SD, items: si('ld_z') },
       { title: 'Ostatní', items: [{ key: 'ld_exp', label: 'Exportovat' }, { key: 'ld_fil', label: 'Filtrování' }] },
@@ -232,7 +232,7 @@ export const PERM_MODULES: PermModule[] = [
     ],
   },
   {
-    id: 'cc_lead', title: 'Callcentrum - Lead',
+    id: 'cc_lead', title: 'Callcentrum - Poptávky',
     groups: [
       { title: 'Zobrazení podle struktury', description: SD, items: si('cl_z') },
       {

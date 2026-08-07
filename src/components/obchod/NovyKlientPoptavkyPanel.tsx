@@ -5,6 +5,8 @@ import { Form, TextButton, Input, Select, TextArea, IconButton } from '@matusgal
 import SelectSearch from '../shared/SelectSearch'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import KlientSearchModal from '../klienti/KlientSearchModal'
+import TelefonInput from '../shared/TelefonInput'
+import { VYCHOZI_PREDVOLBA } from '../../data/telefonPredvolby'
 import { pobockyData, uzivateleData } from '../../data/mockOstatni'
 import type { KlientData } from '../klienti/KlientPanel'
 
@@ -58,11 +60,11 @@ interface Props {
   onClose: () => void
 }
 
-export default function NovyKlientLeadPanel({ onClose }: Props) {
+export default function NovyKlientPoptavkyPanel({ onClose }: Props) {
   const [showDiscard, setShowDiscard] = useState(false)
   const [klientModalOpen, setKlientModalOpen] = useState(false)
 
-  const [telefon, setTelefon] = useState('+420')
+  const [telefon, setTelefon] = useState(VYCHOZI_PREDVOLBA)
   const [email, setEmail] = useState('')
   const [jmeno, setJmeno] = useState('')
   const [prijmeni, setPrijmeni] = useState('')
@@ -124,7 +126,7 @@ export default function NovyKlientLeadPanel({ onClose }: Props) {
                 <TextButton label="Vyhledat klienta" variant="brand" leadIcon={SearchIcon} onClick={() => setKlientModalOpen(true)} />
               </div>
               <div style={G4}>
-                <Input label="Telefon" value={telefon} onChange={setTelefon} width="100%" />
+                <TelefonInput value={telefon} onChange={setTelefon} />
                 <Input label="E-mail" required value={email} onChange={setEmail} width="100%" />
                 <Input label="Jméno" required value={jmeno} onChange={setJmeno} width="100%" />
                 <Input label="Příjmení" required value={prijmeni} onChange={setPrijmeni} width="100%" />

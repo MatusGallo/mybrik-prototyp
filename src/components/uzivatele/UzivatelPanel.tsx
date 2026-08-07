@@ -5,6 +5,8 @@ import {
 } from '@matusgallo/mysabds'
 import { X } from 'lucide-react'
 import ConfirmDialog from '../shared/ConfirmDialog'
+import TelefonInput from '../shared/TelefonInput'
+import { VYCHOZI_PREDVOLBA } from '../../data/telefonPredvolby'
 
 export type UzivatelPanelMode = 'detail' | 'edit'
 
@@ -112,6 +114,7 @@ export default function UzivatelPanel({ mode, uzivatel, onClose, onEdit }: Props
   const [jmeno, setJmeno] = useState(uzivatel?.jmeno ?? '')
   const [prijmeni, setPrijmeni] = useState(uzivatel?.prijmeni ?? '')
   const [osobniEmail, setOsobniEmail] = useState(uzivatel?.osobniEmail ?? '')
+  const [telefon, setTelefon] = useState(uzivatel?.telefon ?? VYCHOZI_PREDVOLBA)
   const [firemnEmail, setFiremnEmail] = useState(uzivatel?.firemnEmail ?? '')
   const [stav, setStav] = useState(uzivatel?.stav ?? 'Aktivní')
   const [pripravnyKurz, setPripravnyKurz] = useState(uzivatel?.pripravnyKurz === 'Ano')
@@ -129,6 +132,7 @@ export default function UzivatelPanel({ mode, uzivatel, onClose, onEdit }: Props
     setJmeno(uzivatel?.jmeno ?? '')
     setPrijmeni(uzivatel?.prijmeni ?? '')
     setOsobniEmail(uzivatel?.osobniEmail ?? '')
+    setTelefon(uzivatel?.telefon ?? VYCHOZI_PREDVOLBA)
     setFiremnEmail(uzivatel?.firemnEmail ?? '')
     setStav(uzivatel?.stav ?? 'Aktivní')
     setPripravnyKurz(uzivatel?.pripravnyKurz === 'Ano')
@@ -229,7 +233,7 @@ export default function UzivatelPanel({ mode, uzivatel, onClose, onEdit }: Props
         </div>
         <div style={G2}>
           <Input label="Osobní e-mail" required value={osobniEmail} onChange={setOsobniEmail} width="100%" />
-          <Input label="Telefon" required placeholder="+420" width="100%" />
+          <TelefonInput required value={telefon} onChange={setTelefon} />
         </div>
         <div style={G3}>
           <Input label="Datum narození" required placeholder="DD/MM/RRRR" width="100%" />

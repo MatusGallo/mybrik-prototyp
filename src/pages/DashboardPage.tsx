@@ -7,7 +7,7 @@ import { Avatar, Tag, TextButton } from '@matusgallo/mysabds'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { poptavkyData } from '../data/mockObchod'
+import { prilezitostiData, stavPrilezitostiVariant } from '../data/mockObchod'
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
 
@@ -29,8 +29,8 @@ const performanceData = [
 const kpiCards = [
   { label: 'Nabídky', value: '198', icon: Home, delta: 12, link: '/nabidky' },
   { label: 'Klienti', value: '2 625', icon: Users, delta: 8, link: '/klienti' },
-  { label: 'Poptávky', value: '1 186', icon: TrendingUp, delta: -3, link: '/obchod/poptavky' },
-  { label: 'Poptávky', value: '128', icon: MessageCircle, delta: 24, link: '/obchod/lead' },
+  { label: 'Příležitosti', value: '1 186', icon: TrendingUp, delta: -3, link: '/obchod/prilezitosti' },
+  { label: 'Poptávky', value: '128', icon: MessageCircle, delta: 24, link: '/obchod/poptavky' },
 ]
 
 const SCHUZKY = [
@@ -214,7 +214,7 @@ function UkolRow({ u }: { u: typeof UKOLY[0] }) {
   )
 }
 
-function PrilezitostRow({ p, onClick }: { p: typeof poptavkyData[0]; onClick: () => void }) {
+function PrilezitostRow({ p, onClick }: { p: typeof prilezitostiData[0]; onClick: () => void }) {
   const [klientName] = p.klient.split('\n')
   return (
     <div
@@ -236,8 +236,8 @@ function PrilezitostRow({ p, onClick }: { p: typeof poptavkyData[0]; onClick: ()
         </span>
       </div>
       <Tag
-        label={p.stavPoptavky}
-        variant={p.stavPoptavky === 'Aktivní' ? 'success' : p.stavPoptavky === 'Prohlídka' ? 'info' : 'neutral'}
+        label={p.stavPrilezitosti}
+        variant={stavPrilezitostiVariant(p.stavPrilezitosti)}
         size="sm"
       />
     </div>
@@ -249,7 +249,10 @@ function PrilezitostRow({ p, onClick }: { p: typeof poptavkyData[0]; onClick: ()
 export default function DashboardPage() {
   const navigate = useNavigate()
 
-  const topPrilezitosti = poptavkyData.slice(0, 5)
+  // Widget ukazuje jen rozpracované - uzavřené a odmítnuté do „Aktivní“ nepatří.
+  const topPrilezitosti = prilezitostiData
+    .filter(p => p.stavPrilezitosti !== 'Uzavřeno' && p.stavPrilezitosti !== 'Nemá zájem')
+    .slice(0, 5)
 
   return (
     <div style={{ margin: -24, padding: 24, background: 'var(--t-bgSecondary)', minHeight: 'calc(100vh - 56px)', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -326,15 +329,15 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* Aktivní poptávky */}
+          {/* Aktivní příležitosti */}
           <div style={WIDGET}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={WIDGET_HEADING}>Aktivní poptávky</span>
-              <TextButton label="Zobrazit vše" variant="brand" tailIcon={ArrowRight} onClick={() => navigate('/obchod/poptavky')} />
+              <span style={WIDGET_HEADING}>Aktivní příležitosti</span>
+              <TextButton label="Zobrazit vše" variant="brand" tailIcon={ArrowRight} onClick={() => navigate('/obchod/prilezitosti')} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {topPrilezitosti.map(p => (
-                <PrilezitostRow key={p.id} p={p} onClick={() => navigate(`/obchod/poptavky/${p.id}`)} />
+                <PrilezitostRow key={p.id} p={p} onClick={() => navigate(`/obchod/prilezitosti/${p.id}`)} />
               ))}
             </div>
           </div>
@@ -386,7 +389,7 @@ export default function DashboardPage() {
                 { label: 'Výplata', icon: CreditCard, link: '/vyuctovani/vyplaty' },
                 { label: 'Kalendář', icon: Calendar, link: '/kalendar' },
                 { label: 'Dokumenty', icon: FileText, link: '/dokumenty' },
-                { label: 'Leady', icon: MessageCircle, link: '/obchod/lead' },
+                { label: 'Poptávky', icon: MessageCircle, link: '/obchod/poptavky' },
               ].map(item => {
                 const Icon = item.icon
                 return (

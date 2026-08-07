@@ -92,8 +92,6 @@ export default function DataTable({ cols, rows, actions = ['view', 'restore', 'e
         {rows.map((row, ri) => {
           const hovered = hoveredRow === ri
           const bg = hovered ? 'var(--t-bgHover)' : 'var(--t-bgPrimary)'
-          // Poslední řádek linku nekreslí — visela by na spodní hraně tabulky
-          const lastRow = ri === rows.length - 1
           return (
             <div
               key={ri}
@@ -110,7 +108,7 @@ export default function DataTable({ cols, rows, actions = ['view', 'restore', 'e
                   <TruncatedText text={formattedLabel ?? '–'} align={c.align} />
                 )
                 return c.flex ? (
-                  <div key={c.key} style={{ flex: 1, minWidth: c.width, background: bg, transition: 'background-color 150ms', borderBottom: lastRow ? undefined : '1px solid var(--t-borderPrimary)', display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', overflow: 'hidden' }}>
+                  <div key={c.key} style={{ flex: 1, minWidth: c.width, background: bg, transition: 'background-color 150ms', borderBottom: '1px solid var(--t-borderPrimary)', display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, boxSizing: 'border-box', overflow: 'hidden' }}>
                     <div style={{ minWidth: 0, flex: 1 }}>{textContent}</div>
                   </div>
                 ) : c.hugged ? (
@@ -118,7 +116,7 @@ export default function DataTable({ cols, rows, actions = ['view', 'restore', 'e
                     key={c.key}
                     size="spacious"
                     hovered={hovered}
-                    borderBottom={!lastRow}
+                    borderBottom
                     content={<div style={{ minWidth: 0 }}>{textContent}</div>}
                     align={c.align === 'right' ? 'right' : 'left'}
                   />
@@ -128,7 +126,7 @@ export default function DataTable({ cols, rows, actions = ['view', 'restore', 'e
                     size="spacious"
                     width={c.width}
                     hovered={hovered}
-                    borderBottom={!lastRow}
+                    borderBottom
                     content={<div style={{ overflow: 'hidden', minWidth: 0, width: (c.width ?? 0) - 32 }}>{textContent}</div>}
                     align={c.align === 'right' ? 'right' : 'left'}
                   />
@@ -140,7 +138,7 @@ export default function DataTable({ cols, rows, actions = ['view', 'restore', 'e
                     size="spacious"
                     width={actionsWidth}
                     hovered={hovered}
-                    borderBottom={!lastRow}
+                    borderBottom
                     content={
                       <div style={{ display: 'flex', gap: 2 }}>
                         {(() => {

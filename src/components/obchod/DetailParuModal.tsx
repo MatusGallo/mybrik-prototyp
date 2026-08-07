@@ -15,7 +15,7 @@ export interface ParRow {
   adresa: string
   tagy: string[]
   historie: { nemovitost: string; posledniAktivita: string; vytvoreno: string; vytvorilUzivatel: string; stav: string }[]
-  klientInfo: { prirazenKLeadu: string; posledniKomunikace: string }
+  klientInfo: { prirazenKPoptavce: string; posledniKomunikace: string }
 }
 
 interface Props {
@@ -84,7 +84,7 @@ export default function DetailParuModal({ par, onClose }: Props) {
               <SectionLabel>Informace o klientovi</SectionLabel>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <KV label="Jméno a příjmení" value={par.klient} />
-                <KV label="Přiřazen k leadu" value={par.klientInfo.prirazenKLeadu} />
+                <KV label="Přiřazen k poptávce" value={par.klientInfo.prirazenKPoptavce} />
                 <KV label="Poslední komunikace" value={par.klientInfo.posledniKomunikace || '—'} />
                 <KV label="Vlastník" value={par.vlastnik.jmeno} />
               </div>

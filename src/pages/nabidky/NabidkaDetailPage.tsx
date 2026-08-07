@@ -31,10 +31,10 @@ import AutomatickeStatistikyModal, {
 import EmptyState from '../../components/shared/EmptyState'
 import NovaNabidkaForm from '../../components/nabidky/NovaNabidkaForm'
 import { nabidkaToFormData } from '../../components/nabidky/nabidkaToFormData'
-import PoptavkyNabidky, {
-  type PoptavkySubTab, NABIDKA_PARY, NABIDKA_POPTAVKY, POPTAVKA_POSLEDNI,
-} from '../../components/nabidky/PoptavkyNabidky'
-import PoptavkaPanel from '../../components/obchod/PoptavkaPanel'
+import PrilezitostiNabidky, {
+  type PrilezitostiSubTab, NABIDKA_PARY, NABIDKA_PRILEZITOSTI, PRILEZITOST_POSLEDNI,
+} from '../../components/nabidky/PrilezitostiNabidky'
+import PrilezitostPanel from '../../components/obchod/PrilezitostPanel'
 
 interface OstatniTokRow {
   id: number
@@ -811,17 +811,17 @@ function WidgetNaklady({ onNaklad }: { onNaklad: () => void }) {
   )
 }
 
-// Poptávky navázané na nabídku — souhrn ze stejných dat jako záložka „Poptávky“.
-function WidgetPoptavky({ onClick }: { onClick: () => void }) {
-  const aktivni = NABIDKA_POPTAVKY.filter(p => p.stavPoptavky === 'Aktivní').length
-  const posledni = POPTAVKA_POSLEDNI
+// Příležitosti navázané na nabídku — souhrn ze stejných dat jako záložka „Příležitosti“.
+function WidgetPrilezitosti({ onClick }: { onClick: () => void }) {
+  const aktivni = NABIDKA_PRILEZITOSTI.filter(p => p.stavPrilezitosti === 'Aktivní').length
+  const posledni = PRILEZITOST_POSLEDNI
   const posledniKlient = posledni ? posledni.klient.split('\n')[0] : ''
   return (
-    <DashboardWidget icon={Users} title="Poptávky" onClick={onClick}>
+    <DashboardWidget icon={Users} title="Příležitosti" onClick={onClick}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
         <span style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: 'var(--t-textPrimary)' }}>{aktivni}</span>
         <span style={{ fontSize: 13, color: 'var(--t-textSecondary)' }}>
-          aktivní {NABIDKA_POPTAVKY.length > aktivni ? `z ${NABIDKA_POPTAVKY.length}` : ''}
+          aktivní {NABIDKA_PRILEZITOSTI.length > aktivni ? `z ${NABIDKA_PRILEZITOSTI.length}` : ''}
         </span>
       </div>
       {posledni && (
@@ -876,7 +876,7 @@ function WidgetAgenda({ onTab }: { onTab: (t: string) => void }) {
 
 function WidgetPary({ onClick }: { onClick: () => void }) {
   // Rozložení párů podle stavu: akční „Nezpracováno" červeně, odeslané zeleně,
-  // zamítnuté neutrálně šedě. Počty jdou ze stejných dat jako záložka „Poptávky".
+  // zamítnuté neutrálně šedě. Počty jdou ze stejných dat jako záložka „Příležitosti".
   const pocet = (stav: string) => NABIDKA_PARY.filter(p => p.stav === stav).length
   const segments: Segment[] = [
     { label: 'Nezpracováno', count: pocet('Nezpracováno'), color: '#DC2626' },
@@ -1142,7 +1142,7 @@ function KlientRow({
 
 const TABS = [
   { value: 'zakladni', label: 'Základní informace' },
-  { value: 'poptavky', label: 'Poptávky' },
+  { value: 'prilezitosti', label: 'Příležitosti' },
   { value: 'exporty', label: 'Exporty' },
   { value: 'finance', label: 'Finance' },
   { value: 'ostatni', label: 'Ostatní finanční toky' },
@@ -1157,8 +1157,8 @@ export default function NabidkaDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [tab, setTab] = useState('zakladni')
-  const [poptavkySubTab, setPoptavkySubTab] = useState<PoptavkySubTab>('poptavky')
-  const [novaPoptavkaOpen, setNovaPoptavkaOpen] = useState(false)
+  const [prilezitostiSubTab, setPrilezitostiSubTab] = useState<PrilezitostiSubTab>('prilezitosti')
+  const [novaPrilezitostOpen, setNovaPrilezitostOpen] = useState(false)
   const [exportPortal, setExportPortal] = useState<string | null>(null)
   const [exportServers, setExportServers] = useState<ExportServer[]>(EXPORT_SERVERS_INITIAL)
   const [statsFrom, setStatsFrom] = useState(STATS_DEFAULT_FROM)
@@ -1215,10 +1215,10 @@ export default function NabidkaDetailPage() {
     }
   }, [scrollHistoryPending, tab])
 
-  // Kotva ze souhrnných widgetů na záložku „Poptávky“ - s předvybraným pohledem.
-  function goToPoptavky(sub: PoptavkySubTab) {
-    setPoptavkySubTab(sub)
-    setTab('poptavky')
+  // Kotva ze souhrnných widgetů na záložku „Příležitosti“ - s předvybraným pohledem.
+  function goToPrilezitosti(sub: PrilezitostiSubTab) {
+    setPrilezitostiSubTab(sub)
+    setTab('prilezitosti')
   }
 
   // Kotva na chybu v exportu: přepni na Exporty, vyfiltruj jen chyby a odscrolluj k logu.
@@ -1528,9 +1528,9 @@ export default function NabidkaDetailPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <WidgetExporty onTab={setTab} onError={goToExportError} />
 
-                  <WidgetPoptavky onClick={() => goToPoptavky('poptavky')} />
+                  <WidgetPrilezitosti onClick={() => goToPrilezitosti('prilezitosti')} />
 
-                  <WidgetPary onClick={() => goToPoptavky('pary')} />
+                  <WidgetPary onClick={() => goToPrilezitosti('pary')} />
 
                   <WidgetPodpisy onTab={setTab} />
 
@@ -1571,12 +1571,12 @@ export default function NabidkaDetailPage() {
           )}
 
 
-          {/* ── Poptávky ───────────────────────────────────────────────── */}
-          {tab === 'poptavky' && (
-            <PoptavkyNabidky
-              subTab={poptavkySubTab}
-              onSubTabChange={setPoptavkySubTab}
-              onNovaPoptavka={() => setNovaPoptavkaOpen(true)}
+          {/* ── Příležitosti ───────────────────────────────────────────────── */}
+          {tab === 'prilezitosti' && (
+            <PrilezitostiNabidky
+              subTab={prilezitostiSubTab}
+              onSubTabChange={setPrilezitostiSubTab}
+              onNovaPrilezitost={() => setNovaPrilezitostOpen(true)}
             />
           )}
 
@@ -2405,8 +2405,8 @@ export default function NabidkaDetailPage() {
       {/* Nahrát dokumenty modal */}
       {nahratOpen && <NahratDokumentyModal onClose={() => setNahratOpen(false)} defaultKategorie={dokSelected ?? undefined} />}
 
-      {/* Vytvořit poptávku - nemovitost je předvybraná z detailu nabídky */}
-      {novaPoptavkaOpen && <PoptavkaPanel nabidka={n} onClose={() => setNovaPoptavkaOpen(false)} />}
+      {/* Vytvořit příležitost - nemovitost je předvybraná z detailu nabídky */}
+      {novaPrilezitostOpen && <PrilezitostPanel nabidka={n} onClose={() => setNovaPrilezitostOpen(false)} />}
 
       {/* Smazat tok confirm dialog */}
       {tokDelete && createPortal(

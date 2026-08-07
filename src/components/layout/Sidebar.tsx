@@ -14,14 +14,10 @@ import {
   Calendar,
   ShieldCheck,
   CreditCard,
+  Wrench,
   ArrowUpRight,
 } from 'lucide-react'
 import { Sidebar as DSSidebar, NavItem, NavDivider } from '@matusgallo/mysabds'
-const CemapIcon = ((_props: { size?: number | string }) => (
-  <svg width={16} height={16} viewBox="184.5 13 68 68" xmlns="http://www.w3.org/2000/svg">
-    <path fillRule="evenodd" fill="#d53827" d="m234.14 49.79q-4.29 4.26-9.98 5.4l-0.23-0.4-5.09-8.81q0.48 0.04 0.98 0.04 4.42 0 7.39-2.97 2.97-2.97 2.97-7.54 0-4.57-2.97-7.54-2.97-2.97-7.39-2.97-4.41 0-7.34 2.97-2.94 2.97-2.94 7.54c0 3.73 2.48 7.53 4.36 10.69l5.11 8.85 6.6 11.42-5.28 10.11-6.6-11.42-7.87-13.65c-3.25-5.63-6.14-8.93-6.14-16q0-8.44 5.83-14.28 5.82-5.82 14.27-5.82 8.46 0 14.32 5.82 5.86 5.83 5.86 14.28 0 8.45-5.86 14.28z" />
-  </svg>
-)) as unknown as LucideIcon
 
 type NavNode =
   | { type: 'item'; label: string; icon?: LucideIcon; path?: string; external?: boolean }
@@ -34,11 +30,29 @@ const nav: NavNode[] = [
   {
     type: 'group', label: 'Nabídky', icon: Home,
     children: [
-      { type: 'item', label: 'Seznam nabídek', path: '/nabidky' },
-      { type: 'item', label: 'K autorizaci', path: '/nabidky/k-autorizaci' },
+      { type: 'item', label: 'Všechny nabídky', path: '/nabidky' },
       { type: 'item', label: 'Moje nabídky', path: '/nabidky/moje' },
+      { type: 'item', label: 'K autorizaci', path: '/nabidky/k-autorizaci' },
     ],
   },
+  {
+    type: 'group', label: 'Obchod', icon: Briefcase,
+    children: [
+      { type: 'item', label: 'Příležitosti', path: '/obchod/prilezitosti' },
+      { type: 'item', label: 'Poptávky', path: '/obchod/poptavky' },
+      { type: 'item', label: 'Nabídka nemovitostí', path: '/obchod/nabidka-nemovitosti' },
+    ],
+  },
+  { type: 'item', label: 'Klienti', icon: Users, path: '/klienti' },
+  { type: 'item', label: 'Kalendář', icon: Calendar, path: '/kalendar' },
+  { type: 'item', label: 'Dokumenty', icon: FileText, path: '/dokumenty' },
+  {
+    type: 'group', label: 'Nástroje', icon: Wrench,
+    children: [
+      { type: 'item', label: 'Cemap', path: 'https://www.cemap.cz', external: true },
+    ],
+  },
+  { type: 'divider' },
   {
     type: 'group', label: 'Statistiky', icon: BarChart2,
     children: [
@@ -46,25 +60,6 @@ const nav: NavNode[] = [
       { type: 'item', label: 'Platby', path: '/statistiky/platby' },
     ],
   },
-  {
-    type: 'group', label: 'Obchod', icon: Briefcase,
-    children: [
-      { type: 'item', label: 'Nabídka nemovitostí', path: '/obchod/nabidka-nemovitosti' },
-      { type: 'item', label: 'Zájem o výkup', path: '/obchod/zajem-o-vykup' },
-      { type: 'item', label: 'Lead Hypo', path: '/obchod/lead-hypo' },
-      { type: 'item', label: 'Lead', path: '/obchod/lead' },
-      { type: 'item', label: 'Poptávky', path: '/obchod/poptavky' },
-    ],
-  },
-  { type: 'item', label: 'Klienti', icon: Users, path: '/klienti' },
-  { type: 'item', label: 'Cemap', icon: CemapIcon, path: 'https://www.cemap.cz', external: true },
-  { type: 'divider' },
-  { type: 'item', label: 'Dokumenty', icon: FileText, path: '/dokumenty' },
-  { type: 'item', label: 'Pobočky', icon: Building2, path: '/pobocky' },
-  { type: 'item', label: 'HSP', icon: Trophy, path: '/hsp' },
-  { type: 'item', label: 'Uživatelé', icon: UserCog, path: '/uzivatele' },
-  { type: 'item', label: 'Kalendář', icon: Calendar, path: '/kalendar' },
-  { type: 'item', label: 'Role a práva', icon: ShieldCheck, path: '/role-a-prava' },
   {
     type: 'group', label: 'Vyúčtování', icon: CreditCard,
     children: [
@@ -76,6 +71,10 @@ const nav: NavNode[] = [
       { type: 'item', label: 'Faktury', path: '/vyuctovani/faktury' },
     ],
   },
+  { type: 'item', label: 'Uživatelé', icon: UserCog, path: '/uzivatele' },
+  { type: 'item', label: 'Pobočky', icon: Building2, path: '/pobocky' },
+  { type: 'item', label: 'HSP', icon: Trophy, path: '/hsp' },
+  { type: 'item', label: 'Role a práva', icon: ShieldCheck, path: '/role-a-prava' },
 ]
 
 interface SidebarProps {
@@ -168,15 +167,29 @@ const Sidebar = React.forwardRef<HTMLElement, SidebarProps>(function Sidebar({ c
         if (collapsed || open) {
           node.children.forEach((child, ci) => {
             if (child.type !== 'item') return
+            const isLast = ci === node.children.length - 1
             out.push(
-              <NavItem
-                key={child.label}
-                label={child.label}
-                depth={1}
-                active={isActive(child.path)}
-                isLast={ci === node.children.length - 1}
-                onClick={() => child.path && navigate(child.path)}
-              />
+              child.external ? (
+                <NavItem
+                  key={child.label}
+                  label={child.label}
+                  icon={child.icon}
+                  depth={1}
+                  isLast={isLast}
+                  tail={{ type: 'tail-icon', icon: ArrowUpRight }}
+                  onClick={() => window.open(child.path, '_blank')}
+                />
+              ) : (
+                <NavItem
+                  key={child.label}
+                  label={child.label}
+                  icon={child.icon}
+                  depth={1}
+                  active={isActive(child.path)}
+                  isLast={isLast}
+                  onClick={() => child.path && navigate(child.path)}
+                />
+              )
             )
           })
         }

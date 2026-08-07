@@ -1,4 +1,5 @@
 import { uzivateleData } from './mockOstatni'
+import { VYCHOZI_PREDVOLBA, rozdelTelefon } from './telefonPredvolby'
 
 // ── Model formuláře uživatele ─────────────────────────────────────────────────
 
@@ -107,7 +108,7 @@ export function emptyUzivatelForm(): UzivatelForm {
   return {
     stav: 'aktivni',
     titulPred: '', jmeno: '', prijmeni: '', titulZa: '',
-    osobniEmail: '', predvolba: '+420', telefon: '',
+    osobniEmail: '', predvolba: VYCHOZI_PREDVOLBA, telefon: '',
     datumNarozeni: null, rodneCislo: '', cisloOp: '',
     bydliste: { ...EMPTY_ADRESA },
     foto: null,
@@ -152,7 +153,8 @@ export function uzivatelFormFromRow(row: UzivatelRow): UzivatelForm {
     jmeno: row.jmeno,
     prijmeni: row.prijmeni,
     osobniEmail: row.osobniEmail,
-    telefon: row.telefon.replace(/^\+420\s*/, ''),
+    predvolba: rozdelTelefon(row.telefon).predvolba,
+    telefon: rozdelTelefon(row.telefon).cislo,
     firemniEmail: row.firemnEmail,
     pobocka: row.pobocka,
     pozice: jeMakler ? 'Realitní makléř' : row.role,

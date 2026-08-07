@@ -250,7 +250,11 @@ export default function NabidkyTable({ data, page, totalPages, onPageChange, hid
         </div>
       </div>
 
-      {totalPages > 1 && <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />}
+      {totalPages > 1 && (
+        <div style={{ marginTop: 16 }}>
+          <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
+        </div>
+      )}
     </div>
   )
 }

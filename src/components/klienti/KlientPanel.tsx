@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Copy, ArrowUpRight, Pencil, X } from 'lucide-react'
 import { Form, Input, IconButton, Tag } from '@matusgallo/mysabds'
+import TelefonInput from '../shared/TelefonInput'
+import { VYCHOZI_PREDVOLBA } from '../../data/telefonPredvolby'
 
 export type KlientPanelMode = 'detail' | 'edit' | 'create'
 
@@ -32,7 +34,7 @@ interface KlientPanelProps {
 }
 
 const EMPTY: Partial<KlientData> = {
-  telefon: '+420', email: '', jmeno: '', prijmeni: '',
+  telefon: VYCHOZI_PREDVOLBA, email: '', jmeno: '', prijmeni: '',
   titulPred: '', titulZa: '', nazevSpolecnosti: '', icSpolecnosti: '',
   poziceZastupujiciOsoby: '', ulice: '', cisloPopisne: '',
   cisloOrientacni: '', psc: '', mesto: '',
@@ -175,12 +177,11 @@ export default function KlientPanel({ mode, klient, onClose, onEdit, onSave }: K
       <Card>
         <CardTitle title="Kontaktní osoba" />
         <div style={{ padding: '12px 0' }}>
-          <Input
+          <TelefonInput
             label="Telefonní číslo"
             required
             value={String(form.telefon ?? '')}
             onChange={v => setField('telefon', v)}
-            width="100%"
           />
         </div>
       </Card>

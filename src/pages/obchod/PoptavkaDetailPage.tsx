@@ -1,989 +1,365 @@
-import { useState, useEffect, useRef, type CSSProperties } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import {
-  ArrowLeft, ArrowRight, ArrowUpRight, Phone, Mail, Smartphone, MessageSquare,
-  Calendar, CalendarClock, CheckSquare, Clock, MapPin, User, Pencil,
-  StickyNote, RefreshCw, Send, CircleDollarSign, ChevronDown, ChevronUp, Globe,
-  Maximize2, KeyRound, CircleDot,
-  type LucideIcon,
-} from 'lucide-react'
-import {
-  Avatar, Tag, IconButton, TextButton, Button, Alert, PillTabGroup,
-  Menu, MenuItem, MenuHeading, SummaryListItem, TooltipIcon, typography,
-} from '@matusgallo/mysabds'
-import { poptavkyData } from '../../data/mockObchod'
-import { nabidkyData } from '../../data/mockData'
-import PoptavkaPanel from '../../components/obchod/PoptavkaPanel'
-import NovyUkolModal from '../../components/obchod/NovyUkolModal'
-import ZapsatKomunikaceModal from '../../components/obchod/ZapsatKomunikaceModal'
-import NovyProhlidkaModal from '../../components/obchod/NovyProhlidkaModal'
-import ZmenitMaklereModal from '../../components/obchod/ZmenitMaklereModal'
-import ZapsatVysledekModal from '../../components/obchod/ZapsatVysledekModal'
-import InterniPoznamkaModal from '../../components/nabidky/InterniPoznamkaModal'
+import { ArrowLeft, Search as SearchIcon, Eye, Plus } from 'lucide-react'
+import { IconButton, Breadcrumbs, LineTabGroup, TextButton, Tag, TableHeaderCell, TableCell, Avatar } from '@matusgallo/mysabds'
+import { poptavkyData, prilezitostiData } from '../../data/mockObchod'
+import { initials, avatarColor } from '../../utils/renderAvatarName'
+import DetailParuModal, { type ParRow } from '../../components/obchod/DetailParuModal'
+import NovyKlientPoptavkyPanel from '../../components/obchod/NovyKlientPoptavkyPanel'
 
-// ── Mock detail dat ─────────────────────────────────────────────────────────────
-// Seznam poptávek (mockObchod) nese jen tabulková pole. Detail k nim dokresluje to,
-// co makléř na obrazovce potřebuje — zprávu klienta, nemovitost a agendu.
+const TABS = [
+  { value: 'klienti',      label: 'Klienti' },
+  { value: 'prilezitosti', label: 'Příležitosti' },
+  { value: 'pary',         label: 'Páry' },
+]
 
-// Text zprávy k referenčnímu záznamu. Ostatní poptávky dostanou obecné znění, aby
-// podpis i zmíněná nemovitost vždy odpovídaly záznamu, na kterém uživatel stojí.
-const ZPRAVY: Record<string, string> = {
-  P332: `Dobrý den pane Dvorský,
+const fmtCena = (v: number) =>
+  new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', minimumFractionDigits: 2 }).format(v)
 
-našel jsem váš inzerát na stavební pozemek ve Vráži u Berouna a moc mě zaujal. S manželkou hledáme parcelu na stavbu rodinného domu už skoro rok a tahle lokalita by nám vyhovovala nejvíc - oba pracujeme v Berouně a děti by mohly zůstat ve stejné škole.
+// ── Mock data per poptávka ───────────────────────────────────────────────────────────
 
-Rád bych se zeptal na několik věcí. Je na pozemku přípojka vody a elektřiny, případně jak daleko jsou hlavní řady? Řeší se tam kanalizace, nebo se počítá s jímkou či domovní čističkou? A je podle územního plánu možné stavět bez dalších omezení, hlavně co se týče výšky domu a zastavěnosti parcely?
-
-Zajímalo by mě taky, jak je to s přístupovou cestou - je v majetku obce, nebo jde o soukromý pozemek? A neváže se k parcele předkupní právo nebo zástava?
-
-Financování máme předjednané, hypotéku řešíme přes svou banku a část ceny pokryjeme z prodeje současného bytu. Pokud by se pozemek ukázal jako vhodný, jsme schopni jednat rychle.
-
-Hodila by se mi prohlídka příští týden ve všední den odpoledne, nejlépe ve čtvrtek. Kdyby vám to nevyhovovalo, dejte prosím vědět jiný termín, přizpůsobím se.
-
-Děkuji za odpověď a přeji hezký den,
-Milan Kuzica`,
-}
-
-function zpravaKlienta(id: string, klient: string, nabidka: string) {
-  return ZPRAVY[id] ?? `Dobrý den,
-
-mám zájem o nemovitost ${nabidka}. Můžete mi prosím poslat víc informací a nabídnout termín prohlídky? Nejlépe ve všední den odpoledne.
-
-Děkuji, ${klient}`
-}
-
-// Nemovitost — parametry, které seznam poptávek nenese. Reálná adresa, cena a stav
-// se doplní z nabídky, pokud pro dané ID existuje.
-const NABIDKA_FALLBACK = {
-  foto: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&h=300&fit=crop&auto=format&q=80',
-  adresa: 'Vráž u Berouna, Beroun, Středočeský kraj, 267 11',
-  cena: 2_690_000,
-  stav: 'Aktivní',
-  plocha: '812 m²',
-  vlastnictvi: 'Osobní',
-  poptavek: 3,
-}
-
-type AgendaKind = 'ukol' | 'schuzka' | 'komunikace'
-type AgendaGroup = 'vysledek' | 'poTerminu' | 'nadchazejici' | 'historie'
-type TagVariant = 'neutral' | 'outline' | 'invert' | 'brand' | 'info' | 'success' | 'warning' | 'danger'
-
-interface AgendaItem {
+interface KlientRow {
   id: number
-  kind: AgendaKind
-  group: AgendaGroup
-  /** Ikona typu — jen u schůzek a komunikace, úkol má vlastní. */
-  icon?: LucideIcon
-  nazev: string
-  misto?: string
-  resitel?: string
-  /** Doplněk za řešitelem, např. „Úkol · Slíbeno klientovi“. */
-  meta?: string
-  /** Šedý boxík pod položkou — poznámka k záznamu. */
-  poznamka?: string
-  duvodZruseni?: string
-  presunutoZ?: string
-  presunutoNa?: string
-  datum: string
-  cas?: string
-  tag?: { label: string; variant: TagVariant }
-  /** Akce, kterou položka vyžaduje (schůzka bez zadaného výsledku). */
-  akce?: string
-  hotovo?: string
+  klient: string
+  makler: string
+  vytvoren: string
+  posledniAktivita: string
+  prilezitosti: number
+  platnostDo: string
+  stav: string
 }
 
-const AGENDA: AgendaItem[] = [
+const KLIENTI_MOCK: KlientRow[] = [
   {
-    id: 1, kind: 'schuzka', group: 'vysledek', icon: Calendar,
-    nazev: 'Prohlídka pozemku s klientem',
-    misto: 'Vráž u Berouna, parcela 412/3', resitel: 'Daniel Dvorský',
-    presunutoZ: '11. 9.',
-    datum: 'Čt 18. 9.', cas: '15:00-16:00',
-    tag: { label: 'Proběhla', variant: 'warning' },
-    akce: 'Zadat výsledek schůzky',
-  },
-  {
-    id: 2, kind: 'ukol', group: 'poTerminu',
-    nazev: 'Poslat klientovi informace o přípojkách a územním plánu',
-    resitel: 'Daniel Dvorský', meta: 'Úkol · Slíbeno klientovi',
-    datum: '22. 9.', cas: '12:00',
-    tag: { label: 'Po termínu', variant: 'danger' },
-  },
-  {
-    id: 3, kind: 'schuzka', group: 'nadchazejici', icon: Calendar,
-    nazev: 'Druhá prohlídka - klient přivede manželku',
-    misto: 'Vráž u Berouna, parcela 412/3', resitel: 'Daniel Dvorský',
-    poznamka: 'Vzít snímek katastrální mapy a nabídku sousedního pozemku 412/4.',
-    datum: 'Út 30. 9.', cas: '16:00-17:00',
-    tag: { label: 'Schůzka', variant: 'info' },
-  },
-  {
-    id: 4, kind: 'ukol', group: 'nadchazejici',
-    nazev: 'Připravit návrh rezervační smlouvy',
-    resitel: 'Daniel Dvorský', meta: 'Úkol',
-    datum: 'Po 6. 10.', cas: '10:00',
-    tag: { label: 'Úkol', variant: 'warning' },
-  },
-  {
-    id: 5, kind: 'schuzka', group: 'historie', icon: CalendarClock,
-    nazev: 'Prohlídka pozemku s klientem',
-    misto: 'Vráž u Berouna, parcela 412/3', resitel: 'Daniel Dvorský',
-    duvodZruseni: 'Klient se den předem omluvil - pracovní cesta. Domluven náhradní termín po telefonu.',
-    presunutoNa: 'Čt 18. 9. 2025, 15:00',
-    datum: 'Čt 11. 9.', cas: '15:00-16:00',
-    tag: { label: 'Zrušeno - přesunuto', variant: 'neutral' },
-  },
-  {
-    id: 6, kind: 'komunikace', group: 'historie', icon: Phone,
-    nazev: 'Telefonát - omluva a přesun prohlídky',
-    meta: 'Příchozí hovor · 4 min', resitel: 'Daniel Dvorský',
-    poznamka: 'Klient nemůže ve čtvrtek 11. 9., domluven nový termín 18. 9. v 15:00. Zájem trvá.',
-    datum: '10. 9.', cas: '16:41',
-  },
-  {
-    id: 7, kind: 'ukol', group: 'historie',
-    nazev: 'Zavolat klientovi do 24 h od poptávky',
-    hotovo: 'Dokončeno 5. 9. v 10:18 · Daniel Dvorský',
-    datum: '5. 9.', cas: '09:00',
-  },
-  {
-    id: 8, kind: 'komunikace', group: 'historie', icon: Mail,
-    nazev: 'Odeslán e-mail - potvrzení přijetí poptávky',
-    meta: 'Odchozí e-mail · Automaticky',
-    datum: '4. 9.', cas: '08:35',
-  },
-  {
-    id: 9, kind: 'komunikace', group: 'historie', icon: Clock,
-    nazev: 'Poptávka přijata ze Sreality.cz',
-    meta: 'Vznik poptávky',
-    datum: '4. 9.', cas: '08:33',
+    id: 1, klient: 'Tomáš Čáp', makler: 'Michaela Flachsová',
+    vytvoren: '16.05.2023 16:26:48', posledniAktivita: '01.06.2026 20:24:51',
+    prilezitosti: 1, platnostDo: '18.05.2023 16:26', stav: 'Expirovaný',
   },
 ]
 
-// Agenda je časová osa vzestupně — minulost navrchu, budoucnost dole. Historie se
-// řeší zvlášť (viz sekce Historie v komponentě), tady zůstávají jen aktivní skupiny.
-const AGENDA_GROUPS: { key: AgendaGroup; label: string }[] = [
-  { key: 'vysledek', label: 'Čeká na zadání výsledku' },
-  { key: 'poTerminu', label: 'Po termínu' },
-  { key: 'nadchazejici', label: 'Nadcházející' },
+const PARY_MOCK: ParRow[] = [
+  {
+    klient: 'Tomáš Čáp', idNabidky: 20, nazev: 'Prodej bytu 2+1 se zahradou - 54.3m²',
+    typ: 'byt', podtyp: '2 + 1', plocha: 54, cena: 4498000,
+    vlastnik: { jmeno: 'Veronika Šmardová', firma: 'Vaše finance a reality s.r.o.' },
+    adresa: 'Kraj Vysočina, Žďár nad Sázavou, Světnov, 166, 59102',
+    tagy: ['Velmi dobrý', 'Osobní', 'Cihlová'],
+    historie: [
+      { nemovitost: 'Prodej bytu 2 + kk, Praha 5', posledniAktivita: '17.05.2023 13:45', vytvoreno: '16.05.2023 16:26', vytvorilUzivatel: 'Tomáš Čáp', stav: 'Aktivní' },
+      { nemovitost: 'Prodej rodinného domu, Beroun', posledniAktivita: '21.07.2023 15:05', vytvoreno: '21.07.2023 15:04', vytvorilUzivatel: 'Tomáš Čáp', stav: 'Aktivní' },
+    ],
+    klientInfo: { prirazenKPoptavce: '16.05.2023 16:26', posledniKomunikace: '' },
+  },
+  { klient: 'Tomáš Čáp', idNabidky: 205, nazev: 'Byt 1+1, Mladá Boleslav',                              typ: 'byt', podtyp: '1 + 1',  plocha: 60, cena: 5000000, vlastnik: { jmeno: 'Veronika Šmardová', firma: 'Vaše finance a reality s.r.o.' }, adresa: 'Středočeský kraj, Mladá Boleslav', tagy: ['Dobrý', 'Cihlová'], historie: [], klientInfo: { prirazenKPoptavce: '16.05.2023 16:26', posledniKomunikace: '' } },
+  { klient: 'Tomáš Čáp', idNabidky: 639, nazev: 'Krásné Malšovice 2+1',                                 typ: 'byt', podtyp: '2 + 1',  plocha: 66, cena: 5343000, vlastnik: { jmeno: 'Veronika Šmardová', firma: 'Vaše finance a reality s.r.o.' }, adresa: 'Hradec Králové, Malšovice',     tagy: ['Velmi dobrý'],         historie: [], klientInfo: { prirazenKPoptavce: '16.05.2023 16:26', posledniKomunikace: '' } },
+  { klient: 'Tomáš Čáp', idNabidky: 753, nazev: 'náměstí Republiky 915',                                typ: 'byt', podtyp: '2 + 1',  plocha: 60, cena: 5090000, vlastnik: { jmeno: 'Veronika Šmardová', firma: 'Vaše finance a reality s.r.o.' }, adresa: 'Praha, náměstí Republiky 915', tagy: ['Dobrý'],                historie: [], klientInfo: { prirazenKPoptavce: '16.05.2023 16:26', posledniKomunikace: '' } },
+  { klient: 'Tomáš Čáp', idNabidky: 989, nazev: 'Moderní apartmán 2+KK s balkónem v Korzo Lipno',       typ: 'byt', podtyp: '2 + kk', plocha: 66, cena: 6290000, vlastnik: { jmeno: 'Veronika Šmardová', firma: 'Vaše finance a reality s.r.o.' }, adresa: 'Lipno nad Vltavou',             tagy: ['Velmi dobrý'],         historie: [], klientInfo: { prirazenKPoptavce: '16.05.2023 16:26', posledniKomunikace: '' } },
+  { klient: 'Tomáš Čáp', idNabidky: 1279, nazev: '3+kk Rybářská 124, UH',                               typ: 'byt', podtyp: '3 + kk', plocha: 62, cena: 4990000, vlastnik: { jmeno: 'Veronika Šmardová', firma: 'Vaše finance a reality s.r.o.' }, adresa: 'Uherské Hradiště, Rybářská 124', tagy: ['Dobrý'],                historie: [], klientInfo: { prirazenKPoptavce: '16.05.2023 16:26', posledniKomunikace: '' } },
+  { klient: 'Tomáš Čáp', idNabidky: 1354, nazev: 'Prodej bytu 3+1, Liberec, Na Skřivanech',             typ: 'byt', podtyp: '3 + 1',  plocha: 60, cena: 4490000, vlastnik: { jmeno: 'Veronika Šmardová', firma: 'Vaše finance a reality s.r.o.' }, adresa: 'Liberec, Na Skřivanech',         tagy: ['Dobrý'],                historie: [], klientInfo: { prirazenKPoptavce: '16.05.2023 16:26', posledniKomunikace: '' } },
+  { klient: 'Tomáš Čáp', idNabidky: 1376, nazev: 'Prodej bytu 2+kk 48,5m2, Jaurisova 19, Praha 4 – Nusle', typ: 'byt', podtyp: '2 + kk', plocha: 48, cena: 5990000, vlastnik: { jmeno: 'Veronika Šmardová', firma: 'Vaše finance a reality s.r.o.' }, adresa: 'Praha 4, Nusle, Jaurisova 19',   tagy: ['Velmi dobrý'],         historie: [], klientInfo: { prirazenKPoptavce: '16.05.2023 16:26', posledniKomunikace: '' } },
+  { klient: 'Tomáš Čáp', idNabidky: 1469, nazev: 'Prodej, Byt 2+kk, ulice Pražská třída, Kukleny - Hradec Králové', typ: 'byt', podtyp: '2 + kk', plocha: 48, cena: 7000000, vlastnik: { jmeno: 'Veronika Šmardová', firma: 'Vaše finance a reality s.r.o.' }, adresa: 'Hradec Králové, Kukleny',     tagy: ['Dobrý'],                historie: [], klientInfo: { prirazenKPoptavce: '16.05.2023 16:26', posledniKomunikace: '' } },
+  { klient: 'Tomáš Čáp', idNabidky: 1493, nazev: 'Prodej novostavby 1,5+kk Kamechy',                    typ: 'byt', podtyp: '2 + kk', plocha: 49, cena: 6100000, vlastnik: { jmeno: 'Veronika Šmardová', firma: 'Vaše finance a reality s.r.o.' }, adresa: 'Brno, Kamechy',                  tagy: ['Velmi dobrý'],         historie: [], klientInfo: { prirazenKPoptavce: '16.05.2023 16:26', posledniKomunikace: '' } },
 ]
 
-const STAVY = ['Nová', 'Kontaktováno', 'Domluvená prohlídka', 'Nemá zájem', 'Uzavřeno']
+// ── Sub-components ───────────────────────────────────────────────────────────────
 
-// ── Helpers ─────────────────────────────────────────────────────────────────────
-
-function stavVariant(stav: string): TagVariant {
-  if (stav === 'Aktivní' || stav === 'Nová') return 'success'
-  if (stav === 'Domluvená prohlídka' || stav === 'Kontaktováno') return 'brand'
-  if (stav === 'Nemá zájem') return 'danger'
-  return 'neutral'
+function StavBadge({ stav }: { stav: string }) {
+  const variant: 'success' | 'danger' | 'neutral' =
+    stav === 'Aktivní'    ? 'success' :
+    stav === 'Expirovaný' ? 'danger'  : 'neutral'
+  return <Tag label={stav} variant={variant} size="sm" lead="indicator" />
 }
 
-function getInitials(name: string): string {
-  return name.split(' ').map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase()
-}
-
-function formatCena(cena: number) {
-  return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(cena)
-}
-
-/** '04.09.2025 08:33' → '4. 9. 2025 · 08:33' */
-function formatDatumCas(hodnota: string) {
-  const [datum, cas] = hodnota.split(' ')
-  const [den, mesic, rok] = (datum ?? '').split('.')
-  if (!den || !mesic || !rok) return hodnota
-  const vypis = `${Number(den)}. ${Number(mesic)}. ${rok}`
-  return cas ? `${vypis} · ${cas}` : vypis
-}
-
-/** '10.09.2025 16:41' → '10. 9. 2025 (před 14 dny)' */
-function formatPosledniKontakt(hodnota: string) {
-  const [datum] = hodnota.split(' ')
-  const [den, mesic, rok] = (datum ?? '').split('.')
-  if (!den || !mesic || !rok) return hodnota
-  const vypis = `${Number(den)}. ${Number(mesic)}. ${rok}`
-
-  const tehdy = new Date(Number(rok), Number(mesic) - 1, Number(den))
-  const dnes = new Date()
-  dnes.setHours(0, 0, 0, 0)
-  const dny = Math.round((dnes.getTime() - tehdy.getTime()) / 86_400_000)
-  if (dny < 0) return vypis
-  const kdy = dny === 0 ? 'dnes' : dny === 1 ? 'včera' : `před ${dny} dny`
-  return `${vypis} (${kdy})`
-}
-
-// ── Styly ───────────────────────────────────────────────────────────────────────
-
-const CARD: CSSProperties = {
-  background: 'var(--t-bgPrimary)',
-  border: '1px solid var(--t-borderPrimary)',
-  borderRadius: 12,
-}
-
-// Nadpis karty i panelu — subheadline18Semibold, ne headline20.
-const WIDGET_TITLE: CSSProperties = {
-  ...typography.subheadline18Semibold, color: 'var(--t-textPrimary)',
-}
-
-const GROUP_LABEL: CSSProperties = {
-  fontSize: 11, fontWeight: 600, lineHeight: '12px', letterSpacing: '0.11px',
-  textTransform: 'uppercase', color: 'var(--t-textTertiary)',
-}
-
-const META_TEXT: CSSProperties = {
-  fontSize: 12, lineHeight: '16px', color: 'var(--t-textSecondary)',
-}
-
-// Barevný kontext položky agendy podle skupiny — co čeká na akci, musí být vidět.
-const GROUP_TONE: Record<AgendaGroup, { bg: string; border: string }> = {
-  vysledek:     { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.5)' },
-  poTerminu:    { bg: 'rgba(220,38,38,0.05)',  border: 'rgba(220,38,38,0.35)' },
-  nadchazejici: { bg: 'var(--t-bgPrimary)',    border: 'var(--t-borderPrimary)' },
-  historie:     { bg: 'var(--t-bgPrimary)',    border: 'var(--t-borderPrimary)' },
-}
-
-// Barva ikony i textu „Přesunuto“ se řídí variantou štítku daného řádku — v rámci
-// řádku tak drží jedna barva (ikona, badge i přesunuto), viz TagVariant.
-const VARIANT_COLOR: Record<TagVariant, string> = {
-  neutral: 'var(--t-textSecondary)',
-  outline: 'var(--t-textSecondary)',
-  invert:  'var(--t-textPrimary)',
-  brand:   'var(--t-textMyDOCKPrimary)',
-  info:    '#2563EB',
-  success: '#16A34A',
-  warning: '#B45309',
-  danger:  '#DC2626',
-}
-
-const VARIANT_TINT: Record<TagVariant, string> = {
-  neutral: 'var(--t-bgSecondary)',
-  outline: 'var(--t-bgSecondary)',
-  invert:  'var(--t-bgSecondary)',
-  brand:   'var(--t-bgMyDOCKTertiary)',
-  info:    'rgba(37,99,235,0.10)',
-  success: 'rgba(22,163,74,0.10)',
-  warning: 'rgba(245,158,11,0.12)',
-  danger:  'rgba(220,38,38,0.08)',
-}
-
-// ── Sub-komponenty ──────────────────────────────────────────────────────────────
-
-function Widget({ title, action, meta, children }: {
-  title: string
-  action?: React.ReactNode
-  /** Doplňující údaje pod nadpisem — např. kdy a odkud zpráva přišla. */
-  meta?: React.ReactNode
-  children: React.ReactNode
-}) {
+function AvatarText({ name }: { name: string }) {
+  if (!name) return <span style={{ fontSize: 14, color: 'var(--t-textPrimary)' }}>–</span>
   return (
-    <div style={{ ...CARD, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '16px 16px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ ...WIDGET_TITLE, minWidth: 0 }}>{title}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+      <Avatar size="sm" initials={initials(name)} color={avatarColor(name)} />
+      <span style={{ fontSize: 14, color: 'var(--t-textPrimary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+    </div>
+  )
+}
+
+function SectionCard({ title, action, children }: { title?: string; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'var(--t-bgPrimary)', border: '1px solid var(--t-borderPrimary)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {(title || action) && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {title && <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--t-textPrimary)' }}>{title}</span>}
           {action}
         </div>
-        {meta && <div style={{ marginTop: 6 }}>{meta}</div>}
-      </div>
-      <div style={{ padding: 16 }}>{children}</div>
-    </div>
-  )
-}
-
-// Fakt v hero kartě — vlastní zaoblený box, popisek nad hodnotou.
-// Řádkový fakt v hlavičce — ikona + popisek + hodnota, volitelně proklik nebo akce.
-function FactLine({ icon: Icon, label, value, href, action }: {
-  icon: LucideIcon; label: string; value: string; href?: string; action?: React.ReactNode
-}) {
-  // Bez `flex: 1` hodnota neroztahuje řádek, takže akce sedí hned za ní.
-  const valueStyle: CSSProperties = {
-    fontSize: 13, fontWeight: 600, lineHeight: '18px', color: 'var(--t-textPrimary)',
-    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
-  }
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, padding: '6px 0' }}>
-      <Icon size={15} style={{ color: 'var(--t-textSecondary)', flexShrink: 0 }} />
-      <span style={{ fontSize: 13, lineHeight: '18px', color: 'var(--t-textSecondary)', flexShrink: 0, width: 116 }}>
-        {label}
-      </span>
-      {href
-        ? <a href={href} title={value} style={{ ...valueStyle, textDecoration: 'none' }}>{value}</a>
-        : <span title={value} style={valueStyle}>{value}</span>}
-      {action && <span style={{ flexShrink: 0 }}>{action}</span>}
-    </div>
-  )
-}
-
-// Kompaktní fakt u nemovitosti — ikona + „Plocha 812 m²“ na jednom řádku.
-function InlineFact({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      fontSize: 13, lineHeight: '18px', color: 'var(--t-textSecondary)', whiteSpace: 'nowrap',
-    }}>
-      <Icon size={13} style={{ flexShrink: 0 }} />
-      {label}{' '}
-      <span style={{ fontWeight: 600, color: 'var(--t-textPrimary)' }}>{value}</span>
-    </span>
-  )
-}
-
-function AgendaRow({ item, onVysledek }: { item: AgendaItem; onVysledek: () => void }) {
-  const tone = GROUP_TONE[item.group]
-  const zruseno = !!item.duvodZruseni
-  const hotovo = !!item.hotovo
-  const prosle = zruseno || hotovo
-  const Icon = item.icon
-
-  // Jednotná barva řádku podle štítku — ikona i „Přesunuto“ ji sdílejí. Uzavřené
-  // (zrušené/hotové) záznamy jsou ztlumené bez ohledu na variantu.
-  const accent = prosle
-    ? 'var(--t-textTertiary)'
-    : item.tag ? VARIANT_COLOR[item.tag.variant] : 'var(--t-textSecondary)'
-  const accentTint = prosle
-    ? 'var(--t-bgTertiary)'
-    : item.tag ? VARIANT_TINT[item.tag.variant] : 'var(--t-bgSecondary)'
-  // „Přesunuto“ nese užitečnou informaci i u uzavřených záznamů — nesmí zmizet do
-  // tertiary jako ikona, drží čitelnou sekundární barvu.
-  const movedColor = prosle ? 'var(--t-textSecondary)' : accent
-
-  return (
-    <div style={{
-      display: 'flex', gap: 12, padding: 12,
-      background: tone.bg, border: `1px solid ${tone.border}`, borderRadius: 10,
-    }}>
-      {/* Levý indikátor — ikona typu záznamu */}
-      <div style={{
-        width: 32, height: 32, borderRadius: 999, flexShrink: 0, marginTop: 1,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: accentTint,
-      }}>
-        {item.kind === 'ukol'
-          ? <CheckSquare size={16} style={{ color: accent }} />
-          : Icon && <Icon size={16} style={{ color: accent }} />}
-      </div>
-
-      {/* Obsah */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{
-            fontSize: 14, fontWeight: 600, lineHeight: '20px',
-            color: prosle ? 'var(--t-textTertiary)' : 'var(--t-textPrimary)',
-            textDecoration: prosle ? 'line-through' : undefined,
-          }}>
-            {item.nazev}
-          </span>
-          {item.tag && <Tag label={item.tag.label} variant={item.tag.variant} size="sm" />}
-        </div>
-
-        {(item.misto || item.resitel || item.meta || item.presunutoZ) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            {item.misto && (
-              <span style={{ ...META_TEXT, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <MapPin size={13} style={{ flexShrink: 0 }} />{item.misto}
-              </span>
-            )}
-            {item.resitel && (
-              <span style={{ ...META_TEXT, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <User size={13} style={{ flexShrink: 0 }} />{item.resitel}
-              </span>
-            )}
-            {item.meta && <span style={META_TEXT}>{item.meta}</span>}
-            {item.presunutoZ && (
-              <span style={{ fontSize: 12, fontWeight: 600, lineHeight: '16px', color: movedColor }}>
-                Přesunuto z {item.presunutoZ}
-              </span>
-            )}
-          </div>
-        )}
-
-        {item.hotovo && <span style={META_TEXT}>{item.hotovo}</span>}
-
-        {(item.poznamka || item.duvodZruseni) && (
-          <div style={{
-            background: 'var(--t-bgSecondary)', borderRadius: 8, padding: '8px 12px',
-            fontSize: 13, lineHeight: '20px', color: 'var(--t-textSecondary)',
-          }}>
-            {item.duvodZruseni && (
-              <span style={{ fontWeight: 600, color: 'var(--t-textPrimary)' }}>Důvod zrušení: </span>
-            )}
-            {item.duvodZruseni ?? item.poznamka}
-          </div>
-        )}
-
-        {item.presunutoNa && (
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            fontSize: 13, fontWeight: 600, lineHeight: '18px', color: movedColor,
-          }}>
-            <ArrowRight size={14} style={{ flexShrink: 0 }} />
-            Přesunuto na {item.presunutoNa}
-          </span>
-        )}
-
-        {item.akce && (
-          <div style={{ marginTop: 2, alignSelf: 'flex-start' }}>
-            <Button label={item.akce} variant="outlined" size="md" leadIcon={CheckSquare} onClick={onVysledek} />
-          </div>
-        )}
-
-        {item.kind === 'ukol' && !hotovo && (
-          <div style={{ marginTop: 2, alignSelf: 'flex-start' }}>
-            <Button label="Vyřešit" variant="outlined" size="md" leadIcon={CheckSquare} onClick={onVysledek} />
-          </div>
-        )}
-      </div>
-
-      {/* Termín + stav */}
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6,
-        flexShrink: 0, textAlign: 'right',
-      }}>
-        <span style={{
-          fontSize: 13, fontWeight: 600, lineHeight: '18px', whiteSpace: 'nowrap',
-          color: prosle ? 'var(--t-textTertiary)' : 'var(--t-textPrimary)',
-          textDecoration: prosle ? 'line-through' : undefined,
-        }}>
-          {item.datum}
-        </span>
-        {item.cas && (
-          <span style={{
-            ...META_TEXT, whiteSpace: 'nowrap',
-            textDecoration: prosle ? 'line-through' : undefined,
-          }}>
-            {item.cas}
-          </span>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Zpráva klienta v zaobleném boxu. Dlouhá zpráva se sbalí, aby nezatlačila zbytek
-// obrazovky — mez se měří z reálné výšky textu, ne z počtu znaků.
-const ZPRAVA_MAX = 160
-
-function ZpravaKlienta({ text }: { text: string }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [expanded, setExpanded] = useState(false)
-  const [dlouha, setDlouha] = useState(false)
-
-  useEffect(() => {
-    if (ref.current) setDlouha(ref.current.scrollHeight > ZPRAVA_MAX + 8)
-  }, [text])
-
-  const sbalena = dlouha && !expanded
-
-  return (
-    <div>
-      <div style={{ position: 'relative', background: 'var(--t-bgSecondary)', borderRadius: 8, padding: '12px 16px' }}>
-        <div
-          ref={ref}
-          style={{
-            fontSize: 14, lineHeight: '22px', color: 'var(--t-textPrimary)', whiteSpace: 'pre-wrap',
-            maxHeight: sbalena ? ZPRAVA_MAX : undefined,
-            overflow: 'hidden',
-          }}
-        >
-          {text}
-        </div>
-        {sbalena && (
-          <div
-            aria-hidden
-            style={{
-              position: 'absolute', left: 0, right: 0, bottom: 0, height: 48,
-              borderRadius: '0 0 8px 8px', pointerEvents: 'none',
-              background: 'linear-gradient(to bottom, transparent, var(--t-bgSecondary))',
-            }}
-          />
-        )}
-      </div>
-      {dlouha && (
-        <div style={{ marginTop: 8 }}>
-          <TextButton
-            label={expanded ? 'Zobrazit méně' : 'Zobrazit celou zprávu'}
-            variant="brand"
-            size="sm"
-            leadIcon={expanded ? ChevronUp : ChevronDown}
-            onClick={() => setExpanded(v => !v)}
-          />
-        </div>
       )}
+      {children}
     </div>
   )
 }
 
-// Nadpis skupiny v časové ose — popisek + dopočítaná linka.
-function GroupHeading({ label, color }: { label: string; color?: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <span style={{ ...GROUP_LABEL, color: color ?? 'var(--t-textTertiary)' }}>{label}</span>
-      <span style={{ flex: 1, height: 1, background: 'var(--t-borderPrimary)' }} />
-    </div>
-  )
-}
-
-// Řádek akce v pravém panelu — ikona v dlaždici + popisek.
-function RailAction({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick?: () => void }) {
-  const [hovered, setHovered] = useState(false)
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        width: '100%', padding: '6px 8px',
-        display: 'flex', alignItems: 'center', gap: 12,
-        background: hovered ? 'var(--t-bgHover)' : 'transparent',
-        border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-        transition: 'background 0.15s',
-      }}
-    >
-      <span style={{
-        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--t-bgMyDOCKTertiary)',
-      }}>
-        <Icon size={16} style={{ color: 'var(--t-textMyDOCKPrimary)' }} />
-      </span>
-      <span style={{ fontSize: 14, fontWeight: 500, lineHeight: '20px', color: 'var(--t-textPrimary)' }}>
-        {label}
-      </span>
-    </button>
-  )
-}
-
-// ── Stránka ─────────────────────────────────────────────────────────────────────
+// ── Page ─────────────────────────────────────────────────────────────────────────
 
 export default function PoptavkaDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [tab, setTab] = useState('klienti')
+  const [novyKlientOpen, setNovyKlientOpen] = useState(false)
+  const [detailParOpen, setDetailParOpen] = useState<ParRow | null>(null)
 
-  const [agendaFilter, setAgendaFilter] = useState('vse')
-  const [historieOpen, setHistorieOpen] = useState(false)
-  const [hypotekaOdpoved, setHypotekaOdpoved] = useState<'ano' | 'ne' | null>(null)
-  const [ukolOpen, setUkolOpen] = useState(false)
-  const [komunikaceOpen, setKomunikaceOpen] = useState(false)
-  const [schuzkaOpen, setSchuzkaOpen] = useState(false)
-  const [predatOpen, setPredatOpen] = useState(false)
-  const [upravitOpen, setUpravitOpen] = useState(false)
-  const [vysledekOpen, setVysledekOpen] = useState(false)
-  const [poznamkaOpen, setPoznamkaOpen] = useState(false)
-  const [poznamka, setPoznamka] = useState('')
-  const [stavMenuOpen, setStavMenuOpen] = useState(false)
-  const [stav, setStav] = useState('Domluvená prohlídka')
-
-  const p = poptavkyData.find(r => r.id === id)
-  if (!p) {
+  const poptavka = poptavkyData.find(l => String(l.id) === id)
+  if (!poptavka) {
     return <div style={{ padding: 24, color: 'var(--t-textSecondary)' }}>Poptávka nenalezena.</div>
   }
 
-  const [klientJmeno, klientEmail, klientTelefon] = p.klient.split('\n')
-
-  // Nemovitost z nabídky, když pro ID existuje; jinak parametry z fallbacku.
-  const nabidka = nabidkyData.find(n => n.id === p.idNabidky)
-  const nemovitost = {
-    ...NABIDKA_FALLBACK,
-    adresa: nabidka?.adresa ?? NABIDKA_FALLBACK.adresa,
-    cena: nabidka?.cena ?? NABIDKA_FALLBACK.cena,
-    stav: nabidka?.stavNabidky ?? NABIDKA_FALLBACK.stav,
-  }
-
-  const viditelne = AGENDA.filter(a => agendaFilter === 'vse'
-    || (agendaFilter === 'ukoly' && a.kind === 'ukol')
-    || (agendaFilter === 'schuzky' && a.kind === 'schuzka')
-    || (agendaFilter === 'komunikace' && a.kind === 'komunikace'))
-
-  // Historie chronologicky vzestupně; poslední záznam před dneškem zůstává vidět,
-  // starší se schovají za akci a scrollují.
-  const historie = viditelne.filter(a => a.group === 'historie').reverse()
-  const historiePosledni = historie[historie.length - 1]
-  const historieStarsi = historie.slice(0, -1)
+  const poptavkaKod = `L${poptavka.id}`
+  const prilezitostiZPoptavky = prilezitostiData.filter(p => p.idPoptavky === poptavkaKod)
 
   return (
     <>
-      <div style={{ margin: -24, background: 'var(--t-bgSecondary)', minHeight: 'calc(100vh - 56px)' }}>
+    <div style={{ margin: -24, background: 'var(--t-bgSecondary)', minHeight: 'calc(100vh - 56px)' }}>
 
-        {/* Hlavička — bílý pás přes celou šířku, stejně jako v detailu nabídky */}
-        <div style={{ background: 'var(--t-bgPrimary)', borderBottom: '1px solid var(--t-borderPrimary)' }}>
-          <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0, padding: '24px 0' }}>
-              <div style={{ marginTop: 2 }}>
-                <IconButton icon={ArrowLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={() => navigate('/obchod/poptavky')} />
-              </div>
-              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, lineHeight: '32px', color: 'var(--t-textPrimary)', minWidth: 0 }}>
-                Poptávka - {klientJmeno}
-                <span style={{ fontWeight: 500, color: 'var(--t-textTertiary)' }}> · {p.id}</span>
+      {/* Header */}
+      <div style={{ background: 'var(--t-bgSecondary)' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 24px 12px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+            <IconButton icon={ArrowLeft} variant="ghost" size="md" onClick={() => navigate('/obchod/poptavky')} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <Breadcrumbs items={[
+                { label: 'Poptávky', onClick: () => navigate('/obchod/poptavky') },
+                { label: poptavkaKod },
+              ]} />
+              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, lineHeight: '32px', color: 'var(--t-textPrimary)' }}>
+                Detail poptávky {poptavkaKod}
               </h1>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ maxWidth: 1440, margin: '0 auto', padding: 24 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: 16, alignItems: 'start' }}>
-
-            {/* ── Obsah ───────────────────────────────────────────────── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
-
-              {/* Klient — hero karta */}
-              <div style={CARD}>
-                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-                  {/* Identita + kontakt */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
-                    <Avatar initials={getInitials(klientJmeno)} size="lg" color="dark" />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
-                      <span style={{ fontSize: 20, fontWeight: 700, lineHeight: '26px', color: 'var(--t-textPrimary)' }}>
-                        {klientJmeno}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <Tag label={stav} variant={stavVariant(stav)} size="sm" lead="indicator" />
-                        <Tag label={p.id} variant="neutral" size="sm" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ borderTop: '1px solid var(--t-borderPrimary)' }} />
-
-                  {/* Fakta o poptávce — kompaktní řádky ve dvou sloupcích */}
-                  <div style={{
-                    display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                    columnGap: 32, rowGap: 0,
-                  }}>
-                    <FactLine
-                      icon={User}
-                      label="Makléř"
-                      value={p.makler}
-                      action={<TextButton label="Předat" variant="brand" size="sm" leadIcon={RefreshCw} onClick={() => setPredatOpen(true)} />}
-                    />
-                    <FactLine icon={Globe} label="Zdroj poptávky" value={p.zdroj} />
-                    <FactLine icon={Phone} label="Telefon" value={klientTelefon} href={`tel:${klientTelefon.replace(/\s/g, '')}`} />
-                    <FactLine icon={Mail} label="E-mail" value={klientEmail} href={`mailto:${klientEmail}`} />
-                    <FactLine icon={CalendarClock} label="Přišla" value={formatDatumCas(p.datumVytvoreni)} />
-                    <FactLine icon={Clock} label="Poslední kontakt" value={formatPosledniKontakt(p.datumPosledniZmeny)} />
-                  </div>
-                </div>
+              <div style={{ alignSelf: 'flex-start' }}>
+                <StavBadge stav="Aktivní" />
               </div>
-
-              {/* Zájem o hypotéku — dotaz zmizí po odpovědi */}
-              {hypotekaOdpoved === null && (
-                <Alert
-                  variant="warning"
-                  rich
-                  icon={CircleDollarSign}
-                  label="Má klient zájem o hypotéku?"
-                  description="Vyžaduje odpověď - při zájmu se odešle lead finančnímu poradci."
-                  actions={[
-                    { label: 'Ano, odeslat lead', variant: 'warning', leadIcon: Send, onClick: () => setHypotekaOdpoved('ano') },
-                    { label: 'Ne', variant: 'secondary', onClick: () => setHypotekaOdpoved('ne') },
-                  ]}
-                />
-              )}
-              {hypotekaOdpoved === 'ano' && (
-                <Alert
-                  variant="success"
-                  label="Lead byl odeslán finančnímu poradci."
-                  onDismiss={() => setHypotekaOdpoved(null)}
-                />
-              )}
-
-              {/* Zpráva od klienta */}
-              <Widget
-                title="Zpráva od klienta"
-                action={<TextButton label="Odpovědět" variant="brand" onClick={() => setKomunikaceOpen(true)} />}
-                meta={
-                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                    <span style={{ ...META_TEXT, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={13} style={{ flexShrink: 0 }} />
-                      Doručeno: <span style={{ fontWeight: 600, color: 'var(--t-textPrimary)' }}>{formatDatumCas(p.datumVytvoreni)}</span>
-                    </span>
-                    <span style={{ ...META_TEXT, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <Globe size={13} style={{ flexShrink: 0 }} />
-                      Kanál: <span style={{ fontWeight: 600, color: 'var(--t-textPrimary)' }}>{p.typKontaktu} ({p.zdroj})</span>
-                    </span>
-                  </div>
-                }
-              >
-                <ZpravaKlienta text={zpravaKlienta(p.id, klientJmeno, p.nazevNabidky)} />
-              </Widget>
-
-              {/* Nemovitost, na kterou poptávka reaguje */}
-              <Widget
-                title="Reaguje na nabídku"
-                action={<Tag label={`ID ${p.idNabidky}`} variant="neutral" size="sm" />}
-              >
-                <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                  <img
-                    src={nemovitost.foto}
-                    alt=""
-                    style={{ width: 148, height: 100, objectFit: 'cover', borderRadius: 8, flexShrink: 0, background: 'var(--t-bgTertiary)' }}
-                  />
-                  <div style={{ flex: 1, minWidth: 240, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                      <button
-                        onClick={() => navigate(`/nabidky/${p.idNabidky}`)}
-                        style={{
-                          padding: 0, border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left',
-                          fontSize: 16, fontWeight: 600, lineHeight: '24px', color: 'var(--t-textMyDOCKPrimary)',
-                        }}
-                      >
-                        {p.nazevNabidky}
-                      </button>
-                      <TextButton
-                        label="Otevřít nabídku"
-                        variant="brand"
-                        tailIcon={ArrowUpRight}
-                        onClick={() => navigate(`/nabidky/${p.idNabidky}`)}
-                      />
-                    </div>
-                    <span style={{ ...META_TEXT, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <MapPin size={13} style={{ flexShrink: 0 }} />
-                      {nemovitost.adresa}
-                    </span>
-                    <span style={{ fontSize: 20, fontWeight: 700, lineHeight: '28px', color: 'var(--t-textPrimary)', letterSpacing: '-0.3px' }}>
-                      {formatCena(nemovitost.cena)}
-                    </span>
-                    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 2 }}>
-                      <InlineFact icon={Maximize2} label="Plocha" value={nemovitost.plocha} />
-                      <InlineFact icon={KeyRound} label="Vlastnictví" value={nemovitost.vlastnictvi} />
-                      <InlineFact icon={CircleDot} label="Stav" value={nemovitost.stav} />
-                      <InlineFact icon={MessageSquare} label="Poptávek" value={String(nemovitost.poptavek)} />
-                    </div>
-                  </div>
-                </div>
-              </Widget>
-
-              {/* Agenda a komunikace */}
-              <div style={{ ...CARD, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '16px 16px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={WIDGET_TITLE}>Agenda a komunikace</span>
-                  <TooltipIcon
-                    content="Úkoly se uzavírají odškrtnutím. U schůzky se vždy zadává výsledek (proběhla, neproběhla, zrušena nebo přesunuta), který se uloží do historie."
-                    placement="right"
-                  />
-                </div>
-
-                {/* Filtr typu záznamu */}
-                <div style={{ padding: '12px 16px' }}>
-                  <PillTabGroup
-                    size="md"
-                    value={agendaFilter}
-                    onChange={setAgendaFilter}
-                    tabs={[
-                      { value: 'vse', label: 'Vše' },
-                      { value: 'ukoly', label: 'Úkoly' },
-                      { value: 'schuzky', label: 'Schůzky' },
-                      { value: 'komunikace', label: 'Komunikace' },
-                    ]}
-                  />
-                </div>
-
-                <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-                  {/* Historie — navrchu, sbalená za akcí; vidět zůstává poslední záznam před dneškem */}
-                  {historie.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <GroupHeading label="Historie" />
-
-                      {historieStarsi.length > 0 && (
-                        <>
-                          <div style={{ alignSelf: 'flex-start' }}>
-                            <TextButton
-                              label={historieOpen
-                                ? 'Skrýt starší záznamy'
-                                : `Zobrazit starší záznamy (${historieStarsi.length})`}
-                              variant="brand"
-                              size="sm"
-                              leadIcon={historieOpen ? ChevronUp : ChevronDown}
-                              onClick={() => setHistorieOpen(v => !v)}
-                            />
-                          </div>
-                          {historieOpen && historieStarsi.map(item => (
-                            <AgendaRow key={item.id} item={item} onVysledek={() => setVysledekOpen(true)} />
-                          ))}
-                        </>
-                      )}
-
-                      {historiePosledni && (
-                        <AgendaRow item={historiePosledni} onVysledek={() => setVysledekOpen(true)} />
-                      )}
-                    </div>
-                  )}
-
-                  {/* Dnešek a budoucnost */}
-                  {AGENDA_GROUPS.map(g => {
-                    const items = viditelne.filter(a => a.group === g.key)
-                    if (items.length === 0) return null
-                    return (
-                      <div key={g.key} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <GroupHeading
-                          label={g.label}
-                          color={g.key === 'poTerminu' ? '#DC2626' : g.key === 'vysledek' ? '#B45309' : undefined}
-                        />
-                        {items.map(item => (
-                          <AgendaRow key={item.id} item={item} onVysledek={() => setVysledekOpen(true)} />
-                        ))}
-                      </div>
-                    )
-                  })}
-
-                  {viditelne.length === 0 && (
-                    <p style={{ margin: 0, padding: '24px 0', textAlign: 'center', fontSize: 14, color: 'var(--t-textSecondary)' }}>
-                      Pro vybraný filtr tu nic není.
-                    </p>
-                  )}
-                </div>
-
-              </div>
-            </div>
-
-            {/* ── Pravý panel ─────────────────────────────────────────── */}
-            <div style={{ position: 'sticky', top: 72, display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-            {/* Stav a akce */}
-            <div style={{ ...CARD, padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-              {/* Stav poptávky */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ ...WIDGET_TITLE, minWidth: 0 }}>Stav poptávky</span>
-                  <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <TextButton label="Změnit" variant="brand" size="sm" leadIcon={RefreshCw} onClick={() => setStavMenuOpen(v => !v)} />
-                    {stavMenuOpen && (
-                      <>
-                        <div onClick={() => setStavMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-                        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 21 }}>
-                          <Menu width={240}>
-                            <MenuHeading label="Stav poptávky" />
-                            {STAVY.map(s => (
-                              <MenuItem
-                                key={s}
-                                label={s}
-                                variant={stav === s ? 'active' : 'default'}
-                                onClick={() => { setStav(s); setStavMenuOpen(false) }}
-                              />
-                            ))}
-                          </Menu>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div style={{ alignSelf: 'flex-start' }}>
-                  <Tag label={stav} variant={stavVariant(stav)} size="md" lead="indicator" />
-                </div>
-              </div>
-
-              {[
-                {
-                  title: 'Komunikace',
-                  actions: [
-                    { icon: Pencil, label: 'Zapsat komunikaci', onClick: () => setKomunikaceOpen(true) },
-                    { icon: Mail, label: 'Odeslat e-mail', onClick: () => setKomunikaceOpen(true) },
-                    { icon: Smartphone, label: 'Odeslat SMS', onClick: () => setKomunikaceOpen(true) },
-                    { icon: Phone, label: 'Zavolat', onClick: () => setKomunikaceOpen(true) },
-                  ],
-                },
-                {
-                  title: 'Plánování',
-                  actions: [
-                    { icon: Calendar, label: 'Naplánovat schůzku', onClick: () => setSchuzkaOpen(true) },
-                    { icon: CheckSquare, label: 'Nový úkol', onClick: () => setUkolOpen(true) },
-                  ],
-                },
-                {
-                  title: 'Správa',
-                  actions: [
-                    { icon: Pencil, label: 'Upravit poptávku', onClick: () => setUpravitOpen(true) },
-                    { icon: StickyNote, label: 'Interní poznámka', onClick: () => setPoznamkaOpen(true) },
-                  ],
-                },
-              ].map(group => (
-                <div key={group.title} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{
-                    fontSize: 16, fontWeight: 700, lineHeight: '24px',
-                    color: 'var(--t-textPrimary)', padding: '0 2px', marginBottom: 4,
-                  }}>{group.title}</span>
-                  {group.actions.map(a => (
-                    <RailAction key={a.label} icon={a.icon} label={a.label} onClick={a.onClick} />
-                  ))}
-                </div>
-              ))}
-
-              {/* Interní poznámka */}
-              {poznamka.trim() && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--t-borderPrimary)', paddingTop: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <span style={GROUP_LABEL}>Interní poznámka</span>
-                    <TextButton label="Upravit" variant="brand" size="sm" leadIcon={Pencil} onClick={() => setPoznamkaOpen(true)} />
-                  </div>
-                  <div style={{
-                    background: 'var(--t-bgSecondary)', borderRadius: 8, padding: 12,
-                    fontSize: 13, lineHeight: '20px', color: 'var(--t-textPrimary)',
-                    whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                  }}>
-                    {poznamka}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Souhrn — propojené záznamy jako rekapitulace, oddělená karta pod akcemi */}
-            <div style={{ ...CARD, padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={WIDGET_TITLE}>Propojené záznamy</span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <SummaryListItem
-                  label="Nabídka"
-                  length="short"
-                  align="right"
-                  value={{ kind: 'action', label: String(p.idNabidky), onClick: () => navigate(`/nabidky/${p.idNabidky}`) }}
-                />
-                <div style={{ borderTop: '1px dashed var(--t-borderPrimary)' }} />
-                <SummaryListItem
-                  label="Lead"
-                  length="short"
-                  align="right"
-                  value={{ kind: 'action', label: p.idLeadu, onClick: () => navigate('/obchod/lead') }}
-                />
-                <div style={{ borderTop: '1px dashed var(--t-borderPrimary)' }} />
-                <SummaryListItem
-                  label="Pobočka"
-                  length="short"
-                  align="right"
-                  value={{ kind: 'text', text: p.pobocka }}
-                />
-              </div>
-            </div>
             </div>
           </div>
         </div>
       </div>
 
-      {komunikaceOpen && <ZapsatKomunikaceModal onClose={() => setKomunikaceOpen(false)} />}
-      {schuzkaOpen && <NovyProhlidkaModal onClose={() => setSchuzkaOpen(false)} />}
-      {ukolOpen && <NovyUkolModal defaultResitel={p.makler} onClose={() => setUkolOpen(false)} />}
-      {predatOpen && <ZmenitMaklereModal currentMakler={p.makler} onClose={() => setPredatOpen(false)} />}
-      {upravitOpen && (
-        <PoptavkaPanel
-          nabidka={nabidka}
-          initial={{
-            telefon: klientTelefon,
-            email: klientEmail,
-            jmeno: klientJmeno.split(' ')[0],
-            prijmeni: klientJmeno.split(' ').slice(1).join(' '),
-            pobocka: p.pobocka,
-            makler: p.makler,
-          }}
-          onClose={() => setUpravitOpen(false)}
-        />
-      )}
-      {vysledekOpen && <ZapsatVysledekModal onClose={() => setVysledekOpen(false)} />}
-      {poznamkaOpen && (
-        <InterniPoznamkaModal
-          initialValue={poznamka}
-          onClose={() => setPoznamkaOpen(false)}
-          onSave={text => { setPoznamka(text); setPoznamkaOpen(false) }}
-        />
-      )}
+      {/* Sticky tabs */}
+      <div style={{ position: 'sticky', top: 56, zIndex: 10, background: 'var(--t-bgSecondary)', borderBottom: '1px solid var(--t-borderPrimary)' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
+          <LineTabGroup tabs={TABS} value={tab} onChange={setTab} />
+        </div>
+      </div>
+
+      {/* Body — 2 : 1 grid */}
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, alignItems: 'flex-start' }}>
+
+          {/* Left */}
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* Klienti */}
+            {tab === 'klienti' && (
+              <SectionCard
+                title="Klienti"
+                action={<TextButton label="Nový klient" variant="brand" leadIcon={Plus} onClick={() => setNovyKlientOpen(true)} />}
+              >
+                <SimpleTable
+                  cols={[
+                    { key: 'id', label: 'ID', width: 60 },
+                    { key: 'klient', label: 'Klient', width: 180, render: r => <AvatarText name={String(r.klient)} /> },
+                    { key: 'makler', label: 'Makléř', width: 200, render: r => <AvatarText name={String(r.makler)} /> },
+                    { key: 'vytvoren', label: 'Vytvořen', width: 170 },
+                    { key: 'posledniAktivita', label: 'Poslední aktivita', width: 170 },
+                    { key: 'prilezitosti', label: 'Příležitostí', width: 110, align: 'right' },
+                    { key: 'platnostDo', label: 'Platnost do', width: 160 },
+                    { key: 'stav', label: 'Stav', width: 130, render: r => <StavBadge stav={String(r.stav)} /> },
+                  ]}
+                  rows={KLIENTI_MOCK as unknown as Record<string, unknown>[]}
+                  rowActions={[
+                    { icon: SearchIcon, tooltip: 'Detail' },
+                    { icon: Eye,        tooltip: 'Zobrazit' },
+                  ]}
+                />
+              </SectionCard>
+            )}
+
+            {/* Příležitosti */}
+            {tab === 'prilezitosti' && (
+              <SectionCard title={undefined}>
+                {prilezitostiZPoptavky.length === 0 ? (
+                  <div style={{ padding: 32, textAlign: 'center', color: 'var(--t-textSecondary)' }}>K této poptávce zatím nejsou žádné příležitosti.</div>
+                ) : (
+                  <SimpleTable
+                    cols={[
+                      { key: 'id', label: 'ID', width: 70 },
+                      { key: 'klient',     label: 'Klient',     width: 180, render: r => <AvatarText name={String(r.klient).split('\n')[0]} /> },
+                      { key: 'idNabidky',  label: 'ID nabídky', width: 100 },
+                      { key: 'nazevNabidky', label: 'Název',    width: 280, flex: true },
+                      { key: 'typNabidky', label: 'Typ',        width: 90 },
+                      { key: 'podtyp',     label: 'Podtyp',     width: 90, render: () => <span style={{ fontSize: 14, color: 'var(--t-textPrimary)' }}>2 + kk</span> },
+                      { key: 'plocha',     label: 'Plocha',     width: 80,  align: 'right', render: () => <span style={{ fontSize: 14, color: 'var(--t-textPrimary)' }}>55</span> },
+                      { key: 'cena',       label: 'Cena',       width: 140, align: 'right', render: () => <span style={{ fontSize: 14, color: 'var(--t-textPrimary)' }}>{fmtCena(5490000)}</span> },
+                      { key: 'datumPosledniZmeny', label: 'Poslední aktivita', width: 160 },
+                      { key: 'stavPrilezitosti', label: 'Stav', width: 110, render: r => <Tag label={String(r.stavPrilezitosti)} variant="success" size="sm" lead="indicator" /> },
+                    ]}
+                    rows={prilezitostiZPoptavky as unknown as Record<string, unknown>[]}
+                    onRowClick={(row) => window.open(`/obchod/prilezitosti/${row.id}`, '_blank')}
+                  />
+                )}
+              </SectionCard>
+            )}
+
+            {/* Páry */}
+            {tab === 'pary' && (
+              <SectionCard title={undefined}>
+                <SimpleTable
+                  cols={[
+                    { key: 'klient',    label: 'Klient',     width: 160, render: r => <AvatarText name={String(r.klient)} /> },
+                    { key: 'idNabidky', label: 'ID nabídky', width: 100 },
+                    { key: 'nazev',     label: 'Název',      width: 360, flex: true },
+                    { key: 'typ',       label: 'Typ',        width: 80 },
+                    { key: 'podtyp',    label: 'Podtyp',     width: 90 },
+                    { key: 'plocha',    label: 'Plocha',     width: 80,  align: 'right' },
+                    { key: 'cena',      label: 'Cena',       width: 140, align: 'right', format: (v) => fmtCena(v as number) },
+                  ]}
+                  rows={PARY_MOCK as unknown as Record<string, unknown>[]}
+                  onRowClick={(row) => setDetailParOpen(row as unknown as ParRow)}
+                />
+              </SectionCard>
+            )}
+          </div>
+
+          {/* Right sidebar */}
+          <div style={{ width: '100%', background: 'var(--t-bgPrimary)', border: '1px solid var(--t-borderPrimary)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <SideSection title="Informace o nemovitosti" first>
+              <SidebarRow label="Typ obchodu" value={poptavka.typPoptavky} />
+              <SidebarRow label="Type nemovitosti" value={poptavka.typNemovitosti} />
+              <SidebarRow label="Podtyp" value={poptavka.podtyp || ''} />
+              <SidebarRow label="Užitná plocha" value={poptavka.plochaOd || poptavka.plochaDo ? `${poptavka.plochaOd} - ${poptavka.plochaDo} m²` : ''} />
+              <SidebarRow label="Cena" value={`${fmtCena(poptavka.cenaOd)} - ${fmtCena(poptavka.cenaDo)}`} />
+              <SidebarRow label="Lokalita" value="" />
+            </SideSection>
+
+            <SideSection title="Status poptávky">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 24 }}>
+                <span style={{ fontSize: 13, color: 'var(--t-textSecondary)', width: 140, flexShrink: 0 }}>Stav</span>
+                <Tag label="Aktivní" variant="brand" size="sm" />
+              </div>
+              <SidebarRow label="Poslední aktivita" value={poptavka.datumVytvoreni} />
+              <SidebarRow label="Vytvořeno" value={poptavka.datumVytvoreni} />
+            </SideSection>
+
+            <SideSection title="Propojené záznamy">
+              <SidebarRow label="Klientů" value={poptavka.klientu} />
+              <SidebarRow label="Příležitostí" value={String(poptavka.prilezitosti)} />
+              <SidebarRow label="Spolupráce" value={poptavka.spoluprace} />
+            </SideSection>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    {novyKlientOpen && <NovyKlientPoptavkyPanel onClose={() => setNovyKlientOpen(false)} />}
+    {detailParOpen && <DetailParuModal par={detailParOpen} onClose={() => setDetailParOpen(null)} />}
     </>
   )
 }
+
+function SideSection({ title, children, first }: { title: string; children: React.ReactNode; first?: boolean }) {
+  return (
+    <div style={{ paddingTop: first ? 0 : 12, borderTop: first ? undefined : '1px solid var(--t-borderPrimary)' }}>
+      <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--t-textPrimary)', marginBottom: 8 }}>{title}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function SidebarRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', minHeight: 24, gap: 12, fontSize: 13 }}>
+      <span style={{ color: 'var(--t-textSecondary)', width: 140, flexShrink: 0 }}>{label}</span>
+      <span style={{ color: 'var(--t-textPrimary)', fontWeight: 500, flex: 1, wordBreak: 'break-all' }}>{value || '—'}</span>
+    </div>
+  )
+}
+
+// ── Minimal inline table (uses design system TableHeaderCell + TableCell) ──────
+
+interface SimpleColDef {
+  key: string
+  label: string
+  width?: number
+  flex?: boolean
+  align?: 'left' | 'right'
+  render?: (row: Record<string, unknown>) => React.ReactNode
+  format?: (value: unknown) => string
+}
+
+interface RowAction {
+  icon: typeof SearchIcon
+  tooltip?: string
+  onClick?: (row: Record<string, unknown>) => void
+}
+
+function SimpleTable({ cols, rows, rowActions, onRowClick }: { cols: SimpleColDef[]; rows: Record<string, unknown>[]; rowActions?: RowAction[]; onRowClick?: (row: Record<string, unknown>) => void }) {
+  const actionsWidth = rowActions ? rowActions.length * 40 + (rowActions.length - 1) * 2 + 32 : 0
+  const [hoveredRow, setHoveredRow] = useState<number | null>(null)
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <div style={{ minWidth: cols.reduce((s, c) => s + (c.width ?? 0), 0) + actionsWidth }}>
+        {/* Header */}
+        <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', background: 'var(--t-bgSecondary)' }}>
+          {cols.map(c => (
+            <div key={c.key} className={c.align === 'right' ? 'th-right' : undefined} style={{ flex: c.flex ? 1 : 'none', minWidth: c.flex ? c.width : undefined, pointerEvents: 'none' }}>
+              <TableHeaderCell label={c.label} width={c.flex ? '100%' : c.width} />
+            </div>
+          ))}
+          {rowActions && <div style={{ width: actionsWidth, flexShrink: 0 }} />}
+        </div>
+
+        {/* Rows */}
+        {rows.map((row, ri) => {
+          const hovered = hoveredRow === ri
+          return (
+            <div
+              key={ri}
+              style={{ display: 'flex', cursor: onRowClick ? 'pointer' : 'default' }}
+              onMouseEnter={() => setHoveredRow(ri)}
+              onMouseLeave={() => setHoveredRow(null)}
+              onClick={() => onRowClick?.(row)}
+            >
+              {cols.map(c => {
+                const label = c.format ? c.format(row[c.key]) : (c.render ? undefined : String(row[c.key] ?? '–'))
+                const content = !c.format && c.render ? c.render(row) : undefined
+                return c.flex ? (
+                  <div key={c.key} style={{ flex: 1, minWidth: c.width, display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 16, borderBottom: '1px solid var(--t-borderPrimary)', background: hovered ? 'var(--t-bgHover)' : undefined, transition: 'background 150ms' }}>
+                    {content ?? <span style={{ fontSize: 14, color: 'var(--t-textPrimary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>}
+                  </div>
+                ) : (
+                  <TableCell
+                    key={c.key}
+                    size="spacious"
+                    width={c.width}
+                    hovered={hovered}
+                    borderBottom
+                    label={label}
+                    content={content ? <div style={{ overflow: 'hidden', minWidth: 0, width: (c.width ?? 0) - 32 }}>{content}</div> : undefined}
+                    align={c.align === 'right' ? 'right' : 'left'}
+                  />
+                )
+              })}
+              {rowActions && (
+                <div
+                  onClick={e => e.stopPropagation()}
+                  style={{ width: actionsWidth, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2, paddingRight: 16, borderBottom: '1px solid var(--t-borderPrimary)', background: hovered ? 'var(--t-bgHover)' : undefined, transition: 'background 150ms' }}
+                >
+                  {rowActions.map((a, i) => (
+                    <IconButton key={i} icon={a.icon} variant="ghost" size="md" tooltip={a.tooltip} onClick={() => a.onClick?.(row)} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+

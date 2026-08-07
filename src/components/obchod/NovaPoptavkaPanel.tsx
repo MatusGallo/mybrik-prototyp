@@ -5,6 +5,8 @@ import { Form, TextButton, Input, Select, TextArea, Checkbox, Button, IconButton
 import SelectSearch from '../shared/SelectSearch'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import KlientSearchModal from '../klienti/KlientSearchModal'
+import TelefonInput from '../shared/TelefonInput'
+import { VYCHOZI_PREDVOLBA } from '../../data/telefonPredvolby'
 import TypNemovitostiSelector, { TYP_NEMOVITOSTI_OPTS } from './TypNemovitostiSelector'
 import { pobockyData, uzivateleData } from '../../data/mockOstatni'
 import type { KlientData } from '../klienti/KlientPanel'
@@ -116,9 +118,9 @@ function formatPrice(p: string): string {
   return new Intl.NumberFormat('cs-CZ').format(num)
 }
 
-// ── Lead summary ───────────────────────────────────────────────────────────────
+// ── Poptávka summary ───────────────────────────────────────────────────────────────
 
-function LeadSummary({ typNemovitosti, typPoptavky, kraj, okres, obec, cenaOd, cenaDo, onEdit }: {
+function PoptavkaSummary({ typNemovitosti, typPoptavky, kraj, okres, obec, cenaOd, cenaDo, onEdit }: {
   typNemovitosti: string; typPoptavky: string
   kraj: string; okres: string; obec: string
   cenaOd: string; cenaDo: string
@@ -174,7 +176,7 @@ interface Props {
   onClose: () => void
 }
 
-export default function NovyLeadPanel({ onClose }: Props) {
+export default function NovaPoptavkaPanel({ onClose }: Props) {
   const [showDiscard, setShowDiscard] = useState(false)
   const [klientModalOpen, setKlientModalOpen] = useState(false)
   const [submitAttempted, setSubmitAttempted] = useState(false)
@@ -199,7 +201,7 @@ export default function NovyLeadPanel({ onClose }: Props) {
   const [cenaDo, setCenaDo] = useState('')
 
   // Client
-  const [telefon, setTelefon] = useState('+420')
+  const [telefon, setTelefon] = useState(VYCHOZI_PREDVOLBA)
   const [email, setEmail] = useState('')
   const [jmeno, setJmeno] = useState('')
   const [prijmeni, setPrijmeni] = useState('')
@@ -298,7 +300,7 @@ export default function NovyLeadPanel({ onClose }: Props) {
 
   const footerActions = [
     { label: 'Zrušit', variant: 'outlined' as const, onClick: handleClose },
-    { label: 'Vytvořit lead', variant: 'primary' as const, disabled: !step2Done, onClick: handleSubmit },
+    { label: 'Vytvořit poptávku', variant: 'primary' as const, disabled: !step2Done, onClick: handleSubmit },
   ]
 
   return (
@@ -319,7 +321,7 @@ export default function NovyLeadPanel({ onClose }: Props) {
           footer={{ actions: footerActions }}
         >
           <div style={{ position: 'sticky', top: 0, zIndex: 1, padding: 24, background: 'var(--t-bgSecondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-            <span style={{ fontSize: 24, fontWeight: 600, lineHeight: '32px', color: 'var(--t-textPrimary)', fontFamily: 'Inter' }}>Vytvořit lead</span>
+            <span style={{ fontSize: 24, fontWeight: 600, lineHeight: '32px', color: 'var(--t-textPrimary)', fontFamily: 'Inter' }}>Vytvořit poptávku</span>
             <IconButton icon={X} variant="ghost" size="md" onClick={handleClose} />
           </div>
           <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -327,8 +329,8 @@ export default function NovyLeadPanel({ onClose }: Props) {
             {/* Kritéria — summary nebo formulář */}
             {step2Done ? (
               <div style={WIDGET}>
-                <span style={HEADING}>Poptávka</span>
-                <LeadSummary
+                <span style={HEADING}>Kritéria</span>
+                <PoptavkaSummary
                   typNemovitosti={typNemovitosti}
                   typPoptavky={typPoptavky}
                   kraj={kraj}
@@ -475,7 +477,7 @@ export default function NovyLeadPanel({ onClose }: Props) {
                     <TextButton label="Vyhledat klienta" variant="brand" leadIcon={SearchIcon} onClick={() => setKlientModalOpen(true)} />
                   </div>
                   <div style={G4}>
-                    <Input label="Telefon" value={telefon} onChange={setTelefon} width="100%" />
+                    <TelefonInput value={telefon} onChange={setTelefon} />
                     <Input label="E-mail" required value={email} onChange={setEmail} error={showError('email')} width="100%" />
                     <Input label="Jméno" required value={jmeno} onChange={setJmeno} error={showError('jmeno')} width="100%" />
                     <Input label="Příjmení" required value={prijmeni} onChange={setPrijmeni} error={showError('prijmeni')} width="100%" />
@@ -500,7 +502,7 @@ export default function NovyLeadPanel({ onClose }: Props) {
 
                 <div style={WIDGET}>
                   <span style={HEADING}>Interní poznámka</span>
-                  <TextArea placeholder="Zadejte doplňující informace k leadu" value={poznamka} onChange={setPoznamka} width="100%" minHeight={120} />
+                  <TextArea placeholder="Zadejte doplňující informace k poptávce" value={poznamka} onChange={setPoznamka} width="100%" minHeight={120} />
                 </div>
 
                 <div style={WIDGET}>

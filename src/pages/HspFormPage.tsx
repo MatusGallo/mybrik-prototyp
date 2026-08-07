@@ -8,12 +8,14 @@ import {
   SwitchGroup, Tag, Toggle, TooltipIcon, typography,
 } from '@matusgallo/mysabds'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
+import TelefonInput from '../components/shared/TelefonInput'
 import {
   BANKY, EMPTY_SUBJEKT, OSOBY, SUBJEKT_DEFS, SUBJEKT_KEYS,
   emptyHspForm, hspFormFromRow,
   type HspForm, type OsobaOption, type Stav, type Subjekt, type SubjektKey, type TypOsoby,
 } from '../data/hspForm'
 import { hspData } from '../data/mockOstatni'
+import { chybaTelefonu } from '../data/telefonPredvolby'
 
 // ── Volby ────────────────────────────────────────────────────────────────────
 
@@ -223,6 +225,7 @@ export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const [stav, setStav] = useState<Stav>(init.stav)
   const [osobaId, setOsobaId] = useState(init.osoba?.value ?? '')
   const [email, setEmail] = useState(init.email)
+  const [predvolba, setPredvolba] = useState(init.predvolba)
   const [telefon, setTelefon] = useState(init.telefon)
   const [subjekty, setSubjekty] = useState<Record<SubjektKey, Subjekt>>(init.subjekty)
   const [provize, setProvize] = useState(init.provize)
@@ -249,6 +252,7 @@ export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
     const o = osobyOptions.find(x => x.value === value)
     if (o) {
       setEmail(o.email)
+      setPredvolba(o.predvolba)
       setTelefon(o.telefon)
     }
   }
@@ -271,8 +275,8 @@ export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
   if (!osobaId) errors.osoba = 'Vyberte odpovědnou osobu.'
   if (!email.trim()) errors.email = 'Zadejte e-mail.'
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) errors.email = 'Zadejte e-mail ve formátu jmeno@firma.cz.'
-  if (!telefon.trim()) errors.telefon = 'Zadejte telefonní číslo.'
-  else if (digits(telefon).length !== 9) errors.telefon = 'Telefonní číslo má 9 číslic.'
+  const chybaTel = chybaTelefonu(predvolba, telefon)
+  if (chybaTel) errors.telefon = chybaTel
 
   if (zapnuteKlice.length === 0) errors.subjekty = 'Zapněte alespoň jeden fakturační subjekt.'
 
@@ -317,6 +321,7 @@ export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
     stav !== init.stav ||
     osobaId !== (init.osoba?.value ?? '') ||
     email !== init.email ||
+    predvolba !== init.predvolba ||
     telefon !== init.telefon ||
     provize !== init.provize ||
     mydockId !== init.mydockId ||
@@ -629,11 +634,11 @@ export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
                   value={email} onChange={setEmail}
                   error={err('email')} width="100%"
                 />
-                <Input
-                  label="Telefon" required leadBadge="+420"
-                  placeholder="777 123 456"
+                <TelefonInput
+                  required
                   value={telefon} onChange={setTelefon}
-                  error={err('telefon')} width="100%"
+                  predvolba={predvolba} onPredvolbaChange={setPredvolba}
+                  error={err('telefon')}
                 />
               </Cols>
             </Card>

@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, forwardRef } from 'react'
-import { Calendar, SlidersHorizontal, Check } from 'lucide-react'
+import { Calendar, SlidersHorizontal, Check, Columns3Cog, Eye, EyeOff } from 'lucide-react'
 import type { LucideProps, LucideIcon } from 'lucide-react'
 
 const BrandCheck = forwardRef<SVGSVGElement, LucideProps>((props, ref) => (
   <Check ref={ref} {...props} color="var(--t-textMyDOCKPrimary)" />
 )) as LucideIcon
-import { FilterButton, FilterSelect, Chip, TextButton, Menu, MenuItem, Search } from '@matusgallo/mysabds'
+import { FilterButton, FilterSelect, FilterIconButton, Chip, TextButton, Menu, MenuItem, MenuDivider, Search } from '@matusgallo/mysabds'
 import { DateField, TextInputField } from './FilterDropdown'
 
 export interface FilterGroupConfig {
@@ -29,14 +29,29 @@ export interface FilterSearchConfig {
   placeholder?: string
 }
 
+/** Sloupec, který uživatel může v tabulce zapnout a vypnout. */
+export interface FilterColumnConfig {
+  key: string
+  label: string
+}
+
 interface PageFilterBarProps {
   search?: FilterSearchConfig
   groups?: FilterGroupConfig[]
   fields?: FilterFieldConfig[]
+  /** Přepínatelné sloupce - bez nich se ikona nastavení sloupců nezobrazí. */
+  columns?: FilterColumnConfig[]
+  hiddenCols?: Set<string>
+  onToggleCol?: (key: string) => void
+  onHideAllCols?: () => void
+  onShowAllCols?: () => void
   onClear: () => void
 }
 
-export default function PageFilterBar({ search, groups = [], fields = [], onClear }: PageFilterBarProps) {
+export default function PageFilterBar({
+  search, groups = [], fields = [], columns = [],
+  hiddenCols, onToggleCol, onHideAllCols, onShowAllCols, onClear,
+}: PageFilterBarProps) {
   const [open, setOpen] = useState<string | null>(null)
   const [leavingTags, setLeavingTags] = useState<Set<string>>(new Set())
   const [dropdownSearch, setDropdownSearch] = useState<Record<string, string>>({})
@@ -168,6 +183,47 @@ export default function PageFilterBar({ search, groups = [], fields = [], onClea
             </div>
           )
         })}
+
+        {columns.length > 0 && (
+          <>
+            <div style={{ flex: 1 }} />
+            <div style={{ position: 'relative' }}>
+              <FilterIconButton
+                icon={Columns3Cog}
+                tooltip="Nastavit sloupce"
+                active={open === 'columns'}
+                onClick={() => toggle('columns')}
+              />
+              {open === 'columns' && (() => {
+                const visible = columns.filter(c => !hiddenCols?.has(c.key))
+                const hidden  = columns.filter(c =>  hiddenCols?.has(c.key))
+                return (
+                  <Menu style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 100, animation: 'dropdownEnter 180ms cubic-bezier(0.16, 1, 0.3, 1) both', maxHeight: 340, overflowY: 'auto' }} width={320}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 12px 2px' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--t-textTertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Zobrazené v tabulce</span>
+                      {visible.length > 0 && <TextButton label="Skrýt vše" size="sm" onClick={onHideAllCols} />}
+                    </div>
+                    {visible.map(col => (
+                      <MenuItem key={col.key} label={col.label} trailIcon={Eye} variant="default" onClick={() => onToggleCol?.(col.key)} />
+                    ))}
+                    {hidden.length > 0 && (
+                      <>
+                        <MenuDivider />
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 12px 2px' }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--t-textTertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Skryté v tabulce</span>
+                          <TextButton label="Zobrazit vše" size="sm" onClick={onShowAllCols} />
+                        </div>
+                        {hidden.map(col => (
+                          <MenuItem key={col.key} label={col.label} trailIcon={EyeOff} variant="default" onClick={() => onToggleCol?.(col.key)} />
+                        ))}
+                      </>
+                    )}
+                  </Menu>
+                )
+              })()}
+            </div>
+          </>
+        )}
 
       </div>
 

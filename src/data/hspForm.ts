@@ -1,4 +1,5 @@
 import { hspData, uzivateleData } from './mockOstatni'
+import { VYCHOZI_PREDVOLBA, rozdelTelefon } from './telefonPredvolby'
 
 // ── Model formuláře HSP ───────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ export interface OsobaOption {
   label: string
   sub?: string
   email: string
+  predvolba: string
   telefon: string
 }
 
@@ -41,6 +43,8 @@ export interface HspForm {
   stav: Stav
   osoba: OsobaOption | null
   email: string
+  /** Předvolba státu, číslo je v `telefon` bez ní. */
+  predvolba: string
   telefon: string
   subjekty: Record<SubjektKey, Subjekt>
   provize: string
@@ -91,13 +95,17 @@ const bezTitulu = (v: string) =>
 
 export const OSOBY: OsobaOption[] = [...uzivateleData]
   .sort((a, b) => `${a.prijmeni} ${a.jmeno}`.localeCompare(`${b.prijmeni} ${b.jmeno}`, 'cs'))
-  .map(u => ({
-    value: String(u.id),
-    label: `${u.titulPred ? `${u.titulPred} ` : ''}${u.jmeno} ${u.prijmeni}`,
-    sub: u.role,
-    email: u.firemnEmail,
-    telefon: u.telefon.replace(/^\+420\s*/, ''),
-  }))
+  .map(u => {
+    const { predvolba, cislo } = rozdelTelefon(u.telefon)
+    return {
+      value: String(u.id),
+      label: `${u.titulPred ? `${u.titulPred} ` : ''}${u.jmeno} ${u.prijmeni}`,
+      sub: u.role,
+      email: u.firemnEmail,
+      predvolba,
+      telefon: cislo,
+    }
+  })
 
 /**
  * Osoba ze seznamu HSP. Starší záznamy odkazují na lidi, které mock uživatelů
@@ -115,6 +123,7 @@ function osobaPodleJmena(jmeno: string, id: number): OsobaOption {
     value: `externi-${id}`,
     label: jmeno,
     email: `${slug || 'kontakt'}@sabservis.cz`,
+    predvolba: VYCHOZI_PREDVOLBA,
     telefon: telefonZId(id),
   }
 }
@@ -152,6 +161,7 @@ export function emptyHspForm(): HspForm {
     stav: 'neaktivni',
     osoba: null,
     email: '',
+    predvolba: VYCHOZI_PREDVOLBA,
     telefon: '',
     subjekty: { platce: { ...EMPTY_SUBJEKT }, neplatce: { ...EMPTY_SUBJEKT } },
     provize: '100',
@@ -203,6 +213,7 @@ export function hspFormFromRow(row: HspRow): HspForm {
     stav: row.stav === 'Aktivní' ? 'aktivni' : 'neaktivni',
     osoba,
     email: osoba.email,
+    predvolba: osoba.predvolba,
     telefon: osoba.telefon,
     subjekty: { platce, neplatce },
     provize: '100',

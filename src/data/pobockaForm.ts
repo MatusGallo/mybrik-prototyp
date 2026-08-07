@@ -1,4 +1,5 @@
 import { pobockyData } from './mockOstatni'
+import { VYCHOZI_PREDVOLBA, rozdelTelefon } from './telefonPredvolby'
 
 // ── Exportní můstky ───────────────────────────────────────────────────────────
 
@@ -139,6 +140,8 @@ export type MustkyStav = Record<string, Record<string, string>>
 
 export interface PobockaForm {
   nazev: string
+  /** Předvolba státu, číslo je v `telefon` bez ní. */
+  predvolba: string
   telefon: string
   email: string
   hsp: string
@@ -162,10 +165,10 @@ export const VYCHOZI_KRYTI = 75
 
 export function emptyPobockaForm(): PobockaForm {
   return {
-    nazev: '', telefon: '', email: '', hsp: '', zobrazitNaWebu: false,
+    nazev: '', predvolba: VYCHOZI_PREDVOLBA, telefon: '', email: '', hsp: '', zobrazitNaWebu: false,
     adresa: '',
     logo: null, hlavniBarva: VYCHOZI_HLAVNI, doplnkovaBarva: VYCHOZI_DOPLNKOVA,
-    watermark: false, watermarkObrazek: null, umisteni: 'stred', kryti: VYCHOZI_KRYTI,
+    watermark: true, watermarkObrazek: null, umisteni: 'stred', kryti: VYCHOZI_KRYTI,
     mustky: {},
     knJmeno: '', knHeslo: '',
   }
@@ -193,7 +196,7 @@ export function pobockaFormFromRow(row: PobockaRow): PobockaForm {
   return {
     ...emptyPobockaForm(),
     nazev: row.nazev,
-    telefon: row.telefon.replace(/^\+420\s*/, ''),
+    ...rozdelTelefonProFormular(row.telefon),
     email: row.email,
     hsp: row.hsp,
     zobrazitNaWebu: row.stav === 'Aktivní',
@@ -202,4 +205,10 @@ export function pobockaFormFromRow(row: PobockaRow): PobockaForm {
     knJmeno: `pobocka${row.id}@kn.cz`,
     knHeslo: `Kn-${row.id}-2026`,
   }
+}
+
+/** Rozdělí uložené číslo na pole formuláře. */
+function rozdelTelefonProFormular(hodnota: string): { predvolba: string; telefon: string } {
+  const { predvolba, cislo } = rozdelTelefon(hodnota)
+  return { predvolba, telefon: cislo }
 }

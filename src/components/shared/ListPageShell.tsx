@@ -72,7 +72,11 @@ export default function ListPageShell({
         {children}
       </div>
 
-      {totalPages > 1 && <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />}
+      {totalPages > 1 && (
+        <div className="mt-4">
+          <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
+        </div>
+      )}
     </div>
   )
 }

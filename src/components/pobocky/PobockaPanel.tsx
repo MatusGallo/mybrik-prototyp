@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { CloudUpload, X } from 'lucide-react'
 import { Form, Input, TextArea, Select, ToggleItem, IconButton } from '@matusgallo/mysabds'
 import { hspData, pobockyData } from '../../data/mockOstatni'
+import TelefonInput from '../shared/TelefonInput'
+import { VYCHOZI_PREDVOLBA } from '../../data/telefonPredvolby'
 
 export type PobockaPanelMode = 'detail' | 'edit' | 'create'
 
@@ -38,7 +40,7 @@ interface PobockaPanelProps {
 }
 
 const EMPTY: Partial<PobockaData> = {
-  nazev: '', oficialniNazev: '', adresa: '', oteviraci: '', telefon: '+420', email: '', hsp: '',
+  nazev: '', oficialniNazev: '', adresa: '', oteviraci: '', telefon: VYCHOZI_PREDVOLBA, email: '', hsp: '',
   odpovednaOsoba: '', stav: 'Připravuje se', zobrazitNaWebu: false, popis: '',
   sreality_id: '', sreality_hash: '', sreality_klic: '', sreality_idMaklere: '',
   realityMix_id: '', realityMix_heslo: '', realityMix_klic: '',
@@ -273,7 +275,7 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
           <Input label="Otevírací doba" value={String(form.oteviraci ?? '')} onChange={v => set('oteviraci', v)} width="100%" />
         </TwoCol>
         <TwoCol>
-          <Input label="Telefonní číslo" required value={String(form.telefon ?? '')} onChange={v => set('telefon', v)} width="100%" />
+          <TelefonInput label="Telefonní číslo" required value={String(form.telefon ?? '')} onChange={v => set('telefon', v)} />
           <Input label="E-mail" required value={String(form.email ?? '')} onChange={v => set('email', v)} width="100%" />
         </TwoCol>
         <TwoCol>

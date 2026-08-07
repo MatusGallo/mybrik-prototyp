@@ -5,6 +5,8 @@ import { Form, TextButton, Input, Select, TextArea, Search, TableHeaderCell, Tab
 import SelectSearch from '../shared/SelectSearch'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import KlientSearchModal from '../klienti/KlientSearchModal'
+import TelefonInput from '../shared/TelefonInput'
+import { VYCHOZI_PREDVOLBA } from '../../data/telefonPredvolby'
 import { nabidkyData } from '../../data/mockData'
 import type { Nabidka } from '../../data/mockData'
 import { pobockyData, uzivateleData } from '../../data/mockOstatni'
@@ -132,8 +134,8 @@ function PropertyRow({ row, idx, onSelect, isLast, showAction }: {
 
 // ── Panel ──────────────────────────────────────────────────────────────────────
 
-/** Výchozí hodnoty pro úpravu existující poptávky. */
-export interface PoptavkaInitial {
+/** Výchozí hodnoty pro úpravu existující příležitosti. */
+export interface PrilezitostInitial {
   telefon?: string
   email?: string
   jmeno?: string
@@ -144,13 +146,13 @@ export interface PoptavkaInitial {
 
 interface Props {
   onClose: () => void
-  /** Předvybraná nemovitost - poptávka zakládaná z detailu nabídky. */
+  /** Předvybraná nemovitost - příležitost zakládaná z detailu nabídky. */
   nabidka?: Nabidka
-  /** S výchozími hodnotami panel poptávku upravuje, bez nich zakládá novou. */
-  initial?: PoptavkaInitial
+  /** S výchozími hodnotami panel příležitost upravuje, bez nich zakládá novou. */
+  initial?: PrilezitostInitial
 }
 
-export default function PoptavkaPanel({ onClose, nabidka, initial }: Props) {
+export default function PrilezitostPanel({ onClose, nabidka, initial }: Props) {
   const jeUprava = !!initial
 
   const [showDiscard, setShowDiscard] = useState(false)
@@ -159,7 +161,7 @@ export default function PoptavkaPanel({ onClose, nabidka, initial }: Props) {
   const [isChanging, setIsChanging] = useState(false)
   const [klientModalOpen, setKlientModalOpen] = useState(false)
 
-  const [telefon, setTelefon] = useState(initial?.telefon || '+420')
+  const [telefon, setTelefon] = useState(initial?.telefon || VYCHOZI_PREDVOLBA)
   const [email, setEmail] = useState(initial?.email ?? '')
   const [jmeno, setJmeno] = useState(initial?.jmeno ?? '')
   const [prijmeni, setPrijmeni] = useState(initial?.prijmeni ?? '')
@@ -222,7 +224,7 @@ export default function PoptavkaPanel({ onClose, nabidka, initial }: Props) {
             actions: [
               { label: 'Zrušit', variant: 'outlined', onClick: handleClose },
               {
-                label: jeUprava ? 'Uložit změny' : 'Vytvořit poptávku',
+                label: jeUprava ? 'Uložit změny' : 'Vytvořit příležitost',
                 variant: 'primary', disabled: !step1Done, onClick: onClose,
               },
             ],
@@ -230,7 +232,7 @@ export default function PoptavkaPanel({ onClose, nabidka, initial }: Props) {
         >
           <div style={{ position: 'sticky', top: 0, zIndex: 1, padding: 24, background: 'var(--t-bgSecondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
             <span style={{ fontSize: 24, fontWeight: 600, lineHeight: '32px', color: 'var(--t-textPrimary)', fontFamily: 'Inter' }}>
-              {jeUprava ? 'Upravit poptávku' : 'Vytvořit poptávku'}
+              {jeUprava ? 'Upravit příležitost' : 'Vytvořit příležitost'}
             </span>
             <IconButton icon={X} variant="ghost" size="md" onClick={handleClose} />
           </div>
@@ -286,7 +288,7 @@ export default function PoptavkaPanel({ onClose, nabidka, initial }: Props) {
                     <TextButton label="Vyhledat klienta" variant="brand" leadIcon={SearchIcon} onClick={() => setKlientModalOpen(true)} />
                   </div>
                   <div style={G4}>
-                    <Input label="Telefon" value={telefon} onChange={setTelefon} width="100%" />
+                    <TelefonInput value={telefon} onChange={setTelefon} />
                     <Input label="E-mail" required value={email} onChange={setEmail} width="100%" />
                     <Input label="Jméno" required value={jmeno} onChange={setJmeno} width="100%" />
                     <Input label="Příjmení" required value={prijmeni} onChange={setPrijmeni} width="100%" />
@@ -311,7 +313,7 @@ export default function PoptavkaPanel({ onClose, nabidka, initial }: Props) {
 
                 <div style={WIDGET}>
                   <span style={HEADING}>Interní poznámka</span>
-                  <TextArea placeholder="Zadejte doplňující informace k poptávce" value={poznamka} onChange={setPoznamka} width="100%" minHeight={120} />
+                  <TextArea placeholder="Zadejte doplňující informace k příležitosti" value={poznamka} onChange={setPoznamka} width="100%" minHeight={120} />
                 </div>
 
                 <div style={WIDGET}>

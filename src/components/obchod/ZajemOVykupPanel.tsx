@@ -5,6 +5,8 @@ import { Form, TextButton, Input, Select, TextArea, Button, IconButton } from '@
 import SelectSearch from '../shared/SelectSearch'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import KlientSearchModal from '../klienti/KlientSearchModal'
+import TelefonInput from '../shared/TelefonInput'
+import { VYCHOZI_PREDVOLBA } from '../../data/telefonPredvolby'
 import TypNemovitostiSelector, { TYP_NEMOVITOSTI_OPTS } from './TypNemovitostiSelector'
 import { pobockyData, uzivateleData } from '../../data/mockOstatni'
 import type { KlientData } from '../klienti/KlientPanel'
@@ -120,7 +122,7 @@ export default function ZajemOVykupPanel({ onClose }: Props) {
   const [cenaNespec, setCenaNespec] = useState('Ne')
   const [cena, setCena] = useState('')
 
-  const [telefon, setTelefon] = useState('+420')
+  const [telefon, setTelefon] = useState(VYCHOZI_PREDVOLBA)
   const [email, setEmail] = useState('')
   const [jmeno, setJmeno] = useState('')
   const [prijmeni, setPrijmeni] = useState('')
@@ -288,7 +290,7 @@ export default function ZajemOVykupPanel({ onClose }: Props) {
                     />
                   </div>
                   <div style={G4}>
-                    <Input label="Telefon" value={telefon} onChange={setTelefon} width="100%" />
+                    <TelefonInput value={telefon} onChange={setTelefon} />
                     <Input label="E-mail" required value={email} onChange={setEmail} width="100%" />
                     <Input label="Jméno" required value={jmeno} onChange={setJmeno} width="100%" />
                     <Input label="Příjmení" required value={prijmeni} onChange={setPrijmeni} width="100%" />
