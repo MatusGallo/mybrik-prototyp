@@ -6,7 +6,7 @@ import {
 import {
   IconButton, LineTabGroup, TextButton, TableHeaderCell, TableCell, TextArea,
 } from '@matusgallo/mysabds'
-import { nabidkaNemovitostiData } from '../../data/mockObchod'
+import { nabidkaNemovitostiData, typNemovitostiLabel } from '../../data/mockObchod'
 import CallcentrumKomunikaceModal from '../../components/obchod/CallcentrumKomunikaceModal'
 import PredatZaznamModal from '../../components/obchod/PredatZaznamModal'
 import ZrusitZaznamModal from '../../components/obchod/ZrusitZaznamModal'
@@ -313,7 +313,7 @@ export default function NabidkaNemovitostiDetailPage() {
             <div style={WIDGET}>
               <div style={WIDGET_HEADING}>Detail nabídky</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <KVRow label="Typ objektu" value={n.typObjektu} />
+                <KVRow label="Typ objektu" value={typNemovitostiLabel(n.typObjektu)} />
                 <KVRow label="Typ nabídky" value={n.typNemovitosti} />
                 <KVRow label="Cena" value={fmtCena(n.cena)} />
                 <KVRow label="Pobočka" value={n.pobocka} />

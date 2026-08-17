@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ArrowUpRight } from 'lucide-react'
-import { IconButton, Button, TextButton, Tag, typography } from '@matusgallo/mysabds'
+import {
+  IconButton, Button, TextButton, Tag, typography, isFloatingPanelOpen,
+} from '@matusgallo/mysabds'
 
 export interface ParRow {
   klient: string
@@ -42,7 +44,13 @@ function KV({ label, value }: { label: string; value: string }) {
 
 export default function DetailParuModal({ par, onClose }: Props) {
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Nad rozbaleným seznamem nebo kalendářem patří Escape jemu, ne modálu -
+      // jinak jeden stisk zavře obojí a rozepsaný formulář je pryč.
+      if (isFloatingPanelOpen()) return
+      onClose()
+    }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])

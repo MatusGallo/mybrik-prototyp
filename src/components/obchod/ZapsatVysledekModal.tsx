@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import { IconButton, Button, Select, TextArea } from '@matusgallo/mysabds'
+import { IconButton, Button, Select, TextArea, isFloatingPanelOpen,
+} from '@matusgallo/mysabds'
 
 const VYSLEDKY = [
   { value: 'neuskutecnila_se', label: 'Neuskutečnila se' },
@@ -25,7 +26,13 @@ export default function ZapsatVysledekModal({ onClose, onSave }: Props) {
   }
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Nad rozbaleným seznamem nebo kalendářem patří Escape jemu, ne modálu -
+      // jinak jeden stisk zavře obojí a rozepsaný formulář je pryč.
+      if (isFloatingPanelOpen()) return
+      onClose()
+    }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])

@@ -1,7 +1,9 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import { IconButton, Button, Tag } from '@matusgallo/mysabds'
+import { IconButton, Button, Tag, isFloatingPanelOpen,
+} from '@matusgallo/mysabds'
+import { stavProhlidkyVariant } from '../../data/mockObchod'
 
 const MOCK_HISTORY = [
   { autor: 'Michaela Flachsová', datum: '31.07.2025 09:14', poznamka: 'Dobrý den, posílám pozvánku na prohlídku. Díky' },
@@ -21,16 +23,15 @@ interface Props {
   onClose: () => void
 }
 
-function stavVariant(stav: string) {
-  if (stav === 'Zrušena') return 'danger' as const
-  if (stav === 'Čeká na výsledek') return 'warning' as const
-  if (stav === 'Proběhla') return 'success' as const
-  return 'neutral' as const
-}
-
 export default function ProhlidkaDetailModal({ p, onClose }: Props) {
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Nad rozbaleným seznamem nebo kalendářem patří Escape jemu, ne modálu -
+      // jinak jeden stisk zavře obojí a rozepsaný formulář je pryč.
+      if (isFloatingPanelOpen()) return
+      onClose()
+    }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
@@ -68,7 +69,7 @@ export default function ProhlidkaDetailModal({ p, onClose }: Props) {
             {/* Meta */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
-                { label: 'Stav', content: <Tag label={p.stav} variant={stavVariant(p.stav)} size="sm" /> },
+                { label: 'Stav', content: <Tag label={p.stav} variant={stavProhlidkyVariant(p.stav)} size="sm" /> },
                 { label: 'Řešitel', content: p.resitel || '—' },
                 { label: 'Termín prohlídky', content: p.termin },
                 { label: 'Délka prohlídky', content: p.delka },

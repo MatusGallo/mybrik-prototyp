@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import {
   IconButton, Button, Select, Input, Tooltip, FileUploadArea, FileUploadItem,
-  type FileUploadStatus, type FileUploadItemProps,
+  type FileUploadStatus, type FileUploadItemProps, isFloatingPanelOpen,
 } from '@matusgallo/mysabds'
 
 const KATEGORIE_OPT = [
@@ -77,7 +77,13 @@ export default function NahratDokumentyModal({ onClose, defaultKategorie }: Prop
   const nahrano = soubory.filter(s => s.status === 'uploaded').length
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Nad rozbaleným seznamem nebo kalendářem patří Escape jemu, ne modálu -
+      // jinak jeden stisk zavře obojí a rozepsaný formulář je pryč.
+      if (isFloatingPanelOpen()) return
+      onClose()
+    }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])

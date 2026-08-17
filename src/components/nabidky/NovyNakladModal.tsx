@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import { IconButton, Button, Input, Select, ToggleItem } from '@matusgallo/mysabds'
+import {
+  IconButton, Button, Input, Select, DatePicker, ToggleItem, isFloatingPanelOpen,
+} from '@matusgallo/mysabds'
 
 const KATEGORIE_OPT = [
   { value: 'pravni-sluzby', label: 'Právní služby' },
@@ -38,6 +40,17 @@ function formatCena(amount: number): string {
   }).format(amount) + ' Kč'
 }
 
+/** Řádek tabulky nákladů nese datum jako `DD.MM.RRRR`, DatePicker jako `Date`. */
+function parseDatum(value: string): Date | null {
+  const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(value.trim())
+  if (!m) return null
+  const [, den, mesic, rok] = m
+  const d = new Date(Number(rok), Number(mesic) - 1, Number(den))
+  // Neexistující datum („31.02.“) si Date přepočítá na jiný měsíc - takové
+  // zadání není platná hodnota.
+  return d.getMonth() === Number(mesic) - 1 ? d : null
+}
+
 export interface NakladFormData {
   nazev: string
   dodavatel: string
@@ -60,7 +73,9 @@ export default function NovyNakladModal({ onClose, initialData }: Props) {
   const [dodavatel, setDodavatel] = useState(initialData?.dodavatel ?? '')
   const [kategorie, setKategorie] = useState(initialData?.kategorie ?? 'pravni-sluzby')
   const [platba, setPlatba] = useState(initialData?.platba ?? 'provize')
-  const [datum, setDatum] = useState(initialData?.datum ?? '01.06.2026')
+  const [datum, setDatum] = useState<Date | null>(
+    () => parseDatum(initialData?.datum ?? '01.06.2026'),
+  )
   const [platceDPH, setPlatceDPH] = useState(initialData?.platceDPH ?? false)
   const [dph, setDph] = useState(initialData?.dph ?? '21')
   const [castka, setCastka] = useState(initialData?.castka ?? '')
@@ -72,7 +87,13 @@ export default function NovyNakladModal({ onClose, initialData }: Props) {
   const castkaCelkem = platceDPH ? castkaNum * (1 + dphRate) : castkaNum
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Nad rozbaleným seznamem nebo kalendářem patří Escape jemu, ne modálu -
+      // jinak jeden stisk zavře obojí a rozepsaný formulář je pryč.
+      if (isFloatingPanelOpen()) return
+      onClose()
+    }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
@@ -156,7 +177,7 @@ export default function NovyNakladModal({ onClose, initialData }: Props) {
 
             {/* Datum + Částka row — both half width */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <Input
+              <DatePicker
                 label="Datum vzniku"
                 value={datum}
                 onChange={setDatum}

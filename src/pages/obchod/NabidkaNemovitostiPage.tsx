@@ -5,14 +5,14 @@ import ListPageShell from '../../components/shared/ListPageShell'
 import DataTable from '../../components/shared/DataTable'
 import PageFilterBar from '../../components/shared/PageFilterBar'
 import NabidkaNemovitostiPanel from '../../components/obchod/NabidkaNemovitostiPanel'
-import { nabidkaNemovitostiData } from '../../data/mockObchod'
+import { nabidkaNemovitostiData, typNemovitostiLabel, typNemovitostiVariant, typObchoduVariant } from '../../data/mockObchod'
 import { pobockyData, makleriList } from '../../data/mockOstatni'
 import { renderDatum } from '../../utils/tableRenders'
 import { renderAvatarName } from '../../utils/renderAvatarName'
 
 const POBOCKY = pobockyData.map(p => p.nazev)
 const STAVY = ['Aktivní', 'Uzavřeno', 'Storno', 'V přípravě']
-const PAGE_SIZE = 10
+const PAGE_SIZE = 50
 const fmt = (v: number) => v > 0 ? new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(v) : '0 Kč'
 
 const cols = [
@@ -20,15 +20,18 @@ const cols = [
   { key: 'idTicketu', label: 'ID ticketu', width: 90 },
   { key: 'ccId', label: 'CC ID', width: 70 },
   { key: 'cena', label: 'Cena', width: 140, align: 'right' as const, format: (v: unknown) => fmt(v as number) },
+  // Barvy sjednocené s Příležitostmi a Poptávkami. Pozor na pojmenování: „Typ
+  // objektu“ je druh nemovitosti, zatímco „Typ nemovitosti“ tady nese prodej /
+  // pronájem, tedy totéž co „Typ poptávky“ na poptávkách.
   { key: 'typObjektu', label: 'Typ objektu', width: 110, render: (r: Record<string, unknown>) => {
     const v = String(r.typObjektu ?? '')
     if (!v) return null
-    return <Tag label={v} variant="outline" size="sm" />
+    return <Tag label={typNemovitostiLabel(v)} variant={typNemovitostiVariant(v)} size="sm" />
   }},
   { key: 'typNemovitosti', label: 'Typ nemovitosti', width: 130, render: (r: Record<string, unknown>) => {
     const v = String(r.typNemovitosti ?? '')
     if (!v) return null
-    return <Tag label={v} variant="outline" size="sm" />
+    return <Tag label={v} variant={typObchoduVariant(v)} size="sm" />
   }},
   { key: 'makler', label: 'Makléř', width: 240, flex: true, render: renderAvatarName('makler') },
   { key: 'pobocka', label: 'Pobočka', width: 240, flex: true },
@@ -79,9 +82,9 @@ export default function NabidkaNemovitostiPage() {
         />
       }
       page={page}
-      totalPages={Math.ceil(20 / PAGE_SIZE)}
+      totalPages={Math.ceil(nabidkaNemovitostiData.length / PAGE_SIZE)}
       onPageChange={setPage}
-      totalCount={20}
+      totalCount={nabidkaNemovitostiData.length}
     >
       <DataTable
         cols={cols}

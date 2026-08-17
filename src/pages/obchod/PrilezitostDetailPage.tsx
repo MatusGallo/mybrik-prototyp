@@ -4,12 +4,13 @@ import {
   ArrowLeft, ArrowRight, ArrowUpRight, Phone, Mail, Smartphone, MessageSquare,
   Calendar, CalendarClock, CheckSquare, Clock, MapPin, User, Pencil,
   StickyNote, RefreshCw, Send, CircleDollarSign, ChevronDown, ChevronUp, Globe,
-  Maximize2, KeyRound, CircleDot,
+  Maximize2, KeyRound, CircleDot, CircleCheck, Circle, Wallet, PiggyBank,
+  Landmark, UserCheck, Building2,
   type LucideIcon,
 } from 'lucide-react'
 import {
   Avatar, Tag, IconButton, TextButton, Button, Alert, PillTabGroup,
-  Menu, MenuItem, MenuHeading, SummaryListItem, TooltipIcon, typography,
+  Menu, MenuItem, MenuHeading, SummaryListItem, TooltipIcon, typography, iconSize,
 } from '@matusgallo/mysabds'
 import { prilezitostiData, STAVY_PRILEZITOSTI, stavPrilezitostiVariant } from '../../data/mockObchod'
 import { nabidkyData } from '../../data/mockData'
@@ -19,6 +20,9 @@ import ZapsatKomunikaceModal from '../../components/obchod/ZapsatKomunikaceModal
 import NovyProhlidkaModal from '../../components/obchod/NovyProhlidkaModal'
 import ZmenitMaklereModal from '../../components/obchod/ZmenitMaklereModal'
 import ZapsatVysledekModal from '../../components/obchod/ZapsatVysledekModal'
+import OdeslatSmsModal from '../../components/obchod/OdeslatSmsModal'
+import OdeslatEmailModal from '../../components/obchod/OdeslatEmailModal'
+import OdeslatLeadHypoModal, { type LeadHypoData } from '../../components/obchod/OdeslatLeadHypoModal'
 import InterniPoznamkaModal from '../../components/nabidky/InterniPoznamkaModal'
 
 // ── Mock detail dat ─────────────────────────────────────────────────────────────
@@ -170,6 +174,43 @@ const AGENDA_GROUPS: { key: AgendaGroup; label: string }[] = [
 
 const STAVY = STAVY_PRILEZITOSTI
 
+// ── Lead na hypotéku ────────────────────────────────────────────────────────────
+// Odeslaný lead vyřizuje finanční poradce v myDOCKu, takže stavy vyřizování jsou
+// cizí data - myBRIK je jen zobrazuje. Dokud není napojení hotové, kreslí je
+// tenhle mock; struktura kroků odpovídá tomu, co se z myDOCKu bude načítat.
+
+type KrokStav = 'hotovo' | 'aktualni' | 'ceka'
+
+interface HypoKrok {
+  label: string
+  stav: KrokStav
+  /** Kdy se krok stal. U čekajících kroků chybí. */
+  kdy?: string
+}
+
+function hypoPrubeh(odeslano: Date): HypoKrok[] {
+  const prideleno = new Date(odeslano.getTime() + 2 * 60_000)
+  return [
+    { label: 'Lead přijat v myDOCK', stav: 'hotovo', kdy: formatDateCas(odeslano) },
+    { label: 'Přidělen poradci', stav: 'hotovo', kdy: formatDateCas(prideleno) },
+    { label: 'Poradce kontaktuje klienta', stav: 'aktualni' },
+    { label: 'Žádost podaná do banky', stav: 'ceka' },
+    { label: 'Hypotéka vyřízena', stav: 'ceka' },
+  ]
+}
+
+const KROK_IKONA: Record<KrokStav, LucideIcon> = {
+  hotovo: CircleCheck,
+  aktualni: CircleDot,
+  ceka: Circle,
+}
+
+const KROK_BARVA: Record<KrokStav, string> = {
+  hotovo: '#16A34A',
+  aktualni: 'var(--t-textMyDOCKPrimary)',
+  ceka: 'var(--t-textTertiary)',
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────────
 
 function getInitials(name: string): string {
@@ -178,6 +219,18 @@ function getInitials(name: string): string {
 
 function formatCena(cena: number) {
   return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(cena)
+}
+
+/** Date → '17. 8. 2026 · 14:05' */
+function formatDateCas(d: Date) {
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${d.getDate()}. ${d.getMonth() + 1}. ${d.getFullYear()} · ${hh}:${mm}`
+}
+
+/** Telefon v podobě, kterou přijme odkaz `tel:` */
+function telHref(telefon: string) {
+  return `tel:${telefon.replace(/\s/g, '')}`
 }
 
 /** '04.09.2025 08:33' → '4. 9. 2025 · 08:33' */
@@ -515,33 +568,62 @@ function GroupHeading({ label, color }: { label: string; color?: string }) {
   )
 }
 
-// Řádek akce v pravém panelu — ikona v dlaždici + popisek.
-function RailAction({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick?: () => void }) {
+// Řádek akce v pravém panelu — ikona v dlaždici + popisek. S `href` je to odkaz
+// (volání se předává telefonu, ne modálu), jinak tlačítko.
+function RailAction({ icon: Icon, label, href, onClick }: {
+  icon: LucideIcon; label: string; href?: string; onClick?: () => void
+}) {
   const [hovered, setHovered] = useState(false)
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        width: '100%', padding: '6px 8px',
-        display: 'flex', alignItems: 'center', gap: 12,
-        background: hovered ? 'var(--t-bgHover)' : 'transparent',
-        border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-        transition: 'background 0.15s',
-      }}
-    >
+  const style: CSSProperties = {
+    width: '100%', padding: '6px 8px',
+    display: 'flex', alignItems: 'center', gap: 12,
+    background: hovered ? 'var(--t-bgHover)' : 'transparent',
+    border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+    textDecoration: 'none', transition: 'background 0.15s',
+  }
+  const obsah = (
+    <>
       <span style={{
         width: 32, height: 32, borderRadius: 8, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'var(--t-bgMyDOCKTertiary)',
       }}>
-        <Icon size={16} style={{ color: 'var(--t-textMyDOCKPrimary)' }} />
+        <Icon size={iconSize.md} style={{ color: 'var(--t-textMyDOCKPrimary)' }} />
       </span>
       <span style={{ fontSize: 14, fontWeight: 500, lineHeight: '20px', color: 'var(--t-textPrimary)' }}>
         {label}
       </span>
-    </button>
+    </>
+  )
+  const events = {
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+  }
+
+  if (href) {
+    return <a href={href} style={style} {...events}>{obsah}</a>
+  }
+  return <button onClick={onClick} style={style} {...events}>{obsah}</button>
+}
+
+// Krok vyřizování hypotéky — stav načtený z myDOCKu, ne editovatelný záznam.
+function HypoKrokRow({ krok }: { krok: HypoKrok }) {
+  const Ikona = KROK_IKONA[krok.stav]
+  const barva = KROK_BARVA[krok.stav]
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, padding: '4px 0' }}>
+      <Ikona size={iconSize.md} style={{ color: barva, flexShrink: 0 }} />
+      <span style={{
+        fontSize: 13, lineHeight: '18px', flex: 1, minWidth: 0,
+        fontWeight: krok.stav === 'aktualni' ? 600 : 500,
+        color: krok.stav === 'ceka' ? 'var(--t-textTertiary)' : 'var(--t-textPrimary)',
+      }}>
+        {krok.label}
+      </span>
+      <span style={{ ...META_TEXT, whiteSpace: 'nowrap', flexShrink: 0 }}>
+        {krok.stav === 'aktualni' ? 'Probíhá' : krok.kdy ?? ''}
+      </span>
+    </div>
   )
 }
 
@@ -553,10 +635,16 @@ export default function PrilezitostDetailPage() {
 
   const [agendaFilter, setAgendaFilter] = useState('vse')
   const [historieOpen, setHistorieOpen] = useState(false)
-  const [hypotekaOdpoved, setHypotekaOdpoved] = useState<'ano' | 'ne' | null>(null)
+  // Hypotéka má tři stavy: nezodpovězeno, odmítnuto (jde vrátit) a odeslaný lead.
+  const [hypoLead, setHypoLead] = useState<(LeadHypoData & { odeslano: Date }) | null>(null)
+  const [hypoOdmitnuto, setHypoOdmitnuto] = useState<Date | null>(null)
+  const [hypoModalOpen, setHypoModalOpen] = useState(false)
   const [ukolOpen, setUkolOpen] = useState(false)
   const [komunikaceOpen, setKomunikaceOpen] = useState(false)
-  const [schuzkaOpen, setSchuzkaOpen] = useState(false)
+  const [prohlidkaOpen, setProhlidkaOpen] = useState(false)
+  const [smsOpen, setSmsOpen] = useState(false)
+  const [emailOpen, setEmailOpen] = useState(false)
+  const [odpovedOpen, setOdpovedOpen] = useState(false)
   const [predatOpen, setPredatOpen] = useState(false)
   const [upravitOpen, setUpravitOpen] = useState(false)
   const [vysledekOpen, setVysledekOpen] = useState(false)
@@ -660,32 +748,106 @@ export default function PrilezitostDetailPage() {
                 </div>
               </div>
 
-              {/* Zájem o hypotéku — dotaz zmizí po odpovědi */}
-              {hypotekaOdpoved === null && (
+              {/* Zájem o hypotéku — dokud není odeslaný lead, stojí tady dotaz */}
+              {!hypoLead && !hypoOdmitnuto && (
                 <Alert
                   variant="warning"
                   rich
                   icon={CircleDollarSign}
                   label="Má klient zájem o hypotéku?"
-                  description="Vyžaduje odpověď - při zájmu se odešle lead finančnímu poradci."
+                  description="Vyžaduje odpověď - při zájmu doplníte částky a lead odejde finančnímu poradci."
                   actions={[
-                    { label: 'Ano, odeslat lead', variant: 'warning', leadIcon: Send, onClick: () => setHypotekaOdpoved('ano') },
-                    { label: 'Ne', variant: 'secondary', onClick: () => setHypotekaOdpoved('ne') },
+                    { label: 'Ano, odeslat lead', variant: 'warning', leadIcon: Send, onClick: () => setHypoModalOpen(true) },
+                    { label: 'Nemá zájem', variant: 'secondary', onClick: () => setHypoOdmitnuto(new Date()) },
                   ]}
                 />
               )}
-              {hypotekaOdpoved === 'ano' && (
+
+              {/* Odmítnutí není konec — klient si to může rozmyslet, lead jde
+                  odeslat i po zamítnutí. */}
+              {!hypoLead && hypoOdmitnuto && (
                 <Alert
-                  variant="success"
-                  label="Lead byl odeslán finančnímu poradci."
-                  onDismiss={() => setHypotekaOdpoved(null)}
+                  variant="neutral-subtle"
+                  rich
+                  icon={CircleDollarSign}
+                  label="Klient nemá zájem o hypotéku"
+                  description={`Zaznamenáno ${formatDateCas(hypoOdmitnuto)}. Pokud si to klient rozmyslí, lead můžete odeslat i teď.`}
+                  actions={[
+                    { label: 'Přesto odeslat lead', variant: 'secondary', leadIcon: Send, onClick: () => setHypoModalOpen(true) },
+                  ]}
                 />
+              )}
+
+              {/* Odeslaný lead — přehled odeslání a stavy vyřizování z myDOCKu */}
+              {hypoLead && (
+                <div style={{ ...CARD, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '16px 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      <span style={{ ...WIDGET_TITLE, minWidth: 0 }}>Lead na hypotéku</span>
+                      <Tag label="V řešení" variant="info" size="sm" lead="indicator" />
+                    </div>
+                    <TextButton
+                      label="Upravit lead"
+                      variant="brand"
+                      size="sm"
+                      leadIcon={Pencil}
+                      onClick={() => setHypoModalOpen(true)}
+                    />
+                  </div>
+
+                  <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                    {/* Kdy, komu a s jakými částkami lead odešel */}
+                    <div style={{
+                      display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                      columnGap: 32, rowGap: 0,
+                    }}>
+                      <FactLine icon={Send} label="Odesláno" value={formatDateCas(hypoLead.odeslano)} />
+                      <FactLine icon={UserCheck} label="Přiděleno" value={hypoLead.prijemce} />
+                      <FactLine icon={Wallet} label="Kupní cena" value={formatCena(hypoLead.kupniCena)} />
+                      <FactLine icon={PiggyBank} label="Vlastní zdroje" value={formatCena(hypoLead.vlastniZdroje)} />
+                      <FactLine
+                        icon={Landmark}
+                        label="Výše úvěru"
+                        value={`${formatCena(hypoLead.vyseUveru)}${hypoLead.kupniCena > 0
+                          ? ` · LTV ${Math.round((hypoLead.vyseUveru / hypoLead.kupniCena) * 100)} %`
+                          : ''}`}
+                      />
+                      <FactLine
+                        icon={Building2}
+                        label="Přiřazení"
+                        value={hypoLead.prirazeni === 'hsp' ? 'Poradce z HSP' : 'Číslo poradce'}
+                      />
+                    </div>
+
+                    {hypoLead.poznamka.trim() && (
+                      <div style={{
+                        background: 'var(--t-bgSecondary)', borderRadius: 8, padding: '8px 12px',
+                        fontSize: 13, lineHeight: '20px', color: 'var(--t-textSecondary)', whiteSpace: 'pre-wrap',
+                      }}>
+                        <span style={{ fontWeight: 600, color: 'var(--t-textPrimary)' }}>Poznámka pro poradce: </span>
+                        {hypoLead.poznamka}
+                      </div>
+                    )}
+
+                    {/* Stav vyřizování — cizí data, myBRIK je jen zobrazuje */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderTop: '1px solid var(--t-borderPrimary)', paddingTop: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
+                        <span style={GROUP_LABEL}>Stav vyřizování</span>
+                        <span style={META_TEXT}>Načteno z myDOCK · {formatDateCas(hypoLead.odeslano)}</span>
+                      </div>
+                      {hypoPrubeh(hypoLead.odeslano).map(krok => (
+                        <HypoKrokRow key={krok.label} krok={krok} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Zpráva od klienta */}
               <Widget
                 title="Zpráva od klienta"
-                action={<TextButton label="Odpovědět" variant="brand" onClick={() => setKomunikaceOpen(true)} />}
+                action={<TextButton label="Odpovědět" variant="brand" leadIcon={Mail} onClick={() => setOdpovedOpen(true)} />}
                 meta={
                   <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                     <span style={{ ...META_TEXT, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -869,21 +1031,22 @@ export default function PrilezitostDetailPage() {
                 </div>
               </div>
 
-              {[
+              {([
                 {
                   title: 'Komunikace',
                   actions: [
                     { icon: Pencil, label: 'Zapsat komunikaci', onClick: () => setKomunikaceOpen(true) },
-                    { icon: Mail, label: 'Odeslat e-mail', onClick: () => setKomunikaceOpen(true) },
-                    { icon: Smartphone, label: 'Odeslat SMS', onClick: () => setKomunikaceOpen(true) },
-                    { icon: Phone, label: 'Zavolat', onClick: () => setKomunikaceOpen(true) },
+                    { icon: Mail, label: 'Odeslat e-mail', onClick: () => setEmailOpen(true) },
+                    { icon: Smartphone, label: 'Odeslat SMS', onClick: () => setSmsOpen(true) },
+                    // Volání obsluhuje telefon uživatele, ne formulář v aplikaci.
+                    { icon: Phone, label: 'Zavolat', href: telHref(klientTelefon) },
                   ],
                 },
                 {
                   title: 'Plánování',
                   actions: [
-                    { icon: Calendar, label: 'Naplánovat schůzku', onClick: () => setSchuzkaOpen(true) },
-                    { icon: CheckSquare, label: 'Nový úkol', onClick: () => setUkolOpen(true) },
+                    { icon: Calendar, label: 'Naplánovat prohlídku', onClick: () => setProhlidkaOpen(true) },
+                    { icon: CheckSquare, label: 'Naplánovat úkol', onClick: () => setUkolOpen(true) },
                   ],
                 },
                 {
@@ -893,14 +1056,14 @@ export default function PrilezitostDetailPage() {
                     { icon: StickyNote, label: 'Interní poznámka', onClick: () => setPoznamkaOpen(true) },
                   ],
                 },
-              ].map(group => (
+              ] as { title: string; actions: { icon: LucideIcon; label: string; href?: string; onClick?: () => void }[] }[]).map(group => (
                 <div key={group.title} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <span style={{
                     fontSize: 16, fontWeight: 700, lineHeight: '24px',
                     color: 'var(--t-textPrimary)', padding: '0 2px', marginBottom: 4,
                   }}>{group.title}</span>
                   {group.actions.map(a => (
-                    <RailAction key={a.label} icon={a.icon} label={a.label} onClick={a.onClick} />
+                    <RailAction key={a.label} icon={a.icon} label={a.label} href={a.href} onClick={a.onClick} />
                   ))}
                 </div>
               ))}
@@ -954,9 +1117,54 @@ export default function PrilezitostDetailPage() {
         </div>
       </div>
 
-      {komunikaceOpen && <ZapsatKomunikaceModal onClose={() => setKomunikaceOpen(false)} />}
-      {schuzkaOpen && <NovyProhlidkaModal onClose={() => setSchuzkaOpen(false)} />}
+      {komunikaceOpen && (
+        <ZapsatKomunikaceModal
+          onClose={() => setKomunikaceOpen(false)}
+          onSave={navazujici => {
+            if (navazujici === 'ukol') setUkolOpen(true)
+            if (navazujici === 'prohlidka') setProhlidkaOpen(true)
+          }}
+        />
+      )}
+      {prohlidkaOpen && <NovyProhlidkaModal onClose={() => setProhlidkaOpen(false)} />}
       {ukolOpen && <NovyUkolModal defaultResitel={p.makler} onClose={() => setUkolOpen(false)} />}
+      {smsOpen && (
+        <OdeslatSmsModal
+          telefon={klientTelefon}
+          klient={klientJmeno}
+          onClose={() => setSmsOpen(false)}
+        />
+      )}
+      {emailOpen && (
+        <OdeslatEmailModal
+          email={klientEmail}
+          klient={klientJmeno}
+          onClose={() => setEmailOpen(false)}
+        />
+      )}
+      {odpovedOpen && (
+        <OdeslatEmailModal
+          title="Odpovědět na zprávu"
+          email={klientEmail}
+          klient={klientJmeno}
+          defaultPredmet={`Re: ${p.nazevNabidky}`}
+          onClose={() => setOdpovedOpen(false)}
+        />
+      )}
+      {hypoModalOpen && (
+        <OdeslatLeadHypoModal
+          cenaNemovitosti={nemovitost.cena}
+          hsp={p.franchiza}
+          klient={klientJmeno}
+          initial={hypoLead ?? undefined}
+          onClose={() => setHypoModalOpen(false)}
+          onSend={lead => {
+            // Úprava drží původní čas odeslání - lead se posílá jednou.
+            setHypoLead(prev => ({ ...lead, odeslano: prev?.odeslano ?? new Date() }))
+            setHypoOdmitnuto(null)
+          }}
+        />
+      )}
       {predatOpen && <ZmenitMaklereModal currentMakler={p.makler} onClose={() => setPredatOpen(false)} />}
       {upravitOpen && (
         <PrilezitostPanel

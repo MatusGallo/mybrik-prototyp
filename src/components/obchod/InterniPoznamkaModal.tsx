@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import { IconButton, Button, TextArea } from '@matusgallo/mysabds'
+import { IconButton, Button, TextArea, isFloatingPanelOpen } from '@matusgallo/mysabds'
 
 interface Props {
   initialValue?: string
@@ -12,7 +12,13 @@ export default function InterniPoznamkaModal({ initialValue = '', onClose }: Pro
   const [poznamka, setPoznamka] = useState(initialValue)
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Nad rozbaleným seznamem nebo kalendářem patří Escape jemu, ne modálu -
+      // jinak jeden stisk zavře obojí a rozepsaný formulář je pryč.
+      if (isFloatingPanelOpen()) return
+      onClose()
+    }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])

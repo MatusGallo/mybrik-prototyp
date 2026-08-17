@@ -118,7 +118,7 @@ export const MUSTKY: MustekDef[] = [
   {
     key: 'osobniweb', nazev: 'Osobní web',
     pole: [
-      { key: 'jmeno', label: 'Uživatelské jméno', placeholder: 'Zadejte jméno' },
+      { key: 'jmeno', label: 'Přihlašovací jméno', placeholder: 'Zadejte jméno' },
       { key: 'heslo', label: 'Heslo', placeholder: 'Zadejte heslo', tajny: true },
     ],
   },

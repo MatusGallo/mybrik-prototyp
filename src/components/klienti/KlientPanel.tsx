@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Copy, ArrowUpRight, Pencil, X } from 'lucide-react'
 import { Form, Input, IconButton, Tag } from '@matusgallo/mysabds'
+import AdresaNaseptavac from '../shared/AdresaNaseptavac'
 import TelefonInput from '../shared/TelefonInput'
 import { VYCHOZI_PREDVOLBA } from '../../data/telefonPredvolby'
 
@@ -219,7 +220,18 @@ export default function KlientPanel({ mode, klient, onClose, onEdit, onSave }: K
         <CardTitle title="Kontaktní adresa" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '8px 0' }}>
           <div style={{ display: 'flex', gap: 12 }}>
-            <Input label="Ulice" value={String(form.ulice ?? '')} onChange={v => setField('ulice', v)} width="100%" />
+            <AdresaNaseptavac
+              value={String(form.ulice ?? '')}
+              onChange={v => setField('ulice', v)}
+              onVybrat={a => setForm(prev => ({
+                ...prev,
+                ulice: a.ulice,
+                cisloPopisne: a.cisloPopisne,
+                cisloOrientacni: a.cisloOrientacni,
+                psc: a.psc,
+                mesto: a.mesto,
+              }))}
+            />
             <Input label="Č. p." value={String(form.cisloPopisne ?? '')} onChange={v => setField('cisloPopisne', v)} width={96} />
             <Input label="Č. o." value={String(form.cisloOrientacni ?? '')} onChange={v => setField('cisloOrientacni', v)} width={80} />
           </div>

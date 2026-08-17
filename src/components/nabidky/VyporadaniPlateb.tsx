@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Plus, Pencil, Trash2, ChevronDown, ChevronUp,
+  Plus, Pencil, Trash2, ChevronDown, ChevronUp, FileCheck,
 } from 'lucide-react'
 import {
   Button, IconButton, TextButton, Tag, Tooltip, TooltipIcon, TableCell, TableHeaderCell, Dialog, Alert,
@@ -9,7 +9,7 @@ import {
 } from '@matusgallo/mysabds'
 import NovyNakladModal, { type NakladFormData } from './NovyNakladModal'
 import ZpracovaniPlatebModal, {
-  type PlatbaDraft, FORMA_OPT, UCEL_NA_PROVIZI, UCEL_Z_REZERVACE,
+  type PlatbaDraft, FORMA_OPT, UCEL_OPT, UCEL_NA_PROVIZI, UCEL_Z_REZERVACE,
 } from './ZpracovaniPlatebModal'
 
 /* ──────────────────────────────────────────────────────────────────────────────
@@ -19,8 +19,12 @@ import ZpracovaniPlatebModal, {
    → vyúčtování zakázky. Každý krok je samostatná sklopná karta se stejnou
    anatomií (stav → čtyři klíčová čísla → kolik zbývá → detail v podpanelech),
    takže se čtou jako jedna cesta a ne jako tři nesouvisející tabulky.
-   Aktivní krok má brand rámeček — uživatel hned vidí, kde je práce.
-   Zavřená karta si nechává v hlavičce shrnutí, aby se dala číst i sklopená.
+
+   Kroky jsou na sebe navázané: provize se řeší až z vyřešené zálohy, vyúčtování až
+   z uhrazené provize. Krok, na který ještě nepřišla řada, je sbalený a jeho akce
+   jsou zamčené s důvodem v tooltipu. Krok v řešení nese info štítek — barvu drží
+   štítek stavu, karta zůstává neutrální. Zavřená karta si nechává v hlavičce
+   shrnutí, aby se dala číst i sklopená.
 ────────────────────────────────────────────────────────────────────────────── */
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
@@ -38,16 +42,28 @@ const ZALOHA_SPLATKY = [
   { id: 2, label: 'Splátka 2', splatnost: '09.07.2026', castka: 50000 },
 ]
 
-interface UhradaRow {
+/* Peníze na zakázce vedeme jako jeden seznam plateb. Kolik je uhrazené na záloze,
+   kolik z rezervace odteklo a kolik doteklo na provizi, se z něj počítá — proto se
+   oprava i smazání jedné platby propíše do všech tří kroků a nikde nezůstane
+   osiřelé číslo. */
+interface PlatbaRow {
   id: number
   datum: string
+  /** Účel z UCEL_OPT — říká, na kterou stranu zakázky platba působí */
+  ucel: string
   forma: string
   castka: number
 }
 
-const ZALOHA_UHRADY: UhradaRow[] = [
-  { id: 1, datum: '02.07.2026', forma: 'Bankovní převod', castka: 50000 },
-  { id: 2, datum: '09.07.2026', forma: 'Bankovní převod', castka: 50000 },
+/** Účely, které navyšují uhrazenou rezervační zálohu. */
+const UCEL_NA_ZALOHU = ['rezervacni-poplatek']
+
+/* Výchozí stav zakázky: klient poslal první splátku zálohy, druhá ještě čeká.
+   Všechny tři kroky tak mají co dělat a dají se projít v pořadí, v jakém na sebe
+   navazují — doplatit zálohu → vypořádat ji na provizi → doplatit provizi →
+   vyúčtovat zakázku. Prázdné pole `[]` rozjede flow od úplné nuly. */
+const PLATBY: PlatbaRow[] = [
+  { id: 1, datum: '02.07.2026', ucel: 'rezervacni-poplatek', forma: 'prevodem', castka: 50000 },
 ]
 
 interface ZdrojProvize {
@@ -132,6 +148,11 @@ function nakladySoucty(rows: NakladRow[]) {
   return { bezDph, sDph, dph: sDph - bezDph }
 }
 
+/** Součet plateb, které mají některý z uvedených účelů. */
+function soucetPlateb(rows: PlatbaRow[], ucely: string[]) {
+  return rows.filter(p => ucely.includes(p.ucel)).reduce((s, p) => s + p.castka, 0)
+}
+
 function rozpadRows(nakladyBezDph: number) {
   return ROZPAD_PODILY.map(p => {
     const naklady = p.nosiNaklady ? nakladyBezDph : 0
@@ -147,6 +168,34 @@ function formatCena(cena: number) {
 
 function formatDatum(d: Date) {
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`
+}
+
+// Datum držíme v řádku jako text, editační okno pracuje s Date — tohle je most
+// mezi nimi. Nerozluštěné datum vrací null, aby okno vynutilo nový výběr.
+function parseDatum(s: string): Date | null {
+  const m = s.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/)
+  if (!m) return null
+  const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]))
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+function parseCastka(s: string): number {
+  const n = Number(s.replace(/\s/g, '').replace(',', '.').replace(/[^\d.-]/g, ''))
+  return Number.isFinite(n) ? n : 0
+}
+
+function ucelLabel(value: string) {
+  return UCEL_OPT.find(o => o.value === value)?.label ?? value
+}
+
+function formaLabel(value: string) {
+  return FORMA_OPT.find(o => o.value === value)?.label ?? value
+}
+
+// Počty v metadatech se mění podle toho, co uživatel zapíše, takže tvar slova
+// nejde napsat natvrdo: 1 platba, 2-4 platby, 5 a víc plateb.
+function pocet(n: number, [jedna, dve, pet]: [string, string, string]) {
+  return `${n} ${n === 1 ? jedna : n >= 2 && n <= 4 ? dve : pet}`
 }
 
 function pctOf(part: number, whole: number) {
@@ -291,6 +340,24 @@ function StepCard({
   )
 }
 
+// Vrstvení potvrzovacích dialogů — Dialog nese jen obsah, šedou plochu pod ním
+// a stacking kreslí aplikace. Tři dialogy na obrazovce sdílí jeden obal, aby se
+// neposunul jeden z nich zvlášť.
+function ConfirmPortal({ children }: { children: React.ReactNode }) {
+  return createPortal(
+    <>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'var(--bgOverlay)' }} />
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 201, pointerEvents: 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{ pointerEvents: 'auto' }}>{children}</div>
+      </div>
+    </>,
+    document.body,
+  )
+}
+
 // Podpanel s detailem — hlavička se souhrnem a rozpis pod ní. Nesklápí se:
 // detail kroku je součást jeho obsahu, sklápí se až celá karta kroku.
 function SubPanel({
@@ -352,7 +419,7 @@ function TableHead({ cols }: { cols: Col[] }) {
 // byla pokrytá. Dva samostatné sloupce vedle sebe tuhle vazbu neukázaly —
 // nešlo z nich přečíst, která splátka ještě čeká na peníze.
 // Úhrady se rozpouštějí do splátek podle splatnosti (nejstarší nezaplacená první).
-function parujPredpisAUhrady(splatky: typeof ZALOHA_SPLATKY, uhrady: UhradaRow[]) {
+function parujPredpisAUhrady(splatky: typeof ZALOHA_SPLATKY, uhrady: PlatbaRow[]) {
   const zbytky = uhrady.map(u => ({ ...u, zbytek: u.castka }))
   const rows = splatky.map(s => {
     let uhrazeno = 0
@@ -364,7 +431,7 @@ function parujPredpisAUhrady(splatky: typeof ZALOHA_SPLATKY, uhrady: UhradaRow[]
       const pouzito = Math.min(chybi, u.zbytek)
       u.zbytek -= pouzito
       uhrazeno += pouzito
-      zdroje.push({ datum: u.datum, forma: u.forma, castka: pouzito })
+      zdroje.push({ datum: u.datum, forma: formaLabel(u.forma), castka: pouzito })
     }
     return { ...s, uhrazeno, zdroje }
   })
@@ -397,7 +464,7 @@ function Row({ children, tone = 'data', last }: {
 function PredpisTable({
   uhrady, onZadatUhradu,
 }: {
-  uhrady: UhradaRow[]
+  uhrady: PlatbaRow[]
   onZadatUhradu: (zbyva: number) => void
 }) {
   const { rows, nadPredpis } = parujPredpisAUhrady(ZALOHA_SPLATKY, uhrady)
@@ -524,14 +591,102 @@ function PredpisTable({
   )
 }
 
+// Zaznamenané platby kroku — jediné místo, kde se dá zapsaná platba opravit nebo
+// odebrat. Řádek je záznam platby, ne splátka předpisu, takže se čte i tehdy, když
+// jedna platba pokryla víc splátek.
+function PlatbyTable({
+  rows, onEdit, onDelete, soucetLabel,
+}: {
+  rows: PlatbaRow[]
+  onEdit: (p: PlatbaRow) => void
+  onDelete: (p: PlatbaRow) => void
+  /** Když je uvedený, tabulku uzavře součtový řádek s tímto popiskem. */
+  soucetLabel?: string
+}) {
+  const W = { datum: 110, forma: 140, penize: 130, akce: 92 }
+  const cols: Col[] = [
+    { label: 'Datum', width: W.datum },
+    { label: 'Účel platby', flex: 1 },
+    { label: 'Forma', width: W.forma },
+    { label: 'Částka', width: W.penize, align: 'right' },
+    { label: '', width: W.akce },
+  ]
+  const cell = { size: 'dense' as const, width: '100%', hovered: false, borderBottom: false }
+  const celkem = rows.reduce((s, p) => s + p.castka, 0)
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <TableHead cols={cols} />
+
+      {rows.map((p, i) => (
+        <Row key={p.id} last={!soucetLabel && i === rows.length - 1}>
+          <div style={{ width: W.datum, flexShrink: 0 }}>
+            <TableCell {...cell} label={p.datum} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <TableCell {...cell} label={ucelLabel(p.ucel)} />
+          </div>
+          <div style={{ width: W.forma, flexShrink: 0 }}>
+            <TableCell {...cell} label={formaLabel(p.forma)} />
+          </div>
+          <div style={{ width: W.penize, flexShrink: 0 }}>
+            <TableCell {...cell} align="right" label={formatCena(p.castka)} />
+          </div>
+          <div style={{ width: W.akce, flexShrink: 0 }}>
+            <TableCell
+              {...cell}
+              content={
+                <span style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                  <IconButton icon={Pencil} variant="ghost" size="md" tooltip="Upravit platbu" onClick={() => onEdit(p)} />
+                  <span className="icon-trash-primary">
+                    <IconButton icon={Trash2} variant="ghost" size="md" tooltip="Smazat platbu" onClick={() => onDelete(p)} />
+                  </span>
+                </span>
+              }
+            />
+          </div>
+        </Row>
+      ))}
+
+      {soucetLabel && (
+        <Row tone="total">
+          <div style={{ width: W.datum, flexShrink: 0 }}>
+            <TableCell {...cell} label="" />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <TableCell
+              {...cell} align="right"
+              content={<span style={{ ...typography.body12Medium, color: 'var(--textSecondary)' }}>{soucetLabel}</span>}
+            />
+          </div>
+          <div style={{ width: W.forma, flexShrink: 0 }}>
+            <TableCell {...cell} label="" />
+          </div>
+          <div style={{ width: W.penize, flexShrink: 0 }}>
+            <TableCell
+              {...cell} align="right"
+              content={<span style={{ ...typography.body14Semibold, color: 'var(--textSuccessPrimary)' }}>{formatCena(celkem)}</span>}
+            />
+          </div>
+          <div style={{ width: W.akce, flexShrink: 0 }}>
+            <TableCell {...cell} label="" />
+          </div>
+        </Row>
+      )}
+    </div>
+  )
+}
+
 // Zdroje úhrady provize. Uhrazená provize se rozpouští do zdrojů v jejich
 // pořadí, takže je z řádku vidět, co už doteklo a co ještě čeká — a rovnou
 // odsud se dá úhrada zadat, bez skoku na tlačítko v hlavičce karty.
 function ZdrojeProvizeTable({
-  provizeUhrazeno, onZadatUhradu,
+  provizeUhrazeno, onZadatUhradu, locked,
 }: {
   provizeUhrazeno: number
   onZadatUhradu: (z: ZdrojProvize, zbyva: number) => void
+  /** Důvod, proč se úhrada zadat nedá. Bez něj jsou řádky plně ovladatelné. */
+  locked?: string
 }) {
   const W = { penize: 130, stav: 130, akce: 150 }
   const cols: Col[] = [
@@ -600,13 +755,21 @@ function ZdrojeProvizeTable({
                 content={
                   plne ? null : (
                     <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <TextButton
-                        label="Zadat úhradu"
-                        variant="brand"
-                        size="sm"
-                        leadIcon={Plus}
-                        onClick={() => onZadatUhradu(z, z.zbyva)}
-                      />
+                      {locked ? (
+                        <Tooltip content={locked} placement="top">
+                          <span>
+                            <TextButton label="Zadat úhradu" variant="brand" size="sm" leadIcon={Plus} disabled />
+                          </span>
+                        </Tooltip>
+                      ) : (
+                        <TextButton
+                          label="Zadat úhradu"
+                          variant="brand"
+                          size="sm"
+                          leadIcon={Plus}
+                          onClick={() => onZadatUhradu(z, z.zbyva)}
+                        />
+                      )}
                     </span>
                   )
                 }
@@ -755,7 +918,7 @@ function NakladyTable({
   )
 }
 
-function RozpadTable({ nakladyBezDph }: { nakladyBezDph: number }) {
+function RozpadTable({ nakladyBezDph, vyuctovano }: { nakladyBezDph: number; vyuctovano: boolean }) {
   const cols: Col[] = [
     { label: 'Jméno', flex: 3 },
     { label: 'Pozice', flex: 2 },
@@ -789,7 +952,14 @@ function RozpadTable({ nakladyBezDph }: { nakladyBezDph: number }) {
           <div style={{ width: 140, flexShrink: 0 }}>
             <TableCell
               size="dense" width="100%" hovered={false}
-              content={<Tag label="K fakturaci" variant="warning" size="sm" lead="indicator" />}
+              content={
+                <Tag
+                  label={vyuctovano ? 'K výplatě' : 'K fakturaci'}
+                  variant={vyuctovano ? 'success' : 'warning'}
+                  size="sm"
+                  lead="indicator"
+                />
+              }
             />
           </div>
         </Row>
@@ -866,23 +1036,35 @@ function ProvizeHero() {
 // ── Hlavní komponenta ─────────────────────────────────────────────────────────
 
 export default function VyporadaniPlateb() {
-  const [openZaloha, setOpenZaloha] = useState(true)
-  const [openProvize, setOpenProvize] = useState(true)
-  const [openVyuctovani, setOpenVyuctovani] = useState(true)
-
   const [naklady, setNaklady] = useState<NakladRow[]>(NAKLADY)
   const [novyNakladOpen, setNovyNakladOpen] = useState(false)
   const [editNaklad, setEditNaklad] = useState<NakladRow | null>(null)
   const [deleteNaklad, setDeleteNaklad] = useState<NakladRow | null>(null)
 
   // Platby, které uživatel zpracoval v okně Zpracování plateb, posouvají čísla
-  // ve všech třech krocích — proto sedí ve stavu, ne v konstantách.
-  const [uhrady, setUhrady] = useState<UhradaRow[]>(ZALOHA_UHRADY)
-  const [rezervaceVyporadano, setRezervaceVyporadano] = useState(0)
-  const [provizeUhrazeno, setProvizeUhrazeno] = useState(0)
+  // ve všech třech krocích — proto sedí ve stavu jako jeden seznam, ne jako tři
+  // nezávislé součty. Oprava jedné platby se tak dopočítá všude.
+  const [platby, setPlatby] = useState<PlatbaRow[]>(PLATBY)
   const [platbyModal, setPlatbyModal] = useState<{ ucel: string; castka?: string } | null>(null)
+  const [editPlatba, setEditPlatba] = useState<PlatbaRow | null>(null)
+  const [deletePlatba, setDeletePlatba] = useState<PlatbaRow | null>(null)
 
-  const zalohaUhrazeno = uhrady.reduce((s, u) => s + u.castka, 0)
+  // Vyúčtování je poslední krok cesty — odemkne se, až je provize celá uhrazená.
+  const [vyuctovaniOpen, setVyuctovaniOpen] = useState(false)
+  const [vyuctovano, setVyuctovano] = useState(false)
+
+  const zalohaUhrady = platby.filter(p => UCEL_NA_ZALOHU.includes(p.ucel))
+  const zalohaUhrazeno = soucetPlateb(platby, UCEL_NA_ZALOHU)
+  const rezervaceVyporadano = soucetPlateb(platby, UCEL_Z_REZERVACE)
+  const provizeUhrazeno = soucetPlateb(platby, UCEL_NA_PROVIZI)
+
+  // Převod zálohy na provizi je jedna platba, která z rezervace ubírá a na provizi
+  // přičítá — proto stojí v seznamu obou kroků a upravuje se z obou míst tatáž.
+  const rezervacePlatby = platby.filter(
+    p => UCEL_NA_ZALOHU.includes(p.ucel) || UCEL_Z_REZERVACE.includes(p.ucel),
+  )
+  const provizePlatby = platby.filter(p => UCEL_NA_PROVIZI.includes(p.ucel))
+
   const zalohaZbyva = Math.max(0, ZALOHA_PREDEPSANO - zalohaUhrazeno)
   const zalohaPct = pctOf(zalohaUhrazeno, ZALOHA_PREDEPSANO)
   const zalohaUhrazena = zalohaZbyva === 0
@@ -890,43 +1072,91 @@ export default function VyporadaniPlateb() {
 
   const provizeZbyva = PROVIZE.sDph - provizeUhrazeno
   const provizePct = pctOf(provizeUhrazeno, PROVIZE.sDph)
+  const provizeVyresena = provizeZbyva <= 0
 
   const soucty = nakladySoucty(naklady)
   const kVyplate = PROVIZE.bezDph - soucty.bezDph
   const dphOdvod = PROVIZE.dph - soucty.dph
+
+  // Kroky na sebe navazují: provize se řeší až z vyřešené zálohy, vyúčtování až
+  // z uhrazené provize. Krok, na který ještě nepřišla řada, je proto zamčený.
+  const provizeZamcena = !zalohaUhrazena
+  const vyuctovaniZamcene = !provizeVyresena
+
+  // Otevřený je jen krok, na kterém se pracuje — čekající i vyřešený se sbalí, aby
+  // pohled držel na jednom místě a shrnutí v hlavičce stačilo. Výjimka je poslední
+  // krok: vyúčtováním zakázka končí, takže rozpad do struktury zůstává vidět.
+  // Ruční sklopení chevronem drží do další změny stavu.
+  const zalohaAktivni = !zalohaUhrazena
+  const provizeAktivni = !provizeZamcena && !provizeVyresena
+  const vyuctovaniAktivni = !vyuctovaniZamcene
+
+  const [openZaloha, setOpenZaloha] = useState(zalohaAktivni)
+  const [openProvize, setOpenProvize] = useState(provizeAktivni)
+  const [openVyuctovani, setOpenVyuctovani] = useState(vyuctovaniAktivni)
+
+  useEffect(() => { setOpenZaloha(zalohaAktivni) }, [zalohaAktivni])
+  useEffect(() => { setOpenProvize(provizeAktivni) }, [provizeAktivni])
+  useEffect(() => { setOpenVyuctovani(vyuctovaniAktivni) }, [vyuctovaniAktivni])
 
   function confirmDelete() {
     if (deleteNaklad) setNaklady(rows => rows.filter(r => r.id !== deleteNaklad.id))
     setDeleteNaklad(null)
   }
 
-  // Zpracované platby se rozdělí podle účelu: co doteče na provizi, co ubere
-  // z peněz v rezervaci a co přibude jako další úhrada rezervačního poplatku.
-  function handleZpracovatPlatby(platby: PlatbaDraft[]) {
-    let naProvizi = 0
-    let zRezervace = 0
-    const noveUhrady: UhradaRow[] = []
-    let nextId = Math.max(0, ...uhrady.map(u => u.id))
+  // Rekapitulace v okně počítá „zbývá“ ze stavu před zpracováním. Při úpravě
+  // platby se proto její vlastní částka do vstupních čísel nezapočítává — jinak by
+  // se upravovaná platba počítala dvakrát.
+  function souhrnBez(id?: number) {
+    const rows = id === undefined ? platby : platby.filter(p => p.id !== id)
+    return {
+      rezervaceSlozeno: soucetPlateb(rows, UCEL_NA_ZALOHU),
+      rezervaceVyporadano: soucetPlateb(rows, UCEL_Z_REZERVACE),
+      provizeCelkem: PROVIZE.sDph,
+      provizeUhrazeno: soucetPlateb(rows, UCEL_NA_PROVIZI),
+      poplatekVCene: false,
+    }
+  }
 
-    for (const p of platby) {
-      const castka = Number(p.castka.replace(/\s/g, '').replace(',', '.').replace(/[^\d.-]/g, '')) || 0
-      if (castka <= 0) continue
-      if (UCEL_NA_PROVIZI.includes(p.ucel)) naProvizi += castka
-      if (UCEL_Z_REZERVACE.includes(p.ucel)) zRezervace += castka
-      if (p.ucel === 'rezervacni-poplatek') {
-        nextId += 1
-        noveUhrady.push({
-          id: nextId,
-          datum: p.splatnost ? formatDatum(p.splatnost) : '—',
-          forma: FORMA_OPT.find(f => f.value === p.forma)?.label ?? 'Převodem',
-          castka,
-        })
-      }
+  // Zpracované platby se zapíšou do seznamu, jejich dopad na zálohu, rezervaci
+  // a provizi si každý krok spočítá sám z účelu.
+  function handleZpracovatPlatby(drafts: PlatbaDraft[]) {
+    let nextId = Math.max(0, ...platby.map(p => p.id))
+    const nove: PlatbaRow[] = []
+
+    for (const d of drafts) {
+      const castka = parseCastka(d.castka)
+      if (castka <= 0 || !d.ucel) continue
+      nextId += 1
+      nove.push({
+        id: nextId,
+        datum: d.splatnost ? formatDatum(d.splatnost) : '—',
+        ucel: d.ucel,
+        forma: d.forma,
+        castka,
+      })
     }
 
-    if (noveUhrady.length > 0) setUhrady(rows => [...rows, ...noveUhrady])
-    if (naProvizi > 0) setProvizeUhrazeno(v => v + naProvizi)
-    if (zRezervace > 0) setRezervaceVyporadano(v => v + zRezervace)
+    if (nove.length > 0) setPlatby(rows => [...rows, ...nove])
+  }
+
+  function handleUpravitPlatbu(drafts: PlatbaDraft[]) {
+    const d = drafts[0]
+    if (!d || !editPlatba) return
+    setPlatby(rows => rows.map(r => (r.id === editPlatba.id
+      ? {
+        ...r,
+        ucel: d.ucel,
+        forma: d.forma,
+        castka: parseCastka(d.castka),
+        datum: d.splatnost ? formatDatum(d.splatnost) : r.datum,
+      }
+      : r)))
+  }
+
+  function confirmDeletePlatba() {
+    if (deletePlatba) setPlatby(rows => rows.filter(r => r.id !== deletePlatba.id))
+    setDeletePlatba(null)
   }
 
   return (
@@ -946,18 +1176,26 @@ export default function VyporadaniPlateb() {
         <StepCard
           title="Rezervační záloha"
           tooltip="Rezervační zálohu může klient uhradit ve více splátkách. Po vypořádání se započítá do provize za zprostředkování."
-          status={{ label: zalohaUhrazena ? 'Vyřešeno' : 'V řešení', variant: zalohaUhrazena ? 'success' : 'brand' }}
+          status={{ label: zalohaUhrazena ? 'Vyřešeno' : 'V řešení', variant: zalohaUhrazena ? 'success' : 'info' }}
           summary={<>uhrazeno <strong style={{ color: 'var(--textSuccessPrimary)' }}>{formatCena(zalohaUhrazeno)}</strong> · {zalohaPct} %</>}
           open={openZaloha}
           onToggle={() => setOpenZaloha(o => !o)}
           actions={
-            <Button
-              label="Vypořádat rezervační zálohu" variant="primary" size="md"
-              onClick={() => setPlatbyModal({
-                ucel: 'prevod-rp-na-provizi',
-                castka: penizeVRezervaci > 0 ? String(penizeVRezervaci) : undefined,
-              })}
-            />
+            penizeVRezervaci > 0 ? (
+              <Button
+                label="Vypořádat rezervační zálohu" variant="primary" size="md"
+                onClick={() => setPlatbyModal({
+                  ucel: 'prevod-rp-na-provizi',
+                  castka: String(penizeVRezervaci),
+                })}
+              />
+            ) : (
+              <Tooltip content="V rezervaci nezbývají peníze k vypořádání." placement="top">
+                <span>
+                  <Button label="Vypořádat rezervační zálohu" variant="outlined" size="md" disabled />
+                </span>
+              </Tooltip>
+            )
           }
         >
           <StatStrip
@@ -967,7 +1205,13 @@ export default function VyporadaniPlateb() {
               {
                 label: 'Stav úhrady',
                 value: '',
-                tag: { label: zalohaUhrazena ? 'Plně uhrazena' : 'Částečně uhrazena', variant: zalohaUhrazena ? 'success' : 'warning' },
+                // Tři stavy, ne dva: dokud nedošla první koruna, není záloha
+                // „částečně uhrazená“ — stejné odstupňování má i karta provize.
+                tag: zalohaUhrazena
+                  ? { label: 'Plně uhrazena', variant: 'success' }
+                  : zalohaUhrazeno > 0
+                    ? { label: 'Částečně uhrazena', variant: 'warning' }
+                    : { label: 'Neuhrazena', variant: 'neutral' },
                 // Kolik ještě chybí, se v této kartě nikde jinde neukáže — bez grafu
                 // to nese poznámka u stavu úhrady.
                 note: zalohaUhrazena ? undefined : `zbývá doplatit ${formatCena(zalohaZbyva)}`,
@@ -983,27 +1227,76 @@ export default function VyporadaniPlateb() {
 
           <SubPanel
             title="Předpis a úhrady"
-            meta={`${ZALOHA_SPLATKY.length} splátky předepsané · ${uhrady.length} úhrady`}
+            meta={`${pocet(ZALOHA_SPLATKY.length, ['splátka předepsaná', 'splátky předepsané', 'splátek předepsaných'])} · ${pocet(zalohaUhrady.length, ['úhrada', 'úhrady', 'úhrad'])}`}
             padded={false}
           >
             <PredpisTable
-              uhrady={uhrady}
+              uhrady={zalohaUhrady}
               onZadatUhradu={zbyva => setPlatbyModal({
                 ucel: 'rezervacni-poplatek',
                 castka: zbyva > 0 ? String(zbyva) : undefined,
               })}
             />
           </SubPanel>
+
+          {/* Zapsané platby stojí vedle předpisu: předpis říká, co je pokryté,
+              tenhle seznam drží samotné záznamy — a jen tady se dají opravit.
+              Dokud žádná platba není, panel se nezobrazuje: akci nese tlačítko
+              v hlavičce karty, prázdná tabulka by tu jen zabírala místo. */}
+          {rezervacePlatby.length > 0 && (
+            <SubPanel
+              title="Zaznamenané platby"
+              meta={`${pocet(rezervacePlatby.length, ['platba', 'platby', 'plateb'])} k rezervační záloze`}
+              padded={false}
+            >
+              <PlatbyTable
+                rows={rezervacePlatby}
+                onEdit={setEditPlatba}
+                onDelete={setDeletePlatba}
+              />
+            </SubPanel>
+          )}
         </StepCard>
 
         {/* ── Krok 2 — provize za zprostředkování ────────────────────────────── */}
         <StepCard
           title="Provize za zprostředkování"
-          tooltip="Provize se hradí ze dvou zdrojů: započtením rezervační zálohy a doplatkem z kupní ceny při zobchodování zakázky."
-          status={{ label: provizeZbyva === 0 ? 'Vyřešeno' : 'V řešení', variant: provizeZbyva === 0 ? 'success' : 'brand' }}
+          tooltip="Provize se hradí ze dvou zdrojů: započtením rezervační zálohy a doplatkem z kupní ceny při zobchodování zakázky. Řeší se, až je rezervační záloha vyřešená."
+          status={
+            provizeVyresena
+              ? { label: 'Vyřešeno', variant: 'success' }
+              : provizeZamcena
+                ? { label: 'Čeká', variant: 'neutral' }
+                : { label: 'V řešení', variant: 'info' }
+          }
           summary={<>uhrazeno <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(provizeUhrazeno)}</strong> · {provizePct} %</>}
           open={openProvize}
           onToggle={() => setOpenProvize(o => !o)}
+          actions={
+            // Dokud není záloha vyřešená, nemá se provize čím uhradit — tlačítko to
+            // řekne v tooltipu, místo aby otevřelo okno, které nemá co uložit.
+            provizeZamcena ? (
+              <Tooltip content="Nejprve vyřešte rezervační zálohu." placement="top">
+                <span>
+                  <Button label="Zadat úhradu provize" variant="outlined" size="md" disabled />
+                </span>
+              </Tooltip>
+            ) : provizeVyresena ? (
+              <Tooltip content="Provize je celá uhrazená." placement="top">
+                <span>
+                  <Button label="Zadat úhradu provize" variant="outlined" size="md" disabled />
+                </span>
+              </Tooltip>
+            ) : (
+              <Button
+                label="Zadat úhradu provize" variant="primary" size="md"
+                onClick={() => setPlatbyModal({
+                  ucel: 'uhrada-nekryte-provize',
+                  castka: String(provizeZbyva),
+                })}
+              />
+            )
+          }
         >
           <StatStrip
             items={[
@@ -1030,33 +1323,72 @@ export default function VyporadaniPlateb() {
 
           <SubPanel
             title="Zdroj úhrady provize"
-            meta={`${PROVIZE_ZDROJE.length} zdroje · celkem ${formatCena(PROVIZE.sDph)}`}
+            meta={`${pocet(PROVIZE_ZDROJE.length, ['zdroj', 'zdroje', 'zdrojů'])} · celkem ${formatCena(PROVIZE.sDph)}`}
             padded={false}
           >
             <ZdrojeProvizeTable
               provizeUhrazeno={provizeUhrazeno}
+              locked={provizeZamcena ? 'Nejprve vyřešte rezervační zálohu.' : undefined}
               onZadatUhradu={(z, zbyva) => setPlatbyModal({
                 ucel: z.ucel,
                 castka: zbyva > 0 ? String(zbyva) : undefined,
               })}
             />
           </SubPanel>
+
+          {/* Vypořádání zálohy se na provizi propíše samo. Bez tohohle seznamu by
+              provize skočila na „uhrazeno“, aniž by šlo dohlédnout na platbu za tím
+              — a hlavně by se nedala opravit. Než první platba doteče, panel tu
+              není: zdroje úhrady nad ním už říkají, co se čeká. */}
+          {provizePlatby.length > 0 && (
+            <SubPanel
+              title="Zaznamenané platby"
+              meta={`${pocet(provizePlatby.length, ['platba', 'platby', 'plateb'])} na provizi`}
+              padded={false}
+            >
+              <PlatbyTable
+                rows={provizePlatby}
+                onEdit={setEditPlatba}
+                onDelete={setDeletePlatba}
+                soucetLabel="Uhrazeno celkem:"
+              />
+            </SubPanel>
+          )}
         </StepCard>
 
         {/* ── Krok 3 — vyúčtování zakázky ────────────────────────────────────── */}
         <StepCard
           title="Vyúčtování zakázky"
-          tooltip="Vyúčtování rozdělí provizi do struktury a odečte náklady. Otevře se, až bude nastavení provize dokončené."
-          status={{ label: 'Čeká', variant: 'neutral' }}
-          summary={<>nevyfakturováno · náklady <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(soucty.sDph)}</strong></>}
+          tooltip="Vyúčtování rozdělí provizi do struktury a odečte náklady. Otevře se, až je provize za zprostředkování celá uhrazená."
+          status={
+            vyuctovano
+              ? { label: 'Vyúčtováno', variant: 'success' }
+              : vyuctovaniZamcene
+                ? { label: 'Čeká', variant: 'neutral' }
+                : { label: 'V řešení', variant: 'info' }
+          }
+          summary={
+            vyuctovano
+              ? <>vyúčtováno · k výplatě <strong style={{ color: 'var(--textSuccessPrimary)' }}>{formatCena(kVyplate)}</strong></>
+              : <>nevyfakturováno · náklady <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(soucty.sDph)}</strong></>
+          }
           open={openVyuctovani}
           onToggle={() => setOpenVyuctovani(o => !o)}
           actions={
-            <Tooltip content="Nejprve dokončete nastavení provize." placement="top">
-              <span>
-                <Button label="Vyúčtovat zakázku" variant="outlined" size="md" disabled />
-              </span>
-            </Tooltip>
+            // Vyúčtování drží jen jedna podmínka: uhrazená provize. Dokud chybí,
+            // tlačítko říká v tooltipu kolik — ne obecné „dokončete nastavení“.
+            vyuctovano ? undefined : provizeVyresena ? (
+              <Button
+                label="Vyúčtovat zakázku" variant="primary" size="md"
+                onClick={() => setVyuctovaniOpen(true)}
+              />
+            ) : (
+              <Tooltip content={`Nejprve uhraďte celou provizi. Zbývá ${formatCena(provizeZbyva)}.`} placement="top">
+                <span>
+                  <Button label="Vyúčtovat zakázku" variant="outlined" size="md" disabled />
+                </span>
+              </Tooltip>
+            )
           }
         >
           <StatStrip
@@ -1070,7 +1402,7 @@ export default function VyporadaniPlateb() {
 
           <SubPanel
             title="Náklady na zakázku"
-            meta={`${naklady.length} položky · ${formatCena(soucty.sDph)}`}
+            meta={`${pocet(naklady.length, ['položka', 'položky', 'položek'])} · ${formatCena(soucty.sDph)}`}
             padded={false}
           >
             <NakladyTable rows={naklady} onEdit={setEditNaklad} onDelete={setDeleteNaklad} />
@@ -1080,14 +1412,14 @@ export default function VyporadaniPlateb() {
             title="Rozpad provize do struktury"
             meta={<>k výplatě <strong style={{ color: 'var(--textPrimary)' }}>{formatCena(kVyplate)}</strong></>}
             padded={false}
-            note={
+            note={vyuctovano ? undefined : (
               <Alert
                 variant="warning"
                 label="Dokud není zakázka ve stavu Zobchodováno, jsou uvedené údaje pouze orientační."
               />
-            }
+            )}
           >
-            <RozpadTable nakladyBezDph={soucty.bezDph} />
+            <RozpadTable nakladyBezDph={soucty.bezDph} vyuctovano={vyuctovano} />
           </SubPanel>
         </StepCard>
       </div>
@@ -1098,13 +1430,23 @@ export default function VyporadaniPlateb() {
           onSave={handleZpracovatPlatby}
           defaultUcel={platbyModal.ucel}
           defaultCastka={platbyModal.castka}
-          souhrn={{
-            rezervaceSlozeno: zalohaUhrazeno,
-            rezervaceVyporadano,
-            provizeCelkem: PROVIZE.sDph,
-            provizeUhrazeno,
-            poplatekVCene: false,
+          souhrn={souhrnBez()}
+        />
+      )}
+
+      {/* Úprava jedné zapsané platby — stejné okno, jen o jednom řádku */}
+      {editPlatba && (
+        <ZpracovaniPlatebModal
+          onClose={() => setEditPlatba(null)}
+          onSave={handleUpravitPlatbu}
+          editPlatba={{
+            id: editPlatba.id,
+            ucel: editPlatba.ucel,
+            castka: String(editPlatba.castka),
+            forma: editPlatba.forma,
+            splatnost: parseDatum(editPlatba.datum),
           }}
+          souhrn={souhrnBez(editPlatba.id)}
         />
       )}
 
@@ -1114,28 +1456,48 @@ export default function VyporadaniPlateb() {
         <NovyNakladModal initialData={nakladToForm(editNaklad)} onClose={() => setEditNaklad(null)} />
       )}
 
-      {deleteNaklad && createPortal(
-        <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(10,13,18,0.4)' }} />
-          <div style={{
-            position: 'fixed', inset: 0, zIndex: 201, pointerEvents: 'none',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <div style={{ pointerEvents: 'auto' }}>
-              <Dialog
-                icon={Trash2}
-                title="Smazat náklad?"
-                description={`Náklad ${deleteNaklad.nazev} za ${formatCena(deleteNaklad.sDph)} bude odebraný. Tuto akci nelze vrátit.`}
-                primaryLabel="Smazat"
-                secondaryLabel="Zrušit"
-                destructive
-                onPrimary={confirmDelete}
-                onSecondary={() => setDeleteNaklad(null)}
-              />
-            </div>
-          </div>
-        </>,
-        document.body,
+      {deleteNaklad && (
+        <ConfirmPortal>
+          <Dialog
+            icon={Trash2}
+            title="Smazat náklad?"
+            description={`Náklad ${deleteNaklad.nazev} za ${formatCena(deleteNaklad.sDph)} bude odebraný. Tuto akci nelze vrátit.`}
+            primaryLabel="Smazat"
+            secondaryLabel="Zrušit"
+            destructive
+            onPrimary={confirmDelete}
+            onSecondary={() => setDeleteNaklad(null)}
+          />
+        </ConfirmPortal>
+      )}
+
+      {deletePlatba && (
+        <ConfirmPortal>
+          <Dialog
+            icon={Trash2}
+            title="Smazat platbu?"
+            description={`Platba „${ucelLabel(deletePlatba.ucel)}“ za ${formatCena(deletePlatba.castka)} z ${deletePlatba.datum} bude odebraná a čísla ve všech krocích se přepočítají. Tuto akci nelze vrátit.`}
+            primaryLabel="Smazat"
+            secondaryLabel="Zrušit"
+            destructive
+            onPrimary={confirmDeletePlatba}
+            onSecondary={() => setDeletePlatba(null)}
+          />
+        </ConfirmPortal>
+      )}
+
+      {vyuctovaniOpen && (
+        <ConfirmPortal>
+          <Dialog
+            icon={FileCheck}
+            title="Vyúčtovat zakázku?"
+            description={`Provize ${formatCena(PROVIZE.bezDph)} bez DPH se rozdělí do struktury a odečtou se náklady ${formatCena(soucty.bezDph)}. K výplatě půjde ${formatCena(kVyplate)}.`}
+            primaryLabel="Vyúčtovat"
+            secondaryLabel="Zrušit"
+            onPrimary={() => { setVyuctovano(true); setVyuctovaniOpen(false) }}
+            onSecondary={() => setVyuctovaniOpen(false)}
+          />
+        </ConfirmPortal>
       )}
     </div>
   )

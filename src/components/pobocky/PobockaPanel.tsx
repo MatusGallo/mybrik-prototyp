@@ -254,7 +254,7 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
 
         <ExportDivider />
         <ExportSectionTitle>Osobní web</ExportSectionTitle>
-        <Row label="Uživatelské jméno"  value={pobocka?.osobniWeb_jmeno} />
+        <Row label="Přihlašovací jméno" value={pobocka?.osobniWeb_jmeno} />
         <Row label="Heslo"              value={pobocka?.osobniWeb_heslo} />
       </Card>
     </div>
@@ -412,7 +412,7 @@ export default function PobockaPanel({ mode, pobocka, onClose, onEdit, onSave }:
         <ExportSectionHeader label="Osobní web" active={exportToggles.osobniWeb} onToggle={v => toggleExport('osobniWeb', v)} />
         {exportToggles.osobniWeb && (
           <TwoCol>
-            <Input label="Uživatelské jméno" value={String(form.osobniWeb_jmeno ?? '')} onChange={v => set('osobniWeb_jmeno', v)} width="100%" />
+            <Input label="Přihlašovací jméno" value={String(form.osobniWeb_jmeno ?? '')} onChange={v => set('osobniWeb_jmeno', v)} width="100%" />
             <Input label="Heslo" value={String(form.osobniWeb_heslo ?? '')} onChange={v => set('osobniWeb_heslo', v)} width="100%" />
           </TwoCol>
         )}

@@ -7,8 +7,10 @@ import {
   Button, Divider, IconButton, Input, Select,
   SwitchGroup, Tag, Toggle, TooltipIcon, typography,
 } from '@matusgallo/mysabds'
+import AdresaNaseptavac from '../components/shared/AdresaNaseptavac'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import TelefonInput from '../components/shared/TelefonInput'
+import type { AdresniMisto } from '../data/adresyRegistr'
 import {
   BANKY, EMPTY_SUBJEKT, OSOBY, SUBJEKT_DEFS, SUBJEKT_KEYS,
   emptyHspForm, hspFormFromRow,
@@ -28,6 +30,20 @@ const TYP_OSOBY_OPTIONS = [
   { value: 'fo', label: 'Fyzická osoba', icon: UserRound },
   { value: 'po', label: 'Právnická osoba', icon: Building2 },
 ]
+
+/**
+ * Adresa z našeptávače do polí subjektu. Část obce se nepřenáší - formulář pro
+ * ni pole nemá a do města nepatří, protože to je jméno obce, ne její části.
+ */
+function adresaZRegistru(a: AdresniMisto): Partial<Subjekt> {
+  return {
+    ulice: a.ulice,
+    cisloPopisne: a.cisloPopisne,
+    cisloOrientacni: a.cisloOrientacni,
+    psc: a.psc,
+    mesto: a.mesto,
+  }
+}
 
 // ── Layout helpers ────────────────────────────────────────────────────────────
 
@@ -440,10 +456,12 @@ export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
         <Block label={jePo ? 'Sídlo' : 'Místo podnikání'}>
           {/* Ulice bere zbytek místa, čísla jen tolik, kolik potřebuje popisek. */}
           <Cols cols="minmax(0, 1fr) 110px 120px">
-            <Input
-              label="Ulice" required placeholder="Zadejte ulici"
-              value={s.ulice} onChange={v => set({ ulice: v })}
-              error={err(`${p}ulice`)} width="100%"
+            <AdresaNaseptavac
+              required
+              value={s.ulice}
+              onChange={v => set({ ulice: v })}
+              onVybrat={a => set(adresaZRegistru(a))}
+              error={err(`${p}ulice`)}
             />
             <Input
               label="Číslo popisné" required placeholder="123" numeric

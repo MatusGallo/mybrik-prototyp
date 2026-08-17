@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import {
-  Modal, Button, IconButton, Input, Select, DatePicker, TableHeaderCell,
-  Tag, typography,
+  Modal, Button, Input, Select, DatePicker, TableHeaderCell,
+  Tag, typography, isFloatingPanelOpen,
 } from '@matusgallo/mysabds'
-import EmptyState from '../shared/EmptyState'
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Zpracování plateb — jedno okno, ve kterém uživatel rozvrhne, co se s penězi
@@ -60,6 +59,12 @@ interface Props {
   defaultUcel?: string
   /** Předvyplněná částka první platby, typicky zbývající dluh. */
   defaultCastka?: string
+  /**
+   * Úprava jedné už zapsané platby. Okno pak nese jediný řádek a nedá přidat
+   * další — opravuje se konkrétní záznam, nerozvrhují se nové peníze.
+   * Rekapitulace čeká `souhrn` bez této platby, jinak by se počítala dvakrát.
+   */
+  editPlatba?: PlatbaDraft
 }
 
 function formatCena(cena: number) {
@@ -101,18 +106,25 @@ function RecapBlock({ title, amount, tone, context, divider }: {
 }
 
 // Šířky sloupců tabulky plateb — jedna definice pro záhlaví i řádky.
-const GRID = 'minmax(0, 1fr) 100px 120px 140px 32px'
+const GRID = 'minmax(0, 1fr) 100px 120px 140px'
 
 export default function ZpracovaniPlatebModal({
-  onClose, onSave, souhrn, defaultUcel = 'uhrada-nekryte-provize', defaultCastka,
+  onClose, onSave, souhrn, defaultUcel = 'uhrada-nekryte-provize', defaultCastka, editPlatba,
 }: Props) {
+  const isEdit = !!editPlatba
   const [platby, setPlatby] = useState<PlatbaDraft[]>([
-    { id: 1, ucel: defaultUcel, castka: defaultCastka ?? '', forma: 'prevodem', splatnost: null },
+    editPlatba ?? { id: 1, ucel: defaultUcel, castka: defaultCastka ?? '', forma: 'prevodem', splatnost: null },
   ])
   const [errors, setErrors] = useState<Record<number, { castka?: string; splatnost?: string }>>({})
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Nad rozbaleným seznamem nebo kalendářem patří Escape jemu, ne modálu -
+      // jinak jeden stisk zavře obojí a rozepsaný formulář je pryč.
+      if (isFloatingPanelOpen()) return
+      onClose()
+    }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
@@ -160,7 +172,7 @@ export default function ZpracovaniPlatebModal({
 
   return createPortal(
     <>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(10,13,18,0.4)' }} />
+      <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'var(--bgOverlay)' }} />
       <div style={{
         position: 'fixed', inset: 0, zIndex: 201, padding: 24,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -168,13 +180,13 @@ export default function ZpracovaniPlatebModal({
       }}>
         <div style={{ pointerEvents: 'auto' }}>
           <Modal
-            title="Zpracování plateb"
+            title={isEdit ? 'Úprava platby' : 'Zpracování plateb'}
             onClose={onClose}
             width={720}
             maxHeight={720}
             actions={[
               { label: 'Zrušit', variant: 'secondary', onClick: onClose },
-              { label: 'Uložit platby', variant: 'primary', disabled: platby.length === 0, onClick: handleSave },
+              { label: isEdit ? 'Uložit změny' : 'Uložit platby', variant: 'primary', onClick: handleSave },
             ]}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -216,91 +228,71 @@ export default function ZpracovaniPlatebModal({
 
               {/* Tabulka plateb */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {platby.length === 0 ? (
-                  <EmptyState
-                    title="Žádné platby k zpracování"
-                    description="Přidejte platbu a rozvrhněte, co se s penězi na zakázce stane."
-                    cta={{ label: 'Přidat platbu', onClick: addRow }}
-                  />
-                ) : (
-                  <>
-                    <div>
-                      {/* Záhlaví — popisky sloupců zastupují popisky polí v řádcích */}
-                      <div style={{
-                        display: 'grid', gridTemplateColumns: GRID, gap: 8,
-                        background: 'var(--bgSecondary)', borderRadius: 8,
-                      }}>
-                        {['Účel platby', 'Částka', 'Forma', 'Splatnost'].map(c => (
-                          <div key={c} style={{ pointerEvents: 'none', minWidth: 0 }}>
-                            <TableHeaderCell size="dense" label={c} width="100%" />
-                          </div>
-                        ))}
-                        <div style={{ pointerEvents: 'none' }}>
-                          <TableHeaderCell size="dense" empty width="100%" />
-                        </div>
+                <div>
+                  {/* Záhlaví — popisky sloupců zastupují popisky polí v řádcích */}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: GRID, gap: 8,
+                    background: 'var(--bgSecondary)', borderRadius: 8,
+                  }}>
+                    {['Účel platby', 'Částka', 'Forma', 'Splatnost'].map(c => (
+                      <div key={c} style={{ pointerEvents: 'none', minWidth: 0 }}>
+                        <TableHeaderCell size="dense" label={c} width="100%" />
                       </div>
+                    ))}
+                  </div>
 
-                      {platby.map((p, i) => {
-                        const err = errors[p.id] ?? {}
-                        return (
-                          <div
-                            key={p.id}
-                            style={{
-                              display: 'grid', gridTemplateColumns: GRID, gap: 8,
-                              alignItems: 'start', padding: '8px 0',
-                              borderBottom: i === platby.length - 1 ? 'none' : '1px solid var(--borderPrimary)',
-                            }}
-                          >
-                            <Select
-                              ariaLabel="Účel platby"
-                              placeholder="Vyberte účel"
-                              options={UCEL_OPT}
-                              value={p.ucel}
-                              onChange={v => update(p.id, { ucel: v })}
-                              width="100%"
-                            />
-                            <Input
-                              value={p.castka}
-                              onChange={v => update(p.id, { castka: v })}
-                              placeholder="0"
-                              suffix="Kč"
-                              numeric
-                              textAlign="right"
-                              width="100%"
-                              error={err.castka}
-                            />
-                            <Select
-                              ariaLabel="Forma platby"
-                              options={FORMA_OPT}
-                              value={p.forma}
-                              onChange={v => update(p.id, { forma: v })}
-                              width="100%"
-                            />
-                            <DatePicker
-                              value={p.splatnost}
-                              onChange={v => update(p.id, { splatnost: v })}
-                              width="100%"
-                              error={err.splatnost}
-                            />
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', height: 32 }}>
-                              <IconButton
-                                icon={Trash2}
-                                variant="ghost"
-                                size="sm"
-                                destructive
-                                tooltip="Odebrat platbu"
-                                onClick={() => setPlatby(rows => rows.filter(r => r.id !== p.id))}
-                              />
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
+                  {platby.map((p, i) => {
+                    const err = errors[p.id] ?? {}
+                    return (
+                      <div
+                        key={p.id}
+                        style={{
+                          display: 'grid', gridTemplateColumns: GRID, gap: 8,
+                          alignItems: 'start', padding: '8px 0',
+                          borderBottom: i === platby.length - 1 ? 'none' : '1px solid var(--borderPrimary)',
+                        }}
+                      >
+                        <Select
+                          ariaLabel="Účel platby"
+                          placeholder="Vyberte účel"
+                          options={UCEL_OPT}
+                          value={p.ucel}
+                          onChange={v => update(p.id, { ucel: v })}
+                          width="100%"
+                        />
+                        <Input
+                          value={p.castka}
+                          onChange={v => update(p.id, { castka: v })}
+                          placeholder="0"
+                          suffix="Kč"
+                          numeric
+                          textAlign="right"
+                          width="100%"
+                          error={err.castka}
+                        />
+                        <Select
+                          ariaLabel="Forma platby"
+                          options={FORMA_OPT}
+                          value={p.forma}
+                          onChange={v => update(p.id, { forma: v })}
+                          width="100%"
+                        />
+                        <DatePicker
+                          value={p.splatnost}
+                          onChange={v => update(p.id, { splatnost: v })}
+                          width="100%"
+                          error={err.splatnost}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
 
-                    <div>
-                      <Button label="Přidat platbu" variant="outlined" size="md" leadIcon={Plus} onClick={addRow} />
-                    </div>
-                  </>
+                {/* Při úpravě jedné platby se další řádky nepřidávají */}
+                {!isEdit && (
+                  <div>
+                    <Button label="Přidat platbu" variant="outlined" size="md" leadIcon={Plus} onClick={addRow} />
+                  </div>
                 )}
               </div>
             </div>

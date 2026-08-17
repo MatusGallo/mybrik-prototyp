@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, AlertTriangle, Search as SearchIcon, Home, Building, MapPin, Building2, Warehouse, Upload, Trash2, Plus, Calculator, X, type LucideIcon } from 'lucide-react'
 import { Button, TextButton, Input, Select, TextArea, CheckboxItem, Tag, IconButton } from '@matusgallo/mysabds'
+import AdresaNaseptavac from '../shared/AdresaNaseptavac'
 import SelectSearch from '../shared/SelectSearch'
 import TelefonInput from '../shared/TelefonInput'
 import KlientSearchModal from '../klienti/KlientSearchModal'
 import type { KlientData } from '../klienti/KlientPanel'
+import { celaAdresa, type AdresniMisto } from '../../data/adresyRegistr'
 import { uzivateleData } from '../../data/mockOstatni'
 import { VYCHOZI_PREDVOLBA, maCisloTelefonu } from '../../data/telefonPredvolby'
 
@@ -186,6 +188,14 @@ interface DalsiVlastnik {
 const EMPTY_VLASTNIK: DalsiVlastnik = {
   telefon: VYCHOZI_PREDVOLBA, email: '', jmeno: '', prijmeni: '',
   titulPred: '', titulZa: '', ulice: '', cp: '', co: '', mesto: '', psc: '',
+}
+
+/**
+ * Adresa z našeptávače do polí kontaktní adresy - klient i další vlastníci je
+ * mají stejné. Část obce se nepřenáší, formulář pro ni pole nemá.
+ */
+function adresaZRegistru(a: AdresniMisto) {
+  return { ulice: a.ulice, cp: a.cisloPopisne, co: a.cisloOrientacni, psc: a.psc, mesto: a.mesto }
 }
 
 interface MaklerItem {
@@ -747,6 +757,13 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
     setField('dalsiVlastnici', form.dalsiVlastnici.map((v, i) => i === idx ? { ...v, [key]: value } : v))
   }
 
+  /** Vybraná adresa přepíše celou kontaktní adresu vlastníka, ne jen ulici. */
+  function updateVlastnikAdresu(idx: number, adresa: AdresniMisto) {
+    setField('dalsiVlastnici', form.dalsiVlastnici.map((v, i) => (
+      i === idx ? { ...v, ...adresaZRegistru(adresa) } : v
+    )))
+  }
+
   function addMakler() {
     setField('makleri', [...form.makleri, { ...EMPTY_MAKLER, procento: '0' }])
   }
@@ -972,9 +989,6 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
       </FieldGroup>
 
       <FieldGroup title="Adresa nemovitosti *">
-        <span style={{ fontSize: 13, color: 'var(--t-textSecondary)' }}>
-          Pro zadání adresního místa je nutné vybrat z tabulky jednu z možností jinak adresa nebude načtena.
-        </span>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
           {ADRESA_TYP_OPT.map(opt => (
             <CheckboxItem
@@ -992,11 +1006,15 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
           onChange={(v: string) => setField('urovenZnepresnenia', v)}
           width="100%"
         />
-        <Input
+        {/* Adresní místo nemovitosti je jedna hodnota, ne rozpad - z nabídky se
+            do pole vyplní celá adresa včetně PSČ a města. */}
+        <AdresaNaseptavac
+          label="Adresa"
           value={form.adresa}
           onChange={(v: string) => setField('adresa', v)}
-          placeholder="Zadejte adresu…"
-          width="100%"
+          onVybrat={a => setField('adresa', celaAdresa(a))}
+          placeholder="Začněte psát adresu…"
+          helperText="Vyberte adresu z nabídky - bez toho se adresní místo nenačte."
           error={has('adresa') ? 'Tento údaj je povinný.' : undefined}
         />
       </FieldGroup>
@@ -1222,7 +1240,11 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
 
           <FieldGroup title="Kontaktní adresa">
             <div style={G4}>
-              <Input label="Ulice" value={form.ulice} onChange={v => setField('ulice', v)} placeholder="Nová" width="100%" />
+              <AdresaNaseptavac
+                value={form.ulice}
+                onChange={v => setField('ulice', v)}
+                onVybrat={a => setForm(prev => ({ ...prev, ...adresaZRegistru(a) }))}
+              />
               <Input label="Č.p." value={form.cp} onChange={v => setField('cp', v)} placeholder="12" width="100%" />
               <Input label="Č.o." value={form.co} onChange={v => setField('co', v)} placeholder="3" width="100%" />
               <Input label="Město" value={form.mesto} onChange={v => setField('mesto', v)} placeholder="Praha" width="100%" />
@@ -1260,7 +1282,11 @@ export default function NovaNabidkaForm({ onClose, initialData, mode }: Props) {
             </FieldGroup>
             <FieldGroup title="Kontaktní adresa">
               <div style={G4}>
-                <Input label="Ulice" value={v.ulice} onChange={val => updateVlastnik(idx, 'ulice', val)} placeholder="Nová" width="100%" />
+                <AdresaNaseptavac
+                  value={v.ulice}
+                  onChange={val => updateVlastnik(idx, 'ulice', val)}
+                  onVybrat={a => updateVlastnikAdresu(idx, a)}
+                />
                 <Input label="Č.p." value={v.cp} onChange={val => updateVlastnik(idx, 'cp', val)} placeholder="12" width="100%" />
                 <Input label="Č.o." value={v.co} onChange={val => updateVlastnik(idx, 'co', val)} placeholder="3" width="100%" />
                 <Input label="Město" value={v.mesto} onChange={val => updateVlastnik(idx, 'mesto', val)} placeholder="Praha" width="100%" />

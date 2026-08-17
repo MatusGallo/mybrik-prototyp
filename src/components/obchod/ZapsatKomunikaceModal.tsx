@@ -1,10 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Phone, Mail, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { IconButton, Button, Input, TextArea, RadioItem } from '@matusgallo/mysabds'
+import { IconButton, Button, Input, TextArea, DatePicker, RadioItem } from '@matusgallo/mysabds'
+import useEscapeClose from '../shared/useEscapeClose'
 
 type KomunikaceTyp = 'telefon' | 'email' | 'osobne'
+
+/** Co se má otevřít po uložení zápisu. */
+export type NavazujiciAkce = 'ukol' | 'prohlidka' | null
 
 const TYPY: { value: KomunikaceTyp; label: string; icon: LucideIcon }[] = [
   { value: 'telefon', label: 'Telefon', icon: Phone },
@@ -12,42 +16,33 @@ const TYPY: { value: KomunikaceTyp; label: string; icon: LucideIcon }[] = [
   { value: 'osobne', label: 'Osobně', icon: Users },
 ]
 
-function formatNow() {
-  const d = new Date()
-  const dd = String(d.getDate()).padStart(2, '0')
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const min = String(d.getMinutes()).padStart(2, '0')
-  return `${dd}.${mm}.${d.getFullYear()} ${hh}:${min}`
-}
-
 interface Props {
   onClose: () => void
+  /** Zápis se uloží a volající otevře zvolenou navazující akci. */
+  onSave?: (navazujici: NavazujiciAkce) => void
 }
 
-export default function ZapsatKomunikaceModal({ onClose }: Props) {
+export default function ZapsatKomunikaceModal({ onClose, onSave }: Props) {
   const [nazev, setNazev] = useState('')
   const [zpusob, setZpusob] = useState<KomunikaceTyp>('telefon')
-  const [datum, setDatum] = useState(formatNow)
+  const [datum, setDatum] = useState<Date | null>(() => new Date())
   const [poznamka, setPoznamka] = useState('')
-  const [vytoritUkol, setVytoritUkol] = useState(false)
-  const [naplanovatProhlidku, setNaplanovatProhlidku] = useState(false)
+  // Navazující akce se vybírá včetně možnosti žádné - bez ní by se jednou
+  // zvolený přepínač nedal vzít zpět.
+  const [navazujici, setNavazujici] = useState<NavazujiciAkce>(null)
+  const [errors, setErrors] = useState<{ nazev?: string; datum?: string }>({})
 
-  function handleVytoritUkol(v: boolean) {
-    setVytoritUkol(v)
-    if (v) setNaplanovatProhlidku(false)
+  useEscapeClose(onClose)
+
+  function handleSave() {
+    const next: typeof errors = {}
+    if (!nazev.trim()) next.nazev = 'Zadejte název komunikace.'
+    if (!datum) next.datum = 'Zadejte datum a čas komunikace.'
+    setErrors(next)
+    if (Object.keys(next).length > 0) return
+    onSave?.(navazujici)
+    onClose()
   }
-
-  function handleNaplanovatProhlidku(v: boolean) {
-    setNaplanovatProhlidku(v)
-    if (v) setVytoritUkol(false)
-  }
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [onClose])
 
   return createPortal(
     <>
@@ -72,13 +67,21 @@ export default function ZapsatKomunikaceModal({ onClose }: Props) {
 
           <div style={{ padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
             <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--t-textPrimary)' }}>Zapsat komunikaci</span>
-            <IconButton icon={X} variant="ghost" size="md" onClick={onClose} />
+            <IconButton icon={X} variant="ghost" size="md" tooltip="Zavřít" onClick={onClose} />
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <Input label="Název" required value={nazev} onChange={setNazev} width="100%" />
+              <Input
+                label="Název"
+                required
+                value={nazev}
+                onChange={v => { setNazev(v); setErrors(e => ({ ...e, nazev: undefined })) }}
+                placeholder="Zadejte název komunikace"
+                error={errors.nazev}
+                width="100%"
+              />
 
               <div>
                 <span style={{ fontSize: 13, color: 'var(--t-textSecondary)', display: 'block', marginBottom: 8 }}>
@@ -110,17 +113,41 @@ export default function ZapsatKomunikaceModal({ onClose }: Props) {
               </div>
 
               <div style={{ width: '50%' }}>
-                <Input label="Datum a čas komunikace" required value={datum} onChange={setDatum} width="100%" />
+                <DatePicker
+                  label="Datum a čas komunikace"
+                  required
+                  showTime
+                  minuteStep={5}
+                  value={datum}
+                  onChange={v => { setDatum(v); setErrors(e => ({ ...e, datum: undefined })) }}
+                  error={errors.datum}
+                  width="100%"
+                />
               </div>
 
-              <TextArea label="Poznámka" value={poznamka} onChange={setPoznamka} placeholder="Poznámka" width="100%" minHeight={120} />
+              <TextArea label="Poznámka" value={poznamka} onChange={setPoznamka} placeholder="Zadejte poznámku ke komunikaci" width="100%" minHeight={120} />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <span style={{ fontSize: 16, fontWeight: 600, lineHeight: '24px', color: 'var(--t-textPrimary)' }}>Navazující akce</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <RadioItem label="Vytvořit úkol" checked={vytoritUkol} onChange={handleVytoritUkol} />
-                <RadioItem label="Naplánovat prohlídku" checked={naplanovatProhlidku} onChange={handleNaplanovatProhlidku} />
+                <RadioItem
+                  label="Bez navazující akce"
+                  checked={navazujici === null}
+                  onChange={() => setNavazujici(null)}
+                />
+                <RadioItem
+                  label="Naplánovat úkol"
+                  description="Po uložení zápisu se otevře formulář úkolu."
+                  checked={navazujici === 'ukol'}
+                  onChange={() => setNavazujici('ukol')}
+                />
+                <RadioItem
+                  label="Naplánovat prohlídku"
+                  description="Po uložení zápisu se otevře formulář prohlídky."
+                  checked={navazujici === 'prohlidka'}
+                  onChange={() => setNavazujici('prohlidka')}
+                />
               </div>
             </div>
 
@@ -128,7 +155,7 @@ export default function ZapsatKomunikaceModal({ onClose }: Props) {
 
           <div style={{ padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, flexShrink: 0, borderTop: '1px solid var(--t-borderPrimary)' }}>
             <Button label="Zrušit" variant="outlined" onClick={onClose} />
-            <Button label="Uložit" variant="primary" onClick={onClose} />
+            <Button label="Uložit" variant="primary" onClick={handleSave} />
           </div>
 
         </div>

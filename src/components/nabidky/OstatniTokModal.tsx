@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ArrowDownToLine, ArrowUpFromLine, type LucideIcon } from 'lucide-react'
-import { IconButton, Button, Input, TextArea } from '@matusgallo/mysabds'
+import { IconButton, Button, Input, TextArea, isFloatingPanelOpen,
+} from '@matusgallo/mysabds'
 
 export type TokTyp = 'prijem' | 'vydaj'
 
@@ -28,7 +29,13 @@ export default function OstatniTokModal({ onClose, initialData }: Props) {
   const [errors, setErrors] = useState<{ datum?: string; vs?: string; castka?: string }>({})
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Nad rozbaleným seznamem nebo kalendářem patří Escape jemu, ne modálu -
+      // jinak jeden stisk zavře obojí a rozepsaný formulář je pryč.
+      if (isFloatingPanelOpen()) return
+      onClose()
+    }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])

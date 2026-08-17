@@ -6,8 +6,10 @@ import {
   Input, RadioGroupItem, Select, SwitchGroup, Tag, TextArea, TextButton, Toggle, TooltipIcon,
   typography,
 } from '@matusgallo/mysabds'
+import AdresaNaseptavac from '../components/shared/AdresaNaseptavac'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import TelefonInput from '../components/shared/TelefonInput'
+import type { AdresniMisto } from '../data/adresyRegistr'
 import { pobockyData, roleData, uzivateleData } from '../data/mockOstatni'
 import { chybaTelefonu } from '../data/telefonPredvolby'
 import {
@@ -83,6 +85,34 @@ const EXPORT_ZASTUPCI = [...uzivateleData]
   .map(u => ({ value: String(u.id), label: `${u.jmeno} ${u.prijmeni}`, sub: u.pobocka }))
 
 // ── Model ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Maska rodného čísla - uživatel píše jen číslice, lomítko doplní pole samo za
+ * šestou číslicí. Delší než 10 číslic rodné číslo nikdy není, zbytek se zahodí.
+ *
+ * `smazaneLomitko` řeší mazání: kdyby maska po backspace lomítko hned vrátila,
+ * uživatel by se přes šestou číslici nedostal zpátky.
+ */
+function maskaRodnehoCisla(hodnota: string, predchozi: string) {
+  const smazaneLomitko = predchozi.endsWith('/') && hodnota === predchozi.slice(0, -1)
+  let cifry = hodnota.replace(/\D/g, '').slice(0, 10)
+  if (smazaneLomitko) cifry = cifry.slice(0, -1)
+  return cifry.length >= 6 ? `${cifry.slice(0, 6)}/${cifry.slice(6)}` : cifry
+}
+
+/**
+ * Adresa z našeptávače do polí formuláře. Část obce se nepřenáší - formulář pro
+ * ni pole nemá a do města nepatří, protože to je jméno obce, ne její části.
+ */
+function adresaZRegistru(a: AdresniMisto): Adresa {
+  return {
+    ulice: a.ulice,
+    cisloPopisne: a.cisloPopisne,
+    cisloOrientacni: a.cisloOrientacni,
+    psc: a.psc,
+    mesto: a.mesto,
+  }
+}
 
 function velikostSouboru(bytes: number) {
   const kb = bytes / 1024
@@ -974,10 +1004,12 @@ export default function UzivatelFormPage({ mode }: { mode: 'create' | 'edit' }) 
         >
           {/* Ulice bere zbytek místa, čísla jen tolik, kolik potřebuje popisek. */}
           <Cols cols="minmax(0, 1fr) 110px 120px">
-            <Input
-              label="Ulice" required placeholder="Zadejte ulici"
-              value={s.ulice} onChange={v => set({ ulice: v })}
-              error={err(`${p}ulice`)} width="100%"
+            <AdresaNaseptavac
+              required
+              value={s.ulice}
+              onChange={v => set({ ulice: v })}
+              onVybrat={a => set(adresaZRegistru(a))}
+              error={err(`${p}ulice`)}
             />
             <Input
               label="Číslo popisné" required placeholder="123" numeric
@@ -1129,7 +1161,9 @@ export default function UzivatelFormPage({ mode }: { mode: 'create' | 'edit' }) 
                   />
                   <Input
                     label="Rodné číslo" required placeholder="900101/1234"
-                    value={rodneCislo} onChange={setRodneCislo} error={err('rodneCislo')} width="100%"
+                    value={rodneCislo}
+                    onChange={v => setRodneCislo(prev => maskaRodnehoCisla(v, prev))}
+                    error={err('rodneCislo')} width="100%"
                   />
                   <Input
                     label="Číslo občanského průkazu" required placeholder="123456789" numeric
@@ -1140,10 +1174,12 @@ export default function UzivatelFormPage({ mode }: { mode: 'create' | 'edit' }) 
 
               <Block label="Trvalé bydliště">
                 <Cols cols="minmax(0, 1fr) 110px 120px">
-                  <Input
-                    label="Ulice" required placeholder="Zadejte ulici"
-                    value={bydliste.ulice} onChange={v => setBydliste(p => ({ ...p, ulice: v }))}
-                    error={err('bydliste.ulice')} width="100%"
+                  <AdresaNaseptavac
+                    required
+                    value={bydliste.ulice}
+                    onChange={v => setBydliste(p => ({ ...p, ulice: v }))}
+                    onVybrat={a => setBydliste(p => ({ ...p, ...adresaZRegistru(a) }))}
+                    error={err('bydliste.ulice')}
                   />
                   <Input
                     label="Číslo popisné" required placeholder="123" numeric

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { User, Shield, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { NavItem, IconButton } from '@matusgallo/mysabds'
+import { NavItem, IconButton, isFloatingPanelOpen } from '@matusgallo/mysabds'
 import ProfilPage from './ProfilPage'
 import ZmenaHeslaPage from './ZmenaHeslaPage'
 
@@ -25,7 +25,11 @@ export default function NastaveniModal({ open, section, onSectionChange, onClose
   useEffect(() => {
     if (!open) return
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
+      if (e.key !== 'Escape') return
+      // Nad rozbaleným seznamem nebo kalendářem patří Escape jemu, ne modálu -
+      // jinak jeden stisk zavře obojí a rozepsaný formulář je pryč.
+      if (isFloatingPanelOpen()) return
+      onClose()
     }
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)

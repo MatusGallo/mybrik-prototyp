@@ -1,57 +1,61 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Phone, Mail } from 'lucide-react'
-import { Avatar, Tag } from '@matusgallo/mysabds'
+import { Phone, Mail, Globe } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { Tag } from '@matusgallo/mysabds'
 import ListPageShell from '../../components/shared/ListPageShell'
 import DataTable from '../../components/shared/DataTable'
 import PageFilterBar from '../../components/shared/PageFilterBar'
 import PrilezitostPanel from '../../components/obchod/PrilezitostPanel'
 import { renderDatum } from '../../utils/tableRenders'
-import { renderAvatarName, initials, avatarColor } from '../../utils/renderAvatarName'
-import { prilezitostiData } from '../../data/mockObchod'
+import { renderAvatarName, renderKlientKontakt } from '../../utils/renderAvatarName'
+import {
+  prilezitostiData, STAVY_PROHLIDKY, stavProhlidkyVariant, typObchoduVariant,
+} from '../../data/mockObchod'
 import { pobockyData, makleriList } from '../../data/mockOstatni'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 50
 
 const POBOCKY = pobockyData.map(p => p.nazev)
+const STAVY = [...STAVY_PROHLIDKY]
 const TYPY_OBCHODU = ['Prodej', 'Pronájem']
 const distinct = (key: 'typKontaktu' | 'zdroj') =>
   Array.from(new Set(prilezitostiData.map(p => p[key]))).filter(Boolean).sort((a, b) => a.localeCompare(b, 'cs'))
 const TYPY_KONTAKTU = distinct('typKontaktu')
 const ZDROJE = distinct('zdroj')
 
+// Kanál, kterým klient přišel. Ikona jen doplňuje text, sama nikdy nestojí za popiskem.
+const KONTAKT_IKONY: Record<string, LucideIcon | undefined> = {
+  'Telefon': Phone,
+  'E-mail': Mail,
+  'Webový formulář': Globe,
+}
+
 const cols = [
   { key: 'id', label: 'ID', width: 60 },
   { key: 'nazevNabidky', label: 'Název nabídky', width: 240, flex: true },
-  { key: 'klient', label: 'Klient', width: 260, render: (r: Record<string, unknown>) => {
-    const [name, email, phone] = String(r.klient ?? '').split('\n')
-    if (!name) return <span style={{ color: 'var(--t-textPrimary)', fontSize: 14 }}>–</span>
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden', width: '100%' }}>
-        <Avatar size="sm" initials={initials(name)} color={avatarColor(name)} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, overflow: 'hidden', minWidth: 0 }}>
-          <span style={{ fontSize: 14, color: 'var(--t-textPrimary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-          {(phone || email) && (
-            <span style={{ fontSize: 12, color: 'var(--t-textSecondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {[phone, email].filter(Boolean).join(' · ')}
-            </span>
-          )}
-        </div>
-      </div>
-    )
+  { key: 'klient', label: 'Klient', width: 260, render: renderKlientKontakt('klient') },
+  { key: 'stavProhlidky', label: 'Stav', width: 170, render: (r: Record<string, unknown>) => {
+    const stav = String(r.stavProhlidky ?? '')
+    if (!stav) return <span style={{ color: 'var(--t-textPrimary)', fontSize: 14 }}>–</span>
+    return <Tag label={stav} variant={stavProhlidkyVariant(stav)} size="sm" lead="indicator" />
   }},
-  { key: 'stavProhlidky', label: 'Stav', width: 150 },
-  { key: 'typNabidky', label: 'Typ nabídky', width: 100 },
+  { key: 'typNabidky', label: 'Typ nabídky', width: 130, render: (r: Record<string, unknown>) => {
+    const typ = String(r.typNabidky ?? '')
+    if (!typ) return <span style={{ color: 'var(--t-textPrimary)', fontSize: 14 }}>–</span>
+    return <Tag label={typ} variant={typObchoduVariant(typ)} size="sm" />
+  }},
   { key: 'makler', label: 'Makléř', width: 220, render: renderAvatarName('makler') },
   { key: 'pobocka', label: 'Pobočka', width: 160 },
   { key: 'franchiza', label: 'HSP', width: 130 },
   { key: 'datumVytvoreni', label: 'Vytvořeno', width: 110, render: renderDatum('datumVytvoreni') },
   { key: 'datumPosledniZmeny', label: 'Upraveno', width: 110, render: renderDatum('datumPosledniZmeny') },
   { key: 'idNabidky', label: 'ID nabídky', width: 90 },
-  { key: 'typKontaktu', label: 'Typ kontaktu', width: 120, render: (r: Record<string, unknown>) => {
+  // 180 px, ať se „Webový formulář“ vejde celý včetně ikony - tag se nesmí zkracovat.
+  { key: 'typKontaktu', label: 'Typ kontaktu', width: 180, render: (r: Record<string, unknown>) => {
     const typ = String(r.typKontaktu ?? '')
-    const Icon = typ === 'Telefon' ? Phone : typ === 'E-mail' ? Mail : null
     if (!typ) return null
+    const Icon = KONTAKT_IKONY[typ] ?? null
     return <Tag label={typ} variant="neutral" size="sm" lead={Icon ? 'icon' : 'none'} icon={Icon ?? undefined} />
   }},
   { key: 'zdroj', label: 'Zdroj', width: 160 },
@@ -67,6 +71,7 @@ export default function PrilezitostiPage() {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [stav, setStav] = useState(new Set<string>())
   const [typObchodu, setTypObchodu] = useState(new Set<string>())
   const [makler, setMakler] = useState(new Set<string>())
   const [pobocka, setPobocka] = useState(new Set<string>())
@@ -92,6 +97,7 @@ export default function PrilezitostiPage() {
           <PageFilterBar
             search={{ value: search, onChange: setSearch, placeholder: 'Hledat...' }}
             groups={[
+              { label: 'Stav', options: STAVY, values: stav, onChange: toggle(setStav) },
               { label: 'Typ obchodu', options: TYPY_OBCHODU, values: typObchodu, onChange: toggle(setTypObchodu) },
               { label: 'Makléř', options: makleriList, values: makler, onChange: toggle(setMakler), searchable: true },
               { label: 'Pobočka', options: POBOCKY, values: pobocka, onChange: toggle(setPobocka), searchable: true },
@@ -108,7 +114,7 @@ export default function PrilezitostiPage() {
             onHideAllCols={() => setHiddenCols(new Set(TOGGLEABLE_COLS.map(c => c.key)))}
             onShowAllCols={() => setHiddenCols(new Set())}
             onClear={() => {
-              setSearch(''); setTypObchodu(new Set()); setMakler(new Set()); setPobocka(new Set())
+              setSearch(''); setStav(new Set()); setTypObchodu(new Set()); setMakler(new Set()); setPobocka(new Set())
               setTypKontaktu(new Set()); setZdroj(new Set()); setVytvoreno(''); setUpraveno(''); setPage(1)
             }}
           />

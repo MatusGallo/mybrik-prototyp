@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Modal, Select, TextArea, Chip, Alert, Divider } from '@matusgallo/mysabds'
+import { Modal, Select, TextArea, Chip, Alert, Divider, isFloatingPanelOpen,
+} from '@matusgallo/mysabds'
 
 // ── Nastavení automatického odesílání statistik klientovi ─────────────────────
 
@@ -209,7 +210,13 @@ export default function AutomatickeStatistikyModal({ initial, onClose, onSave }:
   const [showErrors, setShowErrors] = useState(false)
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Nad rozbaleným seznamem nebo kalendářem patří Escape jemu, ne modálu -
+      // jinak jeden stisk zavře obojí a rozepsaný formulář je pryč.
+      if (isFloatingPanelOpen()) return
+      onClose()
+    }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])

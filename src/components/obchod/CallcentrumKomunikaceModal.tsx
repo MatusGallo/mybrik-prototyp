@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import { IconButton, Button, Input, TextArea, Select } from '@matusgallo/mysabds'
+import { IconButton, Button, Input, TextArea, Select, isFloatingPanelOpen,
+} from '@matusgallo/mysabds'
 
 const TYP_OPT = [
   { value: 'Telefon', label: 'Telefon' },
@@ -39,7 +40,13 @@ export default function CallcentrumKomunikaceModal({ onClose }: Props) {
   const [poznamka, setPoznamka] = useState('')
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Nad rozbaleným seznamem nebo kalendářem patří Escape jemu, ne modálu -
+      // jinak jeden stisk zavře obojí a rozepsaný formulář je pryč.
+      if (isFloatingPanelOpen()) return
+      onClose()
+    }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])

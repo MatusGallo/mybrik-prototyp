@@ -5,9 +5,11 @@ import {
   Button, Divider, FileUploadArea, IconButton, Input, Select,
   Tag, Toggle, ToggleItem, TooltipIcon, iconSize, typography,
 } from '@matusgallo/mysabds'
+import AdresaNaseptavac from '../components/shared/AdresaNaseptavac'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import TelefonInput from '../components/shared/TelefonInput'
 import { BarvaPicker, BarvaVzorek, normalizovatHex } from '../components/shared/BarvaPicker'
+import { celaAdresa } from '../data/adresyRegistr'
 import { hspData, pobockyData } from '../data/mockOstatni'
 import { chybaTelefonu } from '../data/telefonPredvolby'
 import {
@@ -820,13 +822,15 @@ export default function PobockaFormPage({ mode }: { mode: 'create' | 'edit' }) {
             <Card
               title="Adresa pobočky"
             >
-              <Input
+              {/* Pobočka drží adresu v jednom poli, ne v rozpadu - z nabídky se
+                  proto vyplní celá adresa včetně PSČ a města. */}
+              <AdresaNaseptavac
                 label="Adresa" required
                 placeholder="Začněte psát adresu…"
                 value={adresa} onChange={setAdresa}
+                onVybrat={a => setAdresa(celaAdresa(a))}
                 error={err('adresa')}
                 helperText="Po výběru z našeptávače se doplní souřadnice a pin na mapě."
-                width="100%"
               />
               <MapaVyrez napichnuto={Boolean(adresa.trim())}>
                 {adresa.trim() && (
@@ -978,7 +982,7 @@ export default function PobockaFormPage({ mode }: { mode: 'create' | 'edit' }) {
             >
               <Cols cols="minmax(0, 1fr) minmax(0, 1fr)">
                 <Input
-                  label="Uživatelské jméno"
+                  label="Přihlašovací jméno"
                   placeholder="Zadejte jméno"
                   value={knJmeno} onChange={setKnJmeno}
                   error={err('knJmeno')} width="100%"

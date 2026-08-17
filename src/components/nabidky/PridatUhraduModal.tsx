@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
-import { IconButton, Button, Input, TextArea, Select } from '@matusgallo/mysabds'
+import { IconButton, Button, Input, TextArea, Select, isFloatingPanelOpen,
+} from '@matusgallo/mysabds'
 
 export interface UhradaFormData {
   datum: string
@@ -250,7 +251,13 @@ export default function PridatUhraduModal({ onClose, onSave, predpisDatum, defau
   const [errors, setErrors] = useState<{ datum?: string; castka?: string }>({})
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Nad rozbaleným seznamem nebo kalendářem patří Escape jemu, ne modálu -
+      // jinak jeden stisk zavře obojí a rozepsaný formulář je pryč.
+      if (isFloatingPanelOpen()) return
+      onClose()
+    }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
