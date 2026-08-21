@@ -1,6 +1,6 @@
 import { Fragment, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Building2, Eye, EyeOff, Trash2, UserRound } from 'lucide-react'
+import { ChevronLeft, Building2, Eye, EyeOff, Trash2, UserRound } from 'lucide-react'
 import {
   Avatar, Button, Checkbox, CheckboxItem, DatePicker, Divider, FileUploadArea, IconButton,
   Input, RadioGroupItem, Select, SwitchGroup, Tag, TextArea, TextButton, Toggle, TooltipIcon,
@@ -1089,7 +1089,7 @@ export default function UzivatelFormPage({ mode }: { mode: 'create' | 'edit' }) 
           display: 'flex', alignItems: 'flex-start', gap: 16,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-            <IconButton icon={ArrowLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={zavrit} />
+            <IconButton icon={ChevronLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={zavrit} />
             <h1 style={{
               ...typography.headline24, margin: 0, color: 'var(--t-textPrimary)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',

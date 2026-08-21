@@ -1,6 +1,6 @@
 import { Fragment, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, MapPin, Eye, EyeOff } from 'lucide-react'
+import { ChevronLeft, MapPin, Eye, EyeOff } from 'lucide-react'
 import {
   Button, Divider, FileUploadArea, IconButton, Input, Select,
   Tag, Toggle, ToggleItem, TooltipIcon, iconSize, typography,
@@ -760,7 +760,7 @@ export default function PobockaFormPage({ mode }: { mode: 'create' | 'edit' }) {
           display: 'flex', alignItems: 'flex-start', gap: 16,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-            <IconButton icon={ArrowLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={zavrit} />
+            <IconButton icon={ChevronLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={zavrit} />
             <h1 style={{
               ...typography.headline24, margin: 0, color: 'var(--t-textPrimary)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',

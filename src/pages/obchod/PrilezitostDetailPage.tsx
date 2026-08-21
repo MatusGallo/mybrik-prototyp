@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, type CSSProperties } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, ArrowRight, ArrowUpRight, Phone, Mail, Smartphone, MessageSquare,
+  ArrowRight, ArrowUpRight, Phone, Mail, Smartphone, MessageSquare,
   Calendar, CalendarClock, CheckSquare, Clock, MapPin, User, Pencil,
-  StickyNote, RefreshCw, Send, CircleDollarSign, ChevronDown, ChevronUp, Globe,
+  StickyNote, RefreshCw, Send, CircleDollarSign, ChevronDown, ChevronUp, ChevronLeft, Globe,
   Maximize2, KeyRound, CircleDot, CircleCheck, Circle, Wallet, PiggyBank,
   Landmark, UserCheck, Building2,
   type LucideIcon,
@@ -656,6 +656,26 @@ export default function PrilezitostDetailPage() {
     () => prilezitostiData.find(r => r.id === id)?.stavPrilezitosti ?? STAVY_PRILEZITOSTI[0]
   )
 
+  // Hlavička je sticky pod topbarem — po odscrollování zmenší svislý padding.
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    function onScroll() { setScrolled(window.scrollY > 8) }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  // Pravý panel musí být sticky až pod hlavičkou (ne pod ní schovaný) — top se
+  // dopočítává z reálné výšky hlavičky, ať sedí i během jejího zmenšování.
+  const headerRef = useRef<HTMLDivElement>(null)
+  const [panelTop, setPanelTop] = useState(56 + 88 + 16)
+  useEffect(() => {
+    const el = headerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setPanelTop(el.offsetHeight + 56 + 16))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   const p = prilezitostiData.find(r => r.id === id)
   if (!p) {
     return <div style={{ padding: 24, color: 'var(--t-textSecondary)' }}>Příležitost nenalezena.</div>
@@ -687,17 +707,22 @@ export default function PrilezitostDetailPage() {
     <>
       <div style={{ margin: -24, background: 'var(--t-bgSecondary)', minHeight: 'calc(100vh - 56px)' }}>
 
-        {/* Hlavička — bílý pás přes celou šířku, stejně jako v detailu nabídky */}
-        <div style={{ background: 'var(--t-bgPrimary)', borderBottom: '1px solid var(--t-borderPrimary)' }}>
+        {/* Hlavička — bílý pás přes celou šířku, stejně jako v detailu nabídky. Sticky pod topbarem,
+            po odscrollování se svislý padding zmenší na 16px s animací. */}
+        <div ref={headerRef} style={{ background: 'var(--t-bgPrimary)', borderBottom: '1px solid var(--t-borderPrimary)', position: 'sticky', top: 56, zIndex: 10 }}>
           <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0, padding: '24px 0' }}>
-              <div style={{ marginTop: 2 }}>
-                <IconButton icon={ArrowLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={() => navigate('/obchod/prilezitosti')} />
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8, minWidth: 0,
+              padding: scrolled ? '16px 0' : '24px 0',
+              transition: 'padding 200ms ease',
+            }}>
+              <IconButton icon={ChevronLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={() => navigate('/obchod/prilezitosti')} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, lineHeight: '32px', color: 'var(--t-textPrimary)', minWidth: 0 }}>
+                  Příležitost - {klientJmeno}
+                </h1>
+                <Tag label={p.id} variant="neutral" size="sm" />
               </div>
-              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, lineHeight: '32px', color: 'var(--t-textPrimary)', minWidth: 0 }}>
-                Příležitost - {klientJmeno}
-                <span style={{ fontWeight: 500, color: 'var(--t-textTertiary)' }}> · {p.id}</span>
-              </h1>
             </div>
           </div>
         </div>
@@ -995,7 +1020,7 @@ export default function PrilezitostDetailPage() {
             </div>
 
             {/* ── Pravý panel ─────────────────────────────────────────── */}
-            <div style={{ position: 'sticky', top: 72, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ position: 'sticky', top: panelTop, transition: 'top 200ms ease', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             {/* Stav a akce */}
             <div style={{ ...CARD, padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>

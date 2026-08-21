@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, Building2, Home, LandPlot, Handshake, LayoutGrid,
+  ChevronLeft, Building2, Home, LandPlot, Handshake, LayoutGrid,
   Maximize2, MapPin, Wallet, Plus, type LucideIcon,
 } from 'lucide-react'
 import {
@@ -194,7 +194,7 @@ export default function PoptavkaDetailPage() {
           <div style={{ maxWidth: 1440, margin: '0 auto', padding: '0 24px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0, padding: '24px 0 8px' }}>
               <div style={{ marginTop: 2 }}>
-                <IconButton icon={ArrowLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={() => navigate('/obchod/poptavky')} />
+                <IconButton icon={ChevronLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={() => navigate('/obchod/poptavky')} />
               </div>
               <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, lineHeight: '32px', color: 'var(--t-textPrimary)', minWidth: 0 }}>
                 Poptávka - {nazev}

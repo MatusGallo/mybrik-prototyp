@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft, Building2, UserRound,
+  ChevronLeft, Building2, UserRound,
 } from 'lucide-react'
 import {
   Button, Divider, IconButton, Input, Select,
@@ -583,7 +583,7 @@ export default function HspFormPage({ mode }: { mode: 'create' | 'edit' }) {
           display: 'flex', alignItems: 'flex-start', gap: 16,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-            <IconButton icon={ArrowLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={zavrit} />
+            <IconButton icon={ChevronLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={zavrit} />
             <h1 style={{
               ...typography.headline24, margin: 0, color: 'var(--t-textPrimary)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',

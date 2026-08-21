@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, Handshake, Pencil, MessageCircle, Ban, ArrowUpRight, Copy,
+  ChevronLeft, Handshake, Pencil, MessageCircle, Ban, ArrowUpRight, Copy,
 } from 'lucide-react'
 import {
   IconButton, LineTabGroup, TextButton, TableHeaderCell, TableCell, TextArea,
@@ -109,6 +109,26 @@ export default function NabidkaNemovitostiDetailPage() {
   const [editPanelOpen, setEditPanelOpen] = useState(false)
   const [interniPoznamka, setInterniPoznamka] = useState('')
 
+  // Hlavička je sticky pod topbarem — po odscrollování zmenší svislý padding.
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    function onScroll() { setScrolled(window.scrollY > 8) }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  // Záložky musí být sticky až pod hlavičkou — top se dopočítává z její reálné
+  // výšky, ať sedí i během jejího zmenšování.
+  const headerRef = useRef<HTMLDivElement>(null)
+  const [tabsTop, setTabsTop] = useState(56 + 64)
+  useEffect(() => {
+    const el = headerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setTabsTop(el.offsetHeight + 56))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   const n = nabidkaNemovitostiData.find(r => String(r.id) === id)
   if (!n) {
     return (
@@ -125,37 +145,41 @@ export default function NabidkaNemovitostiDetailPage() {
     <>
     <div style={{ margin: -24, background: 'var(--t-bgSecondary)', minHeight: 'calc(100vh - 56px)' }}>
 
-      {/* Header */}
-      <div style={{ background: 'var(--t-bgSecondary)' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 24px 16px' }}>
+      {/* Header — sticky pod topbarem, po odscrollování se svislý padding zmenší na 16px s animací */}
+      <div ref={headerRef} style={{ background: 'var(--t-bgPrimary)', position: 'sticky', top: 56, zIndex: 11 }}>
+        <div style={{
+          maxWidth: 1280, margin: '0 auto', padding: '0 24px',
+          paddingTop: scrolled ? 16 : 24, paddingBottom: 8,
+          transition: 'padding 200ms ease',
+        }}>
           {/* Title row */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <IconButton
-                icon={ArrowLeft}
+                icon={ChevronLeft}
                 variant="ghost"
                 size="md"
                 onClick={() => navigate('/obchod/nabidka-nemovitosti')}
               />
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, lineHeight: '28px', color: 'var(--t-textPrimary)' }}>
+              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, lineHeight: '32px', color: 'var(--t-textPrimary)' }}>
                 Callcentrum – Nabídka nemovitosti
               </h1>
             </div>
 
             {/* Rychlé akce */}
             <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
-              <IconButton icon={Pencil} variant="soft" size="lg" tooltip="Editovat callcentrum" onClick={() => setEditPanelOpen(true)} />
-              <IconButton icon={Handshake} variant="soft" size="lg" tooltip="Předat" onClick={() => setPredatOpen(true)} />
-              <IconButton icon={MessageCircle} variant="soft" size="lg" tooltip="Zapsat komunikaci" onClick={() => setKomunikaceOpen(true)} />
-              <IconButton icon={Ban} variant="soft" size="lg" tooltip="Zrušit záznam" onClick={() => setZrusitOpen(true)} />
+              <IconButton icon={Pencil} variant="soft" size="md" tooltip="Editovat callcentrum" onClick={() => setEditPanelOpen(true)} />
+              <IconButton icon={Handshake} variant="soft" size="md" tooltip="Předat" onClick={() => setPredatOpen(true)} />
+              <IconButton icon={MessageCircle} variant="soft" size="md" tooltip="Zapsat komunikaci" onClick={() => setKomunikaceOpen(true)} />
+              <IconButton icon={Ban} variant="soft" size="md" tooltip="Zrušit záznam" onClick={() => setZrusitOpen(true)} />
             </div>
           </div>
 
         </div>
       </div>
 
-      {/* Sticky tabs */}
-      <div style={{ position: 'sticky', top: 56, zIndex: 10, background: 'var(--t-bgSecondary)', borderBottom: '1px solid var(--t-borderPrimary)' }}>
+      {/* Sticky tabs — hned pod hlavičkou, top sleduje její (proměnnou) výšku */}
+      <div style={{ position: 'sticky', top: tabsTop, transition: 'top 200ms ease', zIndex: 10, background: 'var(--t-bgPrimary)', borderBottom: '1px solid var(--t-borderPrimary)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
           <LineTabGroup tabs={TABS} value={tab} onChange={setTab} />
         </div>

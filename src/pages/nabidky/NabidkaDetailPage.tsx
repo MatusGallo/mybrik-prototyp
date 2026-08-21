@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, ArrowRight, Pencil, Download, Mail, Phone, Plus, Trash2,
+  ArrowRight, Pencil, Download, Mail, Phone, Plus, Trash2,
   Folder, FolderOpen, Upload,
   ChevronRight, ChevronLeft, ChevronDown, ChevronUp, X,
   Maximize2, Building2, Clock, Hammer, KeyRound, ShieldCheck, Tag as TagIcon, Calendar, Home,
@@ -1332,7 +1332,7 @@ export default function NabidkaDetailPage() {
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '24px 0 8px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
               <div style={{ marginTop: 2 }}>
-                <IconButton icon={ArrowLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={() => navigate('/nabidky')} />
+                <IconButton icon={ChevronLeft} variant="ghost" size="md" tooltip="Zpět na seznam" onClick={() => navigate('/nabidky')} />
               </div>
               <div style={{ minWidth: 0 }}>
                 {/* typography.headline24 */}
