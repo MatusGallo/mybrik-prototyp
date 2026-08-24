@@ -3,9 +3,9 @@ import { LoginBackground, LoginCard, tokens } from '@matusgallo/mysabds'
 import { AuthContext } from '../auth'
 import myBrikLogo from '../assets/mybrik-logo.svg'
 
-// Pozor: tohle není bezpečnostní hranice - heslo leží v JS bundlu. Nasazený web
-// hlídá Basic Auth v middleware.ts na Vercel edge, tahle brána je přihlašovací
-// obrazovka prototypu, aby šlo projít i vlastní odhlášení.
+// Pozor: tohle není bezpečnostní hranice - heslo leží v JS bundlu a přečte ho
+// každý, kdo otevře DevTools. Drží náhodného návštěvníka mimo rozpracovaný
+// prototyp, nic víc - skutečná klientská data za tímhle stát nesmí.
 const PASSWORD = 'myBRIK2026'
 const STORAGE_KEY = 'mybrik-auth'
 
