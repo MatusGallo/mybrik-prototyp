@@ -1,7 +1,11 @@
 import { useState, useEffect, type ReactNode } from 'react'
-import { Lock } from 'lucide-react'
-import { Input, Button } from '@matusgallo/mysabds'
+import { LoginBackground, LoginCard, tokens } from '@matusgallo/mysabds'
+import { AuthContext } from '../auth'
+import myBrikLogo from '../assets/mybrik-logo.svg'
 
+// Pozor: tohle není bezpečnostní hranice - heslo leží v JS bundlu. Nasazený web
+// hlídá Basic Auth v middleware.ts na Vercel edge, tahle brána je přihlašovací
+// obrazovka prototypu, aby šlo projít i vlastní odhlášení.
 const PASSWORD = 'myBRIK2026'
 const STORAGE_KEY = 'mybrik-auth'
 
@@ -16,8 +20,7 @@ export default function PasswordGate({ children }: { children: ReactNode }) {
     setChecked(true)
   }, [])
 
-  function handleSubmit(e?: React.FormEvent) {
-    e?.preventDefault()
+  function handleSubmit() {
     if (password === PASSWORD) {
       localStorage.setItem(STORAGE_KEY, '1')
       setAuthed(true)
@@ -27,73 +30,37 @@ export default function PasswordGate({ children }: { children: ReactNode }) {
     }
   }
 
+  function logout() {
+    localStorage.removeItem(STORAGE_KEY)
+    setAuthed(false)
+    setPassword('')
+    setError(false)
+  }
+
   if (!checked) return null
-  if (authed) return <>{children}</>
+  if (authed) return <AuthContext.Provider value={{ logout }}>{children}</AuthContext.Provider>
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--t-bgSecondary)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 24,
-    }}>
-      <form
-        onSubmit={handleSubmit}
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      <LoginBackground color={tokens.bgMyDOCKPrimary} />
+      <div
         style={{
-          width: '100%',
-          maxWidth: 400,
-          background: 'var(--t-bgPrimary)',
-          border: '1px solid var(--t-borderPrimary)',
-          borderRadius: 16,
-          padding: 32,
-          boxShadow: '0 8px 24px rgba(10,13,18,0.08)',
+          position: 'relative',
+          minHeight: '100vh',
           display: 'flex',
-          flexDirection: 'column',
-          gap: 16,
           alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
-        <div style={{
-          width: 56, height: 56, borderRadius: 12,
-          background: 'var(--t-bgMyDOCKTertiary, #fff5f0)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Lock size={24} style={{ color: 'var(--t-textMyDOCKPrimary)' }} />
-        </div>
-
-        <div style={{ textAlign: 'center' }}>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, lineHeight: '32px', color: 'var(--t-textPrimary)' }}>
-            myBRIK
-          </h1>
-          <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--t-textSecondary)' }}>
-            Zadejte heslo pro vstup do aplikace
-          </p>
-        </div>
-
-        <div style={{ width: '100%' }}>
-          <Input
-            label="Heslo"
-            type="password"
-            value={password}
-            onChange={v => { setPassword(v); if (error) setError(false) }}
-            error={error ? 'Nesprávné heslo' : undefined}
-            placeholder="Zadejte heslo"
-            width="100%"
-          />
-        </div>
-
-        <div style={{ width: '100%', display: 'flex' }}>
-          <div style={{ flex: 1 }}>
-            <Button
-              label="Pokračovat"
-              variant="primary"
-              onClick={handleSubmit}
-            />
-          </div>
-        </div>
-      </form>
+        <LoginCard
+          logo={<img src={myBrikLogo} alt="" style={{ height: 24, width: 'auto' }} />}
+          appName="myBRIK"
+          password={password}
+          onPasswordChange={v => { setPassword(v); if (error) setError(false) }}
+          error={error ? 'Heslo nesedí. Zkuste ho zadat znovu.' : undefined}
+          onSubmit={handleSubmit}
+        />
+      </div>
     </div>
   )
 }

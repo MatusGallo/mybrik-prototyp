@@ -2,3 +2,5 @@
 node_modules/
 dist/
 .claude/skills/
+.env
+.env.local

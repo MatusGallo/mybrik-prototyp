@@ -21,7 +21,8 @@
   },
   "homepage": "https://github.com/MatusGallo/myBRIK#readme",
   "dependencies": {
-    "@matusgallo/mysabds": "^1.6.36",
+    "@matusgallo/mysabds": "^1.7.0",
+    "@vercel/edge": "^1.1.1",
     "country-flag-emoji-polyfill": "^0.1.10",
     "lucide-react": "^1.14.0",
     "react": "^18.3.1",

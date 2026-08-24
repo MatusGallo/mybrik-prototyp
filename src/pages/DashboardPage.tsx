@@ -3,10 +3,7 @@ import {
   Home, MessageCircle, Users, TrendingUp, FileText, CreditCard, Calendar,
   CheckSquare, ArrowUpRight, TrendingDown, ArrowRight,
 } from 'lucide-react'
-import { Avatar, Tag, TextButton } from '@matusgallo/mysabds'
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts'
+import { Avatar, AreaChart, Tag, TextButton } from '@matusgallo/mysabds'
 import { prilezitostiData, stavPrilezitostiVariant } from '../data/mockObchod'
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
@@ -291,42 +288,16 @@ export default function DashboardPage() {
 
           {/* Výkon */}
           <div style={WIDGET}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={WIDGET_HEADING}>Výkon za posledních 12 měsíců</span>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--t-textMyDOCKPrimary)' }} />
-                  <span style={{ fontSize: 12, color: 'var(--t-textSecondary)' }}>Poptávky</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: '#94a3b8' }} />
-                  <span style={{ fontSize: 12, color: 'var(--t-textSecondary)' }}>Nabídky</span>
-                </div>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={performanceData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="poptavkyGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--t-textMyDOCKPrimary)" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="var(--t-textMyDOCKPrimary)" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="nabidkyGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#94a3b8" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#94a3b8" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--t-borderPrimary)" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--t-textTertiary)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--t-textTertiary)' }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid var(--t-borderPrimary)', background: 'var(--t-bgPrimary)' }}
-                  labelStyle={{ color: 'var(--t-textSecondary)' }}
-                />
-                <Area type="monotone" dataKey="poptavky" stroke="var(--t-textMyDOCKPrimary)" strokeWidth={2} fill="url(#poptavkyGrad)" name="Poptávky" />
-                <Area type="monotone" dataKey="nabidky" stroke="#94a3b8" strokeWidth={2} fill="url(#nabidkyGrad)" name="Nabídky" />
-              </AreaChart>
-            </ResponsiveContainer>
+            <span style={WIDGET_HEADING}>Výkon za posledních 12 měsíců</span>
+            <AreaChart
+              data={performanceData}
+              xKey="month"
+              series={[
+                { key: 'poptavky', label: 'Poptávky' },
+                { key: 'nabidky', label: 'Nabídky' },
+              ]}
+              height={220}
+            />
           </div>
 
           {/* Aktivní příležitosti */}

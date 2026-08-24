@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { User, Shield, Sun, Moon, Network, HelpCircle, LogOut } from 'lucide-react'
 import { Menu, MenuItem, MenuDivider, Avatar, SwitchGroup } from '@matusgallo/mysabds'
+import { useAuth } from '../../auth'
 
 interface AvatarMenuProps {
   open: boolean
@@ -10,6 +11,7 @@ interface AvatarMenuProps {
 }
 
 export default function AvatarMenu({ open, onClose, onOpenProfil, onOpenZmenaHesla }: AvatarMenuProps) {
+  const { logout } = useAuth()
   const [theme, setTheme] = useState('light')
 
   function handleThemeChange(value: string) {
@@ -66,7 +68,7 @@ export default function AvatarMenu({ open, onClose, onOpenProfil, onOpenZmenaHes
         <MenuItem label="Moje struktura" leadIcon={Network} onClick={onClose} />
         <MenuItem label="Podpora" leadIcon={HelpCircle} onClick={onClose} />
         <MenuDivider />
-        <MenuItem label="Odhlásit" leadIcon={LogOut} variant="danger" onClick={onClose} />
+        <MenuItem label="Odhlásit" leadIcon={LogOut} variant="danger" onClick={() => { onClose(); logout() }} />
       </Menu>
     </div>
   )
